@@ -9,7 +9,6 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = React.useState("")
   const [isSubmitted, setIsSubmitted] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(false)
-  const [newPassword, setNewPassword] = React.useState<string | null>(null)
   const [error, setError] = React.useState("")
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -22,7 +21,6 @@ export default function ForgotPasswordPage() {
     
     setIsLoading(false)
     if (result.success) {
-      setNewPassword(result.newPassword || null)
       setIsSubmitted(true)
     } else {
       setError(result.error || "Failed to reset password")
@@ -55,13 +53,6 @@ export default function ForgotPasswordPage() {
             <p className="text-sm text-foreground/70">
               Please check your inbox (and spam folder) and click the link to reset your password.
             </p>
-            {newPassword && (
-              <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl mt-4">
-                <p className="text-sm text-orange-500 font-bold mb-2">Development Mode:</p>
-                <p className="text-xs text-foreground/70 mb-2">Since email is not configured, your new temporary password is:</p>
-                <code className="text-lg font-mono font-bold bg-background px-4 py-2 rounded-lg border border-border select-all">{newPassword}</code>
-              </div>
-            )}
             <Link href="/login" className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
               Return to Log In
             </Link>
