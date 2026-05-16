@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Users, FileText, Activity, AlertCircle, Search, Filter, MoreVertical, Plus } from "lucide-react"
+import { Users, FileText, Activity, AlertCircle, Plus, BookOpen, Briefcase } from "lucide-react"
 
 export default function AdminDashboard() {
   return (
@@ -27,7 +27,12 @@ export default function AdminDashboard() {
           <nav className="space-y-1">
             <Link href="/admin/verification" className="flex items-center gap-3 px-3 py-2 text-foreground/70 hover:bg-background rounded-lg font-medium transition-colors">
               <AlertCircle className="w-5 h-5" /> Verification Requests
-              <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">12</span>
+            </Link>
+            <Link href="/admin/skills" className="flex items-center gap-3 px-3 py-2 text-foreground/70 hover:bg-background rounded-lg font-medium transition-colors">
+              <BookOpen className="w-5 h-5" /> Learn Skills
+            </Link>
+            <Link href="/portfolio" className="flex items-center gap-3 px-3 py-2 text-foreground/70 hover:bg-background rounded-lg font-medium transition-colors">
+              <Briefcase className="w-5 h-5" /> Portfolios
             </Link>
             <Link href="/admin/payments" className="flex items-center gap-3 px-3 py-2 text-foreground/70 hover:bg-background rounded-lg font-medium transition-colors">
               <Activity className="w-5 h-5" /> Payments

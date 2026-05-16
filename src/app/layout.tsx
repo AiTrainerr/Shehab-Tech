@@ -4,6 +4,8 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
+import { createClientServer } from "@/lib/supabase";
+import { prisma } from "@/lib/prisma";
 
 const tajawal = Tajawal({
   subsets: ["latin", "arabic"],
@@ -12,15 +14,51 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "SHEHAB TECH | Workforce Management & Freelance",
-  description: "A professional platform for AI Data Collection and freelance collaboration.",
+  title: {
+    default: "SHEHAB TECH | AI Data Collection & Freelance Platform",
+    template: "%s | SHEHAB TECH"
+  },
+  description: "Join SHEHAB TECH, the leading platform for AI data collection, voice recording, and annotation. Earn money as a freelancer by contributing to the future of AI.",
+  keywords: ["AI data collection", "freelance arabic", "voice recording tasks", "data annotation", "work from home egypt", "shehab tech"],
+  authors: [{ name: "SHEHAB TECH Team" }],
+  creator: "SHEHAB TECH",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://shehab-tech.com",
+    title: "SHEHAB TECH | AI Data Collection & Freelance",
+    description: "Earn money through AI training tasks. Join thousands of freelancers at SHEHAB TECH.",
+    siteName: "SHEHAB TECH",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SHEHAB TECH | AI Data Collection",
+    description: "Start your freelance career in AI data collection today.",
+  },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let userRole: string | undefined;
+  
+  try {
+    const supabase = await createClientServer();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { role: true }
+      });
+      userRole = dbUser?.role;
+    }
+  } catch (e) {
+    console.error("Layout auth error:", e);
+  }
+
   return (
     <html lang="en" suppressHydrationWarning dir="ltr">
       <body className={`${tajawal.variable} font-sans min-h-screen flex flex-col antialiased bg-background text-foreground transition-colors duration-300`}>
@@ -30,7 +68,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar />
+          <Navbar userRole={userRole} />
           <main className="flex-grow pt-16">
             {children}
           </main>

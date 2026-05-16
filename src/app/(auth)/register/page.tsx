@@ -6,23 +6,41 @@ import { ArrowRight, UserPlus, Shield } from "lucide-react"
 import { registerUser } from "@/app/actions/auth"
 import { useRouter } from "next/navigation"
 
+const countryDialCodes: Record<string, string> = {
+  EG: "+20", SA: "+966", AE: "+971", JO: "+962", LB: "+961", DZ: "+213", MA: "+212",
+  IQ: "+964", SD: "+249", SY: "+963", TN: "+216", YE: "+967", KW: "+965", QA: "+974",
+  OM: "+968", BH: "+973", US: "+1", UK: "+44", CA: "+1", AU: "+61", DE: "+49", FR: "+33",
+  IT: "+39", ES: "+34", TR: "+90", IN: "+91", PK: "+92", ID: "+62", MY: "+60", NG: "+234",
+  ZA: "+27", BR: "+55", MX: "+52"
+}
+
 export default function RegisterPage() {
   const [step, setStep] = React.useState(1)
   const [error, setError] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
+  const [selectedCountry, setSelectedCountry] = React.useState("")
+  const [showPassword, setShowPassword] = React.useState(false)
+  const [verificationChoice, setVerificationChoice] = React.useState<"now" | "later" | null>(null)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setError("")
+    const formData = new FormData(e.currentTarget)
+
+    if (step === 1) {
+      if (formData.get("password") !== formData.get("confirmPassword")) {
+        setError("Passwords do not match")
+        return
+      }
+    }
+
     if (step < 4) {
       setStep(step + 1)
       return
     }
 
     setIsLoading(true)
-    setError("")
-    
-    const formData = new FormData(e.currentTarget)
     const result = await registerUser(formData)
     
     if (result.success) {
@@ -83,8 +101,7 @@ export default function RegisterPage() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm">{error}</div>}
             
-            {step === 1 && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className={`space-y-4 animate-in fade-in slide-in-from-right-4 duration-500 ${step === 1 ? 'block' : 'hidden'}`}>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">First Name</label>
@@ -103,15 +120,26 @@ export default function RegisterPage() {
                   <label className="text-sm font-semibold">Email Address</label>
                   <input name="email" type="email" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="john@example.com" required={step===1} />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Password</label>
-                  <input name="password" type="password" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="••••••••" required={step===1} />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2 relative">
+                    <label className="text-sm font-semibold">Password</label>
+                    <input name="password" type={showPassword ? "text" : "password"} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all pr-12" placeholder="••••••••" required={step===1} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute bottom-3 right-4 text-foreground/50 hover:text-foreground">
+                      {showPassword ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                      )}
+                    </button>
+                  </div>
+                  <div className="space-y-2 relative">
+                    <label className="text-sm font-semibold">Confirm Password</label>
+                    <input name="confirmPassword" type={showPassword ? "text" : "password"} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all pr-12" placeholder="••••••••" required={step===1} />
+                  </div>
                 </div>
-              </div>
-            )}
+            </div>
 
-            {step === 2 && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className={`space-y-4 animate-in fade-in slide-in-from-right-4 duration-500 ${step === 2 ? 'block' : 'hidden'}`}>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">Gender</label>
                   <select name="gender" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none" required={step===2}>
@@ -127,7 +155,7 @@ export default function RegisterPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">Country</label>
-                    <select name="country" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none" required={step===2}>
+                    <select name="country" value={selectedCountry} onChange={(e) => setSelectedCountry(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none" required={step===2}>
                       <option value="">Select Country</option>
                       <option value="EG">Egypt</option>
                       <option value="SA">Saudi Arabia</option>
@@ -165,16 +193,14 @@ export default function RegisterPage() {
                     </select>
                   </div>
                 </div>
-              </div>
-            )}
+            </div>
 
-            {step === 3 && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className={`space-y-4 animate-in fade-in slide-in-from-right-4 duration-500 ${step === 3 ? 'block' : 'hidden'}`}>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">Phone Number</label>
                   <div className="flex">
                     <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-border bg-card text-foreground/50 sm:text-sm">
-                      +20
+                      {selectedCountry ? countryDialCodes[selectedCountry] : "+20"}
                     </span>
                     <input name="phone" type="tel" className="flex-1 px-4 py-3 rounded-r-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="100 123 4567" required={step===3} />
                   </div>
@@ -183,30 +209,58 @@ export default function RegisterPage() {
                   <label className="text-sm font-semibold">WhatsApp Number</label>
                   <div className="flex">
                     <span className="inline-flex items-center px-4 rounded-l-xl border border-r-0 border-border bg-card text-foreground/50 sm:text-sm">
-                      +20
+                      {selectedCountry ? countryDialCodes[selectedCountry] : "+20"}
                     </span>
                     <input name="whatsapp" type="tel" className="flex-1 px-4 py-3 rounded-r-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="100 123 4567" required={step===3} />
                   </div>
                 </div>
-              </div>
-            )}
+            </div>
 
-            {step === 4 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="p-4 border-2 border-dashed border-border rounded-2xl bg-background text-center hover:bg-card/50 transition-colors cursor-pointer group">
-                  <Shield className="w-8 h-8 text-primary mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                  <h4 className="font-semibold mb-1">Upload ID Card</h4>
-                  <p className="text-xs text-foreground/60 mb-4">Front and back (JPG, PNG or PDF)</p>
-                  <button type="button" className="px-4 py-2 bg-card border border-border rounded-lg text-sm font-medium hover:text-primary transition-colors">Select File</button>
-                </div>
-                <div className="p-4 border-2 border-dashed border-border rounded-2xl bg-background text-center hover:bg-card/50 transition-colors cursor-pointer group">
-                  <UserPlus className="w-8 h-8 text-primary mx-auto mb-2 group-hover:scale-110 transition-transform" />
-                  <h4 className="font-semibold mb-1">Upload Selfie</h4>
-                  <p className="text-xs text-foreground/60 mb-4">Clear photo matching your ID</p>
-                  <button type="button" className="px-4 py-2 bg-card border border-border rounded-lg text-sm font-medium hover:text-primary transition-colors">Take Photo</button>
-                </div>
-              </div>
-            )}
+            <div className={`space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 ${step === 4 ? 'block' : 'hidden'}`}>
+                {!verificationChoice ? (
+                  <div className="text-center space-y-6">
+                    <div className="p-6 border border-border rounded-2xl bg-card">
+                      <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
+                      <h4 className="text-xl font-bold mb-2">Account Verification</h4>
+                      <p className="text-sm text-foreground/70 mb-6">
+                        You need to verify your account to withdraw earnings. You can do this now or later from your profile.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button type="button" onClick={() => setVerificationChoice("now")} className="p-4 border-2 border-primary/20 bg-primary/5 rounded-xl font-bold text-primary hover:bg-primary/10 transition-colors">
+                          Verify Now
+                        </button>
+                        <button type="button" onClick={() => setVerificationChoice("later")} className="p-4 border-2 border-border bg-background rounded-xl font-bold text-foreground/70 hover:bg-card transition-colors">
+                          Verify Later
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : verificationChoice === "now" ? (
+                  <div className="space-y-6">
+                    <button type="button" onClick={() => setVerificationChoice(null)} className="text-sm font-semibold text-foreground/60 hover:text-foreground mb-4 inline-block">&larr; Back to choices</button>
+                    <div className="p-4 border-2 border-dashed border-border rounded-2xl bg-background text-center hover:bg-card/50 transition-colors group">
+                      <Shield className="w-8 h-8 text-primary mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                      <h4 className="font-semibold mb-1">Upload ID Card</h4>
+                      <p className="text-xs text-foreground/60 mb-4">Front and back (JPG, PNG or PDF)</p>
+                      <input name="idCard" type="file" accept="image/*,.pdf" className="w-full text-sm max-w-xs mx-auto block" />
+                    </div>
+                    <div className="p-4 border-2 border-dashed border-border rounded-2xl bg-background text-center hover:bg-card/50 transition-colors group">
+                      <UserPlus className="w-8 h-8 text-primary mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                      <h4 className="font-semibold mb-1">Upload Selfie</h4>
+                      <p className="text-xs text-foreground/60 mb-4">Clear photo matching your ID</p>
+                      <input name="selfie" type="file" accept="image/*" className="w-full text-sm max-w-xs mx-auto block" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center p-8 border-2 border-dashed border-border rounded-2xl bg-background">
+                    <h4 className="text-xl font-bold mb-2">Verification Skipped</h4>
+                    <p className="text-sm text-foreground/70 mb-4">
+                      You'll be able to complete your verification from your profile dashboard later.
+                    </p>
+                    <button type="button" onClick={() => setVerificationChoice(null)} className="text-sm font-semibold text-primary hover:underline">Change choice</button>
+                  </div>
+                )}
+            </div>
 
             <div className="flex items-center justify-between pt-6 border-t border-border">
               {step > 1 ? (
@@ -217,7 +271,7 @@ export default function RegisterPage() {
                 <div />
               )}
               
-              <button disabled={isLoading} type="submit" className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 disabled:opacity-50">
+              <button disabled={isLoading || (step === 4 && !verificationChoice)} type="submit" className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
                 {isLoading ? "Processing..." : (step < 4 ? "Continue" : "Complete Registration")} {!isLoading && <ArrowRight className="w-5 h-5" />}
               </button>
             </div>

@@ -4,9 +4,8 @@ import * as React from "react"
 import Link from "next/link"
 import { ArrowLeft, Clock, MapPin, Users, Globe2, AlertCircle, Share2, MessageSquare, Briefcase } from "lucide-react"
 
-export default function ProjectDetailsPage({ params }: { params: { id: string } }) {
-  // Unwrapping params using React.use() is required in newer Next.js versions for client components if it's a promise, but in this dummy setup we can just use it or mock the ID.
-  const id = params.id || "1";
+export default function ProjectDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params)
 
   return (
     <div className="min-h-screen pt-20 pb-24 bg-background">

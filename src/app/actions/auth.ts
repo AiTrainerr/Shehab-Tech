@@ -1,11 +1,13 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import bcrypt from "bcryptjs"
+import { createClientServer } from "@/lib/supabase"
+import { revalidatePath } from "next/cache"
+import { cookies } from "next/headers"
 
 export async function registerUser(formData: FormData) {
   try {
-    const email = formData.get("email") as string
+    const email = (formData.get("email") as string).toLowerCase().trim()
     const password = formData.get("password") as string
     const firstName = formData.get("firstName") as string
     const lastName = formData.get("lastName") as string
@@ -20,22 +22,33 @@ export async function registerUser(formData: FormData) {
       return { success: false, error: "Missing required fields" }
     }
 
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
+    const supabase = await createClientServer()
+
+    // 1. Sign up in Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+        }
+      }
     })
 
-    if (existingUser) {
-      return { success: false, error: "User with this email already exists" }
+    if (authError) {
+      return { success: false, error: authError.message }
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10)
+    if (!authData.user) {
+      return { success: false, error: "Authentication failed" }
+    }
 
-    // Create user
-    const user = await prisma.user.create({
+    // 2. Create user in Prisma PostgreSQL
+    await prisma.user.create({
       data: {
+        id: authData.user.id, // Sync with Supabase Auth ID
         email,
-        password: hashedPassword,
         firstName,
         lastName,
         middleName,
@@ -47,9 +60,70 @@ export async function registerUser(formData: FormData) {
       }
     })
 
-    return { success: true, userId: user.id }
+    return { success: true, userId: authData.user.id }
   } catch (error: any) {
     console.error("Registration error:", error)
     return { success: false, error: "An error occurred during registration." }
+  }
+}
+
+export async function loginUser(formData: FormData) {
+  try {
+    const email = (formData.get("email") as string).toLowerCase().trim()
+    const password = formData.get("password") as string
+
+    if (!email || !password) {
+      return { success: false, error: "Email and password are required" }
+    }
+
+    const supabase = await createClientServer()
+
+    // 1. Sign in with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    })
+
+    if (authError) {
+      return { success: false, error: "Invalid email or password" }
+    }
+
+    // 2. Fetch role from Prisma
+    const user = await prisma.user.findUnique({ 
+      where: { id: authData.user.id },
+      select: { role: true }
+    })
+
+    // Set legacy session cookies for compatibility with current components
+    // (Ideally we should use supabase.auth.getSession in middleware/components)
+    const cookieStore = await cookies()
+    cookieStore.set("userId", authData.user.id, { httpOnly: true, path: "/" })
+    cookieStore.set("userRole", user?.role || "MEMBER", { httpOnly: true, path: "/" })
+
+    revalidatePath("/")
+    return { success: true, role: user?.role || "MEMBER" }
+  } catch (error: any) {
+    console.error("Login error:", error)
+    return { success: false, error: "An error occurred during login." }
+  }
+}
+
+export async function resetPasswordAction(formData: FormData) {
+  try {
+    const email = (formData.get("email") as string).toLowerCase().trim()
+    const supabase = await createClientServer()
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/member/profile/edit`,
+    })
+    
+    if (error) {
+      return { success: false, error: error.message }
+    }
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Reset password error:", error)
+    return { success: false, error: "An error occurred while resetting password." }
   }
 }

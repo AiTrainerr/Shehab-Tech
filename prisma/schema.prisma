@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -13,7 +14,7 @@ model User {
   middleName    String?
   lastName      String
   email         String    @unique
-  password      String
+  password      String?
   role          String    @default("MEMBER") // ADMIN, MEMBER
   gender        String?
   country       String?
@@ -45,6 +46,7 @@ model User {
   messagesSent  Message[] @relation("SentMessages")
   messagesRecv  Message[] @relation("ReceivedMessages")
   portfolios    Portfolio[]
+  comments      Comment[]
 }
 
 model Skill {
@@ -68,16 +70,15 @@ model Project {
   title           String
   description     String
   instructions    String?
-  imageUrl        String?
   
   // Requirements
-  reqLanguage     String?
   reqCountry      String?
   reqPhoneType    String?
   reqAgeMin       Int?
   reqAgeMax       Int?
   reqExperience   String?
   
+  price           Float?
   status          String  @default("OPEN") // OPEN, IN_PROGRESS, COMPLETED, CANCELLED
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -85,6 +86,27 @@ model Project {
   skills          ProjectSkill[]
   applications    Application[]
   comments        Comment[]
+  languages       ProjectLanguage[]
+  images          ProjectImage[]
+}
+
+model ProjectLanguage {
+  id              String   @id @default(cuid())
+  projectId       String
+  language        String
+  dialect         String?
+  proficiency     String?
+  
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProjectImage {
+  id              String   @id @default(cuid())
+  projectId       String
+  url             String
+  caption         String?
+  
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model ProjectSkill {
@@ -131,6 +153,7 @@ model Comment {
   content     String
   
   project     Project  @relation(fields: [projectId], references: [id])
+  author      User     @relation(fields: [authorId], references: [id])
   createdAt   DateTime @default(now())
 }
 
@@ -156,4 +179,16 @@ model Notification {
   
   user        User     @relation(fields: [userId], references: [id])
   createdAt   DateTime @default(now())
+}
+
+model LearningResource {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  link        String
+  imageUrl    String?
+  category    String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

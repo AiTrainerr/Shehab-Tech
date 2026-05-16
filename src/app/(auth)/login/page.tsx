@@ -3,8 +3,33 @@
 import * as React from "react"
 import Link from "next/link"
 import { ArrowRight, Mail, Lock } from "lucide-react"
+import { loginUser } from "@/app/actions/auth"
+import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
+  const [error, setError] = React.useState("")
+  const [isLoading, setIsLoading] = React.useState(false)
+  const router = useRouter()
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+    
+    const formData = new FormData(e.currentTarget)
+    const result = await loginUser(formData)
+    
+    if (result.success) {
+      if (result.role === "ADMIN") {
+        router.push("/admin")
+      } else {
+        router.push("/member")
+      }
+    } else {
+      setError(result.error || "Login failed")
+      setIsLoading(false)
+    }
+  }
   return (
     <div className="min-h-screen pt-20 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background decorations */}
@@ -20,12 +45,14 @@ export default function LoginPage() {
           <p className="text-foreground/70 mt-2">Log in to your dashboard to view new projects</p>
         </div>
 
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          {error && <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm">{error}</div>}
+          
           <div className="space-y-2">
             <label className="text-sm font-semibold">Email Address</label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40" />
-              <input type="email" className="w-full pl-12 pr-4 py-4 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="john@example.com" required />
+              <input name="email" type="email" className="w-full pl-12 pr-4 py-4 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="john@example.com" required />
             </div>
           </div>
           
@@ -36,12 +63,12 @@ export default function LoginPage() {
             </div>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40" />
-              <input type="password" className="w-full pl-12 pr-4 py-4 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="••••••••" required />
+              <input name="password" type="password" className="w-full pl-12 pr-4 py-4 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="••••••••" required />
             </div>
           </div>
 
-          <button type="submit" className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5">
-            Log In <ArrowRight className="w-5 h-5" />
+          <button disabled={isLoading} type="submit" className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 disabled:opacity-50">
+            {isLoading ? "Logging in..." : "Log In"} {!isLoading && <ArrowRight className="w-5 h-5" />}
           </button>
         </form>
 
