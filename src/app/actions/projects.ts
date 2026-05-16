@@ -6,27 +6,9 @@ import path from "path"
 import crypto from "crypto"
 import { cookies } from "next/headers"
 
-// Helper to save a file locally
-async function saveFileLocally(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
-  
-  const ext = path.extname(file.name) || ".jpg"
-  const fileName = `${crypto.randomBytes(16).toString("hex")}${ext}`
-  
-  const uploadDir = path.join(process.cwd(), "public", "uploads")
-  
-  try {
-    await fs.access(uploadDir)
-  } catch {
-    await fs.mkdir(uploadDir, { recursive: true })
-  }
-  
-  const filePath = path.join(uploadDir, fileName)
-  await fs.writeFile(filePath, buffer)
-  
-  return `/uploads/${fileName}`
-}
+import { uploadToSupabase } from "@/lib/storage"
+
+// saveFileLocally is no longer used for production, using uploadToSupabase instead
 
 export async function createProjectAction(formData: FormData) {
   try {
@@ -58,7 +40,7 @@ export async function createProjectAction(formData: FormData) {
       const caption = formData.get(`caption_${i}`) as string | null
       
       if (imageFile && imageFile.size > 0) {
-        const url = await saveFileLocally(imageFile)
+        const url = await uploadToSupabase(imageFile, 'projects')
         images.push({ url, caption })
       }
     }

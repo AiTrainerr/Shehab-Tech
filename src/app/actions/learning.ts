@@ -7,16 +7,9 @@ import path from "path"
 import crypto from "crypto"
 import { revalidatePath } from "next/cache"
 
-async function saveFileLocally(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer()
-  const buffer = Buffer.from(arrayBuffer)
-  const ext = path.extname(file.name) || ".jpg"
-  const fileName = `${crypto.randomBytes(16).toString("hex")}${ext}`
-  const uploadDir = path.join(process.cwd(), "public", "uploads")
-  try { await fs.access(uploadDir) } catch { await fs.mkdir(uploadDir, { recursive: true }) }
-  await fs.writeFile(path.join(uploadDir, fileName), buffer)
-  return `/uploads/${fileName}`
-}
+import { uploadToSupabase } from "@/lib/storage"
+
+// saveFileLocally is no longer used for production, using uploadToSupabase instead
 
 export async function createLearningResource(formData: FormData) {
   const cookieStore = await cookies()
@@ -33,7 +26,7 @@ export async function createLearningResource(formData: FormData) {
 
   let imageUrl: string | null = null
   if (imageFile && imageFile.size > 0) {
-    imageUrl = await saveFileLocally(imageFile)
+    imageUrl = await uploadToSupabase(imageFile, 'learning')
   }
 
   await prisma.learningResource.create({

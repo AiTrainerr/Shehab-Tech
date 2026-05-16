@@ -3,7 +3,7 @@ import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
-import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, MessageCircle, Send, DollarSign } from "lucide-center"
+import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, MessageCircle, Send, DollarSign } from "lucide-react"
 // @ts-ignore
 import { addComment } from "@/app/actions/portfolio"
 // @ts-ignore
