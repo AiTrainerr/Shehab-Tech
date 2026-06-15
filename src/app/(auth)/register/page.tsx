@@ -248,7 +248,7 @@ export default function RegisterPage() {
                       <UserPlus className="w-8 h-8 text-primary mx-auto mb-2 group-hover:scale-110 transition-transform" />
                       <h4 className="font-semibold mb-1">Upload Selfie</h4>
                       <p className="text-xs text-foreground/60 mb-4">Clear photo matching your ID</p>
-                      <input name="selfie" type="file" accept="image/*" className="w-full text-sm max-w-xs mx-auto block" />
+                      <input name="selfie" type="file" accept="image/*" capture="user" className="w-full text-sm max-w-xs mx-auto block" />
                     </div>
                   </div>
                 ) : (

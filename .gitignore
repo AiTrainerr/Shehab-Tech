@@ -15,6 +15,7 @@
 
 # next.js
 /.next/
+/.next_old/
 /out/
 
 # production
@@ -55,3 +56,4 @@ public/uploads/
 scratch/
 prisma/seed_admins.js
 prisma/test_login.js
+.env*.local

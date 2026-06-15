@@ -21,7 +21,7 @@ export function Footer() {
               <a href="https://facebook.com" className="w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center text-foreground/50 hover:text-primary hover:border-primary/30 transition-all">
                 <MessageSquare className="w-5 h-5" />
               </a>
-              <a href="https://linkedin.com" className="w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center text-foreground/50 hover:text-primary hover:border-primary/30 transition-all">
+              <a href="https://www.linkedin.com/company/shehab-teck/" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-background border border-border flex items-center justify-center text-foreground/50 hover:text-primary hover:border-primary/30 transition-all">
                 <Globe2 className="w-5 h-5" />
               </a>
             </div>
@@ -59,11 +59,11 @@ export function Footer() {
           <div className="space-y-6">
             <h4 className="text-sm font-bold uppercase tracking-[0.2em] text-foreground mb-6">Connect</h4>
             <div className="space-y-4">
-              <a href="mailto:support@shehab-tech.com" className="flex items-center gap-3 text-foreground/60 hover:text-primary transition-colors group">
+              <a href="mailto:abdallah.shehabtech@gmail.com" className="flex items-center gap-3 text-foreground/60 hover:text-primary transition-colors group">
                 <div className="p-2 bg-background border border-border rounded-lg group-hover:border-primary/20">
                   <Mail className="w-4 h-4" />
                 </div>
-                <span className="text-sm font-medium">support@shehab-tech.com</span>
+                <span className="text-sm font-medium">abdallah.shehabtech@gmail.com</span>
               </a>
               <a href="tel:+201026744042" className="flex items-center gap-3 text-foreground/60 hover:text-primary transition-colors group">
                 <div className="p-2 bg-background border border-border rounded-lg group-hover:border-primary/20">

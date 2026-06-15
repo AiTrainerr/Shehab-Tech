@@ -18,7 +18,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center max-w-4xl mx-auto space-y-10">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 border border-primary/10 rounded-full text-primary text-sm font-bold tracking-wide animate-fade-in">
-              <Zap className="w-4 h-4 fill-primary" /> TRUSTED BY 50,000+ FREELANCERS
+              <Zap className="w-4 h-4 fill-primary" /> TRUSTED BY 12,500+ FREELANCERS
             </div>
             
             <h1 className="text-5xl md:text-8xl font-black tracking-tight text-foreground leading-[1.1]">
@@ -46,10 +46,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="glass p-10 md:p-16 rounded-[40px] border border-border shadow-2xl grid grid-cols-2 md:grid-cols-4 gap-12">
             {[
-              { label: "Active Talent", value: "50K+", icon: Users },
-              { label: "Global Projects", value: "120+", icon: Briefcase },
-              { label: "Total Payouts", value: "$2M+", icon: DollarSign },
-              { label: "Success Rate", value: "99%", icon: Award },
+              { label: "Trained Experts", value: "12,500+", icon: Users },
+              { label: "Global Languages", value: "100", icon: Globe2 },
+              { label: "Accuracy Guaranteed", value: "98%+", icon: Award },
+              { label: "Success Rate", value: "99%", icon: Shield },
             ].map((stat, i) => (
               <div key={i} className="text-center space-y-3 group">
                 <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mx-auto text-primary group-hover:scale-110 transition-transform">

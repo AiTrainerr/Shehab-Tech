@@ -36,7 +36,7 @@ export function Navbar({ userRole }: { userRole?: string }) {
                   <Link href="/" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Home</Link>
                   <Link href="/#about" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">About</Link>
                   <Link href="/projects" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Projects</Link>
-                  <a href="mailto:abdallahshehhabb@gmail.com" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Contact</a>
+                  <a href="mailto:abdallah.shehabtech@gmail.com" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Contact</a>
                 </>
               ) : (
                 <>
@@ -141,7 +141,7 @@ export function Navbar({ userRole }: { userRole?: string }) {
                 <Link href="/" className="block hover:bg-card hover:text-primary px-3 py-2 rounded-md text-base font-medium">Home</Link>
                 <Link href="/#about" className="block hover:bg-card hover:text-primary px-3 py-2 rounded-md text-base font-medium">About</Link>
                 <Link href="/projects" className="block hover:bg-card hover:text-primary px-3 py-2 rounded-md text-base font-medium">Projects</Link>
-                <a href="mailto:abdallahshehhabb@gmail.com" className="block hover:bg-card hover:text-primary px-3 py-2 rounded-md text-base font-medium">Contact</a>
+                <a href="mailto:abdallah.shehabtech@gmail.com" className="block hover:bg-card hover:text-primary px-3 py-2 rounded-md text-base font-medium">Contact</a>
               </>
             ) : (
               <>

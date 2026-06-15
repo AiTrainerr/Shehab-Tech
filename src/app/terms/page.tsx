@@ -50,7 +50,7 @@ export default function TermsPage() {
 
             <section className="space-y-4 p-8 glass rounded-3xl border border-border">
               <h2 className="text-xl font-bold text-foreground">Contact Our Legal Team</h2>
-              <p className="text-sm">For any questions regarding these terms, please contact us at legal@shehab-tech.com</p>
+              <p className="text-sm">For any questions regarding these terms, please contact us at abdallah.shehabtech@gmail.com</p>
             </section>
           </div>
         </div>
