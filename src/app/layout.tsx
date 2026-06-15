@@ -13,6 +13,8 @@ const tajawal = Tajawal({
   variable: "--font-tajawal",
 });
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: {
     default: "SHEHAB TECH | AI Data Collection & Freelance Platform",
