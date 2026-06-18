@@ -38,6 +38,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
+  // Intercept PKCE code from Supabase password resets if it lands on root
+  if (request.nextUrl.searchParams.has('code') && !request.nextUrl.pathname.startsWith('/auth/callback')) {
+    const code = request.nextUrl.searchParams.get('code')
+    return NextResponse.redirect(new URL(`/auth/callback?code=${code}`, request.url))
+  }
+
   // Redirect logged in users away from auth pages (only if they also have the legacy cookie to prevent loops)
   if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register') && user && request.cookies.has("userId")) {
     return NextResponse.redirect(new URL('/member', request.url))

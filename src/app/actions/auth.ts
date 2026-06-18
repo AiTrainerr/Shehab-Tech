@@ -141,3 +141,21 @@ export async function resetPasswordAction(formData: FormData) {
     return { success: false, error: "An error occurred while resetting password." }
   }
 }
+
+export async function updatePasswordAction(formData: FormData) {
+  try {
+    const password = formData.get("password") as string
+    const supabase = await createClientServer()
+    
+    const { error } = await supabase.auth.updateUser({ password })
+    
+    if (error) {
+      return { success: false, error: error.message }
+    }
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Update password error:", error)
+    return { success: false, error: "An error occurred while updating password." }
+  }
+}
