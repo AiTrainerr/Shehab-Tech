@@ -133,6 +133,24 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
         )}
 
+        {/* Private Data (ONLY SHOWN IF APPROVED) */}
+        {existingApplication?.status === "APPROVED" && project.privateData && (
+          <div className="glass p-6 rounded-2xl border border-primary/30 bg-primary/5 mb-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
+              Confidential Info
+            </div>
+            <h2 className="text-lg font-bold mb-3 flex items-center gap-2 text-primary">
+              <CheckCircle className="w-5 h-5" /> Accepted Member Instructions
+            </h2>
+            <div className="text-foreground/80 leading-relaxed p-4 bg-background rounded-xl border border-border whitespace-pre-wrap">
+              {project.privateData}
+            </div>
+            <p className="text-xs text-foreground/50 mt-4 flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4" /> Please do not share this information with anyone.
+            </p>
+          </div>
+        )}
+
         {/* Apply Section */}
         <div className="glass p-6 rounded-2xl border border-border mb-6">
           {existingApplication ? (

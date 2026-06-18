@@ -80,6 +80,7 @@ model Project {
   title           String
   description     String
   instructions    String?
+  privateData     String?        // Hidden info revealed only when application is APPROVED
   
   // Requirements
   reqCountry      String?

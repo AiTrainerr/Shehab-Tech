@@ -3,19 +3,21 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign } from "lucide-react"
+import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign, FolderOpen, Award, ShieldCheck } from "lucide-react"
 
 export function AdminSidebar({ pendingVerifications }: { pendingVerifications: number }) {
   const pathname = usePathname()
 
   const navItems = [
     { name: "Dashboard", href: "/admin", icon: Activity, exact: true },
-    { name: "Users & Freelancers", href: "/admin/users", icon: Users },
-    { name: "Projects", href: "/admin/projects", icon: FileText },
+    { name: "Users", href: "/admin/users", icon: Users },
+    { name: "Projects", href: "/admin/projects", icon: FolderOpen },
+    { name: "Applications", href: "/admin/applications", icon: FileText },
   ]
 
   const managementItems = [
-    { name: "Verification Requests", href: "/admin/verification", icon: AlertCircle, badge: pendingVerifications > 0 ? pendingVerifications : null },
+    { name: "Skills", href: "/admin/skills", icon: Award },
+    { name: "Verification Requests", href: "/admin/verification", icon: ShieldCheck, badge: pendingVerifications > 0 ? pendingVerifications : null },
     { name: "Learn Skills", href: "/admin/skills", icon: BookOpen },
     { name: "Portfolios", href: "/portfolio", icon: Briefcase },
     { name: "Payments", href: "/admin/payments", icon: DollarSign },
