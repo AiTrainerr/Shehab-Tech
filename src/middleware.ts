@@ -38,8 +38,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // Redirect logged in users away from auth pages
-  if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register') && user) {
+  // Redirect logged in users away from auth pages (only if they also have the legacy cookie to prevent loops)
+  if ((request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/register') && user && request.cookies.has("userId")) {
     return NextResponse.redirect(new URL('/member', request.url))
   }
 

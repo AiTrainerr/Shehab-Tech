@@ -70,6 +70,10 @@ export async function registerUser(formData: FormData) {
       "/member/verification"
     )
 
+    const cookieStore = await cookies()
+    cookieStore.set("userId", authData.user.id, { httpOnly: true, path: "/" })
+    cookieStore.set("userRole", "MEMBER", { httpOnly: true, path: "/" })
+
     return { success: true, userId: authData.user.id }
   } catch (error: any) {
     console.error("Registration error:", error)
