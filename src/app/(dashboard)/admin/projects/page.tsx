@@ -4,6 +4,8 @@ import { FileText, Plus, Users, Clock, Edit2 } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { AdminProjectsClient } from "./AdminProjectsClient"
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminProjectsPage() {
   const projects = await prisma.project.findMany({
     orderBy: { createdAt: "desc" },

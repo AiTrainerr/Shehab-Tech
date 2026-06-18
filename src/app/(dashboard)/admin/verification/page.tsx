@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { approveVerification, rejectVerification } from "@/app/actions/verification"
 import { revalidatePath } from "next/cache"
 
+export const dynamic = 'force-dynamic'
+
 export default async function VerificationPage() {
   const pendingUsers = await prisma.user.findMany({
     select: { id: true, firstName: true, lastName: true, email: true, idCardUrl: true, selfieUrl: true, verificationStatus: true },

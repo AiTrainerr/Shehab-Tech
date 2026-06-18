@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma"
 import { Users, Shield, CheckCircle, Clock, XCircle } from "lucide-react"
 import { AdminUsersClient } from "./AdminUsersClient"
 
+export const dynamic = 'force-dynamic'
+
 export default async function UsersPage() {
   const users = await prisma.user.findMany({
     select: {

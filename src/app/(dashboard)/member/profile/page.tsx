@@ -156,11 +156,17 @@ export default async function ProfilePage() {
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {user.portfolios.slice(0, 4).map((p) => (
-                  <div key={p.id} className="bg-card rounded-xl border border-border overflow-hidden hover:border-primary/30 transition-colors">
+                  <div key={p.id} className="bg-card rounded-xl border border-border overflow-hidden hover:border-primary/30 transition-colors relative group">
                     {p.imageUrl && <img src={p.imageUrl} alt={p.title} className="w-full h-24 object-cover" />}
                     <div className="p-3">
                       <p className="font-bold text-sm truncate">{p.title}</p>
                       {p.description && <p className="text-xs text-foreground/60 truncate">{p.description}</p>}
+                    </div>
+                    {/* Hover Actions */}
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                      <Link href={`/member/portfolio/edit/${p.id}`} className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm font-semibold hover:bg-primary hover:text-primary-foreground transition-colors flex items-center gap-1">
+                        <Edit2 className="w-4 h-4" /> Edit
+                      </Link>
                     </div>
                   </div>
                 ))}

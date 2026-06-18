@@ -3,6 +3,8 @@ import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Users, FileText, Activity, AlertCircle, Plus, BookOpen, Briefcase, DollarSign } from "lucide-react"
 
+export const dynamic = 'force-dynamic'
+
 export default async function AdminDashboard() {
   const [totalUsers, totalProjects, pendingVerifications, openProjects] = await Promise.all([
     prisma.user.count(),
