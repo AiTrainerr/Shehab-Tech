@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma"
+import { cookies } from "next/headers"
 import Link from "next/link"
 import { ArrowLeft, Briefcase } from "lucide-react"
 import { MemberProjectsClient } from "./MemberProjectsClient"
+import { redirect } from "next/navigation"
 
 export default async function MemberProjectsPage({ 
   searchParams 
@@ -10,6 +12,10 @@ export default async function MemberProjectsPage({
 }) {
   const { filter } = await searchParams
   const isPast = filter === "past"
+
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("userId")?.value
+  if (!userId) redirect("/login")
 
   let projects: any[] = []
   try {
@@ -20,13 +26,18 @@ export default async function MemberProjectsPage({
       include: {
         languages: true,
         images: true,
-        _count: { select: { applications: true } }
+        _count: { select: { applications: true } },
+        applications: {
+          where: { userId },
+          select: { status: true }
+        }
       }
     })
 
     projects = projectsData.map((project) => ({
       ...project,
-      applicantCount: project._count.applications
+      applicantCount: project._count.applications,
+      myApplication: project.applications[0] || null
     }))
   } catch (e) {
     console.error("Projects fetch error:", e)

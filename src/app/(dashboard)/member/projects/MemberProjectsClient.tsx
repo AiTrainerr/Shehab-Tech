@@ -2,11 +2,14 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Briefcase, MapPin, Users, DollarSign, Filter } from "lucide-react"
+import { Briefcase, MapPin, Users, DollarSign, Filter, CheckCircle, Clock, Send, Loader2 } from "lucide-react"
+import { applyToProject } from "@/app/actions/projects"
 
 export function MemberProjectsClient({ initialProjects, isPast }: { initialProjects: any[], isPast: boolean }) {
   const [filterLang, setFilterLang] = React.useState("")
   const [filterCountry, setFilterCountry] = React.useState("")
+  const [applying, setApplying] = React.useState<string | null>(null)
+  const [appliedIds, setAppliedIds] = React.useState<Record<string, string>>({})
 
   // Extract unique languages and countries for the dropdowns
   const availableLangs = Array.from(new Set(initialProjects.flatMap(p => p.languages.map((l: any) => l.language))))
@@ -17,6 +20,27 @@ export function MemberProjectsClient({ initialProjects, isPast }: { initialProje
     if (filterCountry && p.reqCountry !== filterCountry) return false
     return true
   })
+
+  const handleApply = async (projectId: string) => {
+    setApplying(projectId)
+    try {
+      const res = await applyToProject(projectId)
+      if (res.success) {
+        setAppliedIds(prev => ({ ...prev, [projectId]: "PENDING" }))
+      } else {
+        alert(res.error || "Failed to apply")
+      }
+    } catch (e) {
+      alert("Something went wrong")
+    } finally {
+      setApplying(null)
+    }
+  }
+
+  const getAppStatus = (project: any) => {
+    if (appliedIds[project.id]) return appliedIds[project.id]
+    return project.myApplication?.status || null
+  }
 
   return (
     <div>
@@ -67,61 +91,104 @@ export function MemberProjectsClient({ initialProjects, isPast }: { initialProje
         </div>
       ) : (
         <div className="grid gap-6">
-          {filteredProjects.map((project) => (
-            <div key={project.id} className="glass p-6 rounded-2xl border border-border hover:border-primary/30 transition-all">
-              <div className="flex flex-col md:flex-row gap-6">
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-3 mb-2">
-                    <h2 className="text-xl font-bold">{project.title}</h2>
-                    <span className="text-xs font-bold px-2 py-1 rounded-md bg-green-500/10 text-green-500">
-                      {project.status}
-                    </span>
-                  </div>
-                  <p className="text-foreground/70 text-sm mb-4 line-clamp-2">{project.description}</p>
+          {filteredProjects.map((project) => {
+            const appStatus = getAppStatus(project)
+            const isApplying = applying === project.id
 
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {project.languages.map((lang: any, i: number) => (
-                      <span key={i} className="text-xs font-semibold px-2.5 py-1 bg-primary/10 text-primary rounded-full">
-                        {lang.language}{lang.dialect ? ` (${lang.dialect})` : ""} · {lang.proficiency}
+            return (
+              <div key={project.id} className="glass p-6 rounded-2xl border border-border hover:border-primary/30 transition-all">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-3 mb-2">
+                      <h2 className="text-xl font-bold">{project.title}</h2>
+                      <span className="text-xs font-bold px-2 py-1 rounded-md bg-green-500/10 text-green-500">
+                        {project.status}
                       </span>
-                    ))}
-                    {project.reqCountry && (
-                      <span className="text-xs font-semibold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-full flex items-center gap-1">
-                        <MapPin className="w-3 h-3" /> {project.reqCountry}
-                      </span>
-                    )}
-                    {project.price && (
-                      <span className="text-xs font-bold px-2.5 py-1 bg-yellow-500/10 text-yellow-500 rounded-full flex items-center gap-1">
-                        <DollarSign className="w-3 h-3" /> ${Number(project.price).toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-
-                  {project.images.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {project.images.slice(0, 3).map((img: any) => (
-                        <div key={img.id} className="shrink-0">
-                          <img src={img.url} alt={img.caption || "Project image"} className="h-20 w-32 object-cover rounded-lg border border-border" />
-                        </div>
-                      ))}
                     </div>
-                  )}
-                </div>
+                    <p className="text-foreground/70 text-sm mb-4 line-clamp-2">{project.description}</p>
 
-                <div className="flex md:flex-col gap-4 md:min-w-[140px] md:text-right">
-                  <div>
-                    <p className="text-xs text-foreground/50 font-semibold uppercase">Applicants</p>
-                    <p className="font-bold flex items-center gap-1 md:justify-end">
-                      <Users className="w-4 h-4 text-foreground/40" /> {project.applicantCount}
-                    </p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {project.languages.map((lang: any, i: number) => (
+                        <span key={i} className="text-xs font-semibold px-2.5 py-1 bg-primary/10 text-primary rounded-full">
+                          {lang.language}{lang.dialect ? ` (${lang.dialect})` : ""} · {lang.proficiency}
+                        </span>
+                      ))}
+                      {project.reqCountry && (
+                        <span className="text-xs font-semibold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-full flex items-center gap-1">
+                          <MapPin className="w-3 h-3" /> {project.reqCountry}
+                        </span>
+                      )}
+                      {project.price && (
+                        <span className="text-xs font-bold px-2.5 py-1 bg-yellow-500/10 text-yellow-500 rounded-full flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" /> ${Number(project.price).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+
+                    {project.images.length > 0 && (
+                      <div className="flex gap-2 overflow-x-auto pb-1">
+                        {project.images.slice(0, 3).map((img: any) => (
+                          <div key={img.id} className="shrink-0">
+                            <img src={img.url} alt={img.caption || "Project image"} className="h-20 w-32 object-cover rounded-lg border border-border" />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <Link href={`/member/projects/${project.id}`} className="px-5 py-2.5 bg-primary text-primary-foreground font-bold text-sm rounded-xl hover:bg-primary/90 transition-all text-center">
-                    View Details
-                  </Link>
+
+                  <div className="flex md:flex-col gap-3 md:min-w-[160px] md:items-end justify-between md:justify-start">
+                    <div className="text-right">
+                      <p className="text-xs text-foreground/50 font-semibold uppercase">Applicants</p>
+                      <p className="font-bold flex items-center gap-1 md:justify-end">
+                        <Users className="w-4 h-4 text-foreground/40" /> {project.applicantCount}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Link
+                        href={`/member/projects/${project.id}`}
+                        className="px-5 py-2.5 bg-card border border-border text-foreground font-bold text-sm rounded-xl hover:bg-primary/10 hover:border-primary/30 transition-all text-center"
+                      >
+                        View Details
+                      </Link>
+
+                      {/* Apply Button or Status */}
+                      {!isPast && (
+                        appStatus ? (
+                          <div className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border
+                            ${appStatus === "APPROVED" || appStatus === "ACCEPTED" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                              appStatus === "REJECTED" ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                              "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                            }`}
+                          >
+                            {appStatus === "APPROVED" || appStatus === "ACCEPTED" ? (
+                              <><CheckCircle className="w-4 h-4" /> Approved</>
+                            ) : appStatus === "REJECTED" ? (
+                              <>✗ Rejected</>
+                            ) : (
+                              <><Clock className="w-4 h-4" /> Pending</>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleApply(project.id)}
+                            disabled={isApplying}
+                            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-bold text-sm rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:opacity-60"
+                          >
+                            {isApplying ? (
+                              <><Loader2 className="w-4 h-4 animate-spin" /> Applying...</>
+                            ) : (
+                              <><Send className="w-4 h-4" /> Apply Now</>
+                            )}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
