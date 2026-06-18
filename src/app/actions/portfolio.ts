@@ -30,7 +30,7 @@ export async function addPortfolioItem(formData: FormData) {
     return { success: true }
   } catch (error: any) {
     console.error("Portfolio error:", error)
-    return { success: false, error: "Failed to add portfolio item" }
+    return { success: false, error: `Upload error: ${error.message || 'Unknown error'}` }
   }
 }
 
@@ -66,7 +66,7 @@ export async function updatePortfolioItem(id: string, formData: FormData) {
     return { success: true }
   } catch (error: any) {
     console.error("Update portfolio error:", error)
-    return { success: false, error: "Failed to update portfolio item" }
+    return { success: false, error: `Upload error: ${error.message || 'Unknown error'}` }
   }
 }
 

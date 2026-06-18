@@ -85,8 +85,8 @@ export async function updateAvatar(formData: FormData) {
 
     revalidatePath("/member/profile")
     return { success: true, avatarUrl }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Avatar update error:", error)
-    return { success: false, error: "Failed to update avatar" }
+    return { success: false, error: `Upload error: ${error.message || 'Unknown error'}` }
   }
 }
