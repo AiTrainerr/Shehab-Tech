@@ -1,14 +1,16 @@
 import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 import Link from "next/link"
-import { redirect } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { 
   User, Mail, Phone, MapPin, Calendar, Star, 
   Briefcase, CheckCircle, Clock, Edit2, Shield, 
-  Camera, ArrowLeft
+  Camera, ArrowLeft, BadgeCheck
 } from "lucide-react"
 import { ProfileAvatarUpload } from "@/components/profile-avatar-upload"
 import { ShareProfileButton } from "@/components/share-profile-button"
+import { PortfolioGrid } from "@/components/portfolio-grid"
+import { InlineSkillManager, InlineLanguageManager } from "./InlineEditors"
 
 export default async function ProfilePage() {
   const cookieStore = await cookies()
@@ -18,13 +20,17 @@ export default async function ProfilePage() {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { portfolios: true }
+    include: { 
+      portfolios: true,
+      skills: { include: { skill: true } },
+      languages: true
+    }
   })
 
-  if (!user) redirect("/login")
+  if (!user) notFound()
 
   const verificationColor = {
-    VERIFIED: "text-green-500 bg-green-500/10 border-green-500/20",
+    VERIFIED: "text-blue-500 bg-blue-500/10 border-blue-500/20",
     PENDING: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20",
     REJECTED: "text-red-500 bg-red-500/10 border-red-500/20",
     NOT_VERIFIED: "text-foreground/50 bg-foreground/5 border-foreground/10",
@@ -53,7 +59,7 @@ export default async function ProfilePage() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 relative">
             
             {/* Avatar */}
-            <ProfileAvatarUpload initialAvatar={user.avatarUrl} />
+            <ProfileAvatarUpload initialAvatar={user.avatarUrl} fullAvatar={user.fullAvatarUrl} />
 
             {/* Name & Info */}
             <div className="flex-1">
@@ -61,8 +67,8 @@ export default async function ProfilePage() {
                 <h1 className="text-2xl font-black text-foreground">
                   {user.firstName} {user.middleName ? user.middleName + " " : ""}{user.lastName}
                 </h1>
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${verificationColor}`}>
-                  {user.verificationStatus === "VERIFIED" ? "✓ Verified" : 
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full border flex items-center gap-1 ${verificationColor}`}>
+                  {user.verificationStatus === "VERIFIED" ? <><BadgeCheck className="w-3.5 h-3.5 text-white fill-green-500" /> Verified</> : 
                    user.verificationStatus === "PENDING" ? "⏳ Pending Review" : 
                    user.verificationStatus === "REJECTED" ? "✗ Rejected" : "○ Not Verified"}
                 </span>
@@ -95,7 +101,7 @@ export default async function ProfilePage() {
             { label: "Completed Tasks", value: user.completedCount, icon: <CheckCircle className="w-5 h-5" />, color: "text-green-500 bg-green-500/10" },
             { label: "Rating", value: `${user.rating.toFixed(1)} ★`, icon: <Star className="w-5 h-5" />, color: "text-yellow-500 bg-yellow-500/10" },
             { label: "Portfolio Items", value: user.portfolios.length, icon: <Briefcase className="w-5 h-5" />, color: "text-blue-500 bg-blue-500/10" },
-            { label: "Member Since", value: new Date(user.createdAt).getFullYear(), icon: <Clock className="w-5 h-5" />, color: "text-purple-500 bg-purple-500/10" },
+            { label: "Member Since", value: new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), icon: <Clock className="w-5 h-5" />, color: "text-purple-500 bg-purple-500/10" },
           ].map((stat, i) => (
             <div key={i} className="glass p-5 rounded-2xl border border-border flex items-center gap-4">
               <div className={`p-2.5 rounded-xl ${stat.color}`}>{stat.icon}</div>
@@ -110,30 +116,43 @@ export default async function ProfilePage() {
         <div className="grid lg:grid-cols-3 gap-6">
           
           {/* Verification Status */}
-          <div className="glass p-6 rounded-2xl border border-border">
-            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" /> Verification
-            </h2>
-            {user.verificationStatus === "VERIFIED" ? (
-              <div className="text-center py-4">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-3" />
-                <p className="font-bold text-green-500">Account Verified!</p>
-                <p className="text-sm text-foreground/60 mt-1">You can now withdraw your earnings.</p>
-              </div>
-            ) : user.verificationStatus === "PENDING" ? (
-              <div className="text-center py-4">
-                <Clock className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
-                <p className="font-bold text-yellow-500">Under Review</p>
-                <p className="text-sm text-foreground/60 mt-1">Admin is reviewing your documents.</p>
-              </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-foreground/60 mb-4">Upload your ID and Selfie to get verified and unlock withdrawals.</p>
-                <Link href="/member/verification" className="px-4 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors">
-                  Verify Now
-                </Link>
-              </div>
-            )}
+          <div className="flex flex-col gap-6">
+            <div className="glass p-6 rounded-2xl border border-border">
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary" /> Verification
+              </h2>
+              {user.verificationStatus === "VERIFIED" ? (
+                <div className="text-center py-4">
+                  <BadgeCheck className="w-12 h-12 text-white fill-green-500 mx-auto mb-3" />
+                  <p className="font-bold text-green-500">Account Verified!</p>
+                  <p className="text-sm text-foreground/60 mt-1">You can now withdraw your earnings.</p>
+                </div>
+              ) : user.verificationStatus === "PENDING" ? (
+                <div className="text-center py-4">
+                  <Clock className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
+                  <p className="font-bold text-yellow-500">Under Review</p>
+                  <p className="text-sm text-foreground/60 mt-1">Admin is reviewing your documents.</p>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-foreground/60 mb-4">Upload your ID and Selfie to get verified and unlock withdrawals.</p>
+                  <Link href="/member/verification" className="px-4 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors">
+                    Verify Now
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Skills & Languages */}
+            <div className="glass p-6 rounded-2xl border border-border">
+              <h2 className="text-lg font-bold mb-4">Skills</h2>
+              <InlineSkillManager skills={user.skills} />
+              
+              <div className="my-6 border-t border-border"></div>
+              
+              <h2 className="text-lg font-bold mb-4">Languages</h2>
+              <InlineLanguageManager languages={user.languages} />
+            </div>
           </div>
 
           {/* Portfolio Section */}
@@ -154,23 +173,7 @@ export default async function ProfilePage() {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {user.portfolios.slice(0, 4).map((p) => (
-                  <div key={p.id} className="bg-card rounded-xl border border-border overflow-hidden hover:border-primary/30 transition-colors relative group">
-                    {p.imageUrl && <img src={p.imageUrl} alt={p.title} className="w-full h-24 object-cover" />}
-                    <div className="p-3">
-                      <p className="font-bold text-sm truncate">{p.title}</p>
-                      {p.description && <p className="text-xs text-foreground/60 truncate">{p.description}</p>}
-                    </div>
-                    {/* Hover Actions */}
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                      <Link href={`/member/portfolio/edit/${p.id}`} className="px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm font-semibold hover:bg-primary hover:text-primary-foreground transition-colors flex items-center gap-1">
-                        <Edit2 className="w-4 h-4" /> Edit
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <PortfolioGrid portfolios={user.portfolios} showEditActions={true} />
             )}
           </div>
         </div>

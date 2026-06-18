@@ -2,9 +2,10 @@ import * as React from "react"
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import { cookies } from "next/headers"
-import { Star, CheckCircle, MapPin, Briefcase, Award, Shield, XCircle, FileImage } from "lucide-react"
+import { Star, CheckCircle, MapPin, Briefcase, Award, Shield, XCircle, FileImage, BadgeCheck, Calendar } from "lucide-react"
 import { approveVerification, rejectVerification } from "@/app/actions/verification"
 import { revalidatePath } from "next/cache"
+import { PortfolioGrid } from "@/components/portfolio-grid"
 
 export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -36,24 +37,36 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10 transform translate-x-1/2 -translate-y-1/2" />
           
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
-            <div className="shrink-0 relative">
+            <div className="shrink-0 relative group cursor-pointer z-10">
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Avatar" className="w-32 h-32 rounded-full object-cover border-4 border-background shadow-xl" />
+                <>
+                  <img src={user.avatarUrl} alt="Avatar" className="w-32 h-32 rounded-full object-cover border-4 border-background shadow-xl" />
+                  {user.fullAvatarUrl && (
+                    <div className="absolute top-0 left-full ml-4 hidden group-hover:block w-64 h-64 bg-card border border-border shadow-2xl rounded-2xl overflow-hidden z-50 pointer-events-none animate-in fade-in zoom-in-95">
+                      <img src={user.fullAvatarUrl} alt="Full Avatar" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="w-32 h-32 rounded-full bg-primary/10 border-4 border-background shadow-xl flex items-center justify-center text-4xl font-black text-primary">
                   {user.firstName[0]}{user.lastName[0]}
                 </div>
               )}
               {user.verificationStatus === "VERIFIED" && (
-                <div className="absolute -bottom-2 -right-2 bg-background rounded-full p-1 shadow-lg">
-                  <CheckCircle className="w-8 h-8 text-green-500 fill-green-500/20" />
+                <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 shadow-lg flex items-center justify-center">
+                  <BadgeCheck className="w-8 h-8 text-white fill-green-500" />
                 </div>
               )}
             </div>
 
             <div className="flex-1 text-center sm:text-left space-y-4">
               <div>
-                <h1 className="text-4xl font-black text-foreground">{user.firstName} {user.lastName}</h1>
+                <h1 className="text-4xl font-black text-foreground flex items-center justify-center sm:justify-start gap-2">
+                  {user.firstName} {user.lastName}
+                  {user.verificationStatus === "VERIFIED" && (
+                    <BadgeCheck className="w-6 h-6 text-white fill-green-500" />
+                  )}
+                </h1>
                 <p className="text-lg text-foreground/60 font-medium mt-1">{user.ranking} Freelancer</p>
               </div>
 
@@ -68,6 +81,9 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
                 </span>
                 <span className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-500">
                   <Star className="w-4 h-4 fill-yellow-500" /> {user.rating.toFixed(1)} Rating
+                </span>
+                <span className="flex items-center gap-1.5 px-3 py-1.5 bg-card border border-border rounded-lg text-foreground/70">
+                  <Calendar className="w-4 h-4 text-emerald-500" /> Joined {new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </div>
             </div>
@@ -126,30 +142,13 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           </div>
         )}
 
-        {/* Portfolios */}
-        {user.portfolios.length > 0 && (
-          <div className="glass rounded-3xl p-8 border border-border">
-            <h3 className="text-2xl font-bold mb-6">Portfolio Projects</h3>
-            <div className="grid sm:grid-cols-2 gap-6">
-              {user.portfolios.map(port => (
-                <div key={port.id} className="bg-background rounded-2xl overflow-hidden border border-border">
-                  {port.imageUrl && (
-                    <img src={port.imageUrl} alt={port.title} className="w-full h-48 object-cover" />
-                  )}
-                  <div className="p-5">
-                    <h4 className="font-bold text-lg mb-2">{port.title}</h4>
-                    {port.description && <p className="text-sm text-foreground/70 mb-4">{port.description}</p>}
-                    {port.fileUrl && (
-                      <a href={port.fileUrl} target="_blank" rel="noreferrer" className="text-sm font-bold text-primary hover:underline">
-                        View Attached File →
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Portfolio Section */}
+        <div className="glass rounded-3xl p-8 sm:p-12 border border-border shadow-2xl">
+          <h2 className="text-2xl font-black mb-8 flex items-center gap-2">
+            <FileImage className="w-6 h-6 text-primary" /> Portfolio
+          </h2>
+          <PortfolioGrid portfolios={user.portfolios} />
+        </div>
 
       </div>
 

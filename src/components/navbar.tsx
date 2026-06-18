@@ -6,7 +6,10 @@ import { useTheme } from "next-themes"
 import { Moon, Sun, Menu, X, LayoutDashboard, LogOut, User } from "lucide-react"
 import { logoutUser } from "@/app/actions/logout"
 
-export function Navbar({ userRole }: { userRole?: string }) {
+import { BadgeCheck } from "lucide-react"
+
+export function Navbar({ user }: { user?: any }) {
+  const userRole = user?.role
   const [mounted, setMounted] = React.useState(false)
   const { theme, setTheme } = useTheme()
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
@@ -69,46 +72,35 @@ export function Navbar({ userRole }: { userRole?: string }) {
                 </Link>
               </div>
             ) : (
-              <div className="relative ms-2">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 text-sm font-bold rounded-xl transition-colors border border-primary/20"
+              <div className="flex items-center gap-3 ms-2">
+                <Link
+                  href={userRole === "ADMIN" ? "/admin" : "/member/profile"}
+                  className="flex items-center gap-2 p-1 rounded-full transition-all border border-transparent hover:border-primary/50 relative group"
+                  title="My Profile"
                 >
-                  <User className="w-4 h-4" />
-                  {userRole === "ADMIN" ? "Admin" : "My Account"}
-                </button>
-
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-52 bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden">
-                    <div className="p-1">
-                      <Link
-                        href={userRole === "ADMIN" ? "/admin" : "/member"}
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold hover:bg-background rounded-xl transition-colors"
-                      >
-                        <LayoutDashboard className="w-4 h-4 text-primary" /> Dashboard
-                      </Link>
-                      {userRole !== "ADMIN" && (
-                        <Link
-                          href="/member/profile"
-                          onClick={() => setShowUserMenu(false)}
-                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-semibold hover:bg-background rounded-xl transition-colors"
-                        >
-                          <User className="w-4 h-4 text-blue-400" /> My Profile
-                        </Link>
-                      )}
-                      <div className="border-t border-border my-1" />
-                      <form action={logoutUser}>
-                        <button
-                          type="submit"
-                          className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-bold text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
-                        >
-                          <LogOut className="w-4 h-4" /> Log Out
-                        </button>
-                      </form>
-                    </div>
+                  <div className="w-10 h-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center border border-primary/20 group-hover:scale-105 transition-transform">
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5 text-primary/60" />
+                    )}
                   </div>
-                )}
+                  {user?.verificationStatus === "VERIFIED" && (
+                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-[1px] shadow-sm">
+                      <BadgeCheck className="w-4 h-4 text-green-500 fill-green-500" style={{ color: "white" }} />
+                    </div>
+                  )}
+                </Link>
+
+                <form action={logoutUser}>
+                  <button
+                    type="submit"
+                    className="p-2 text-foreground/50 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
+                    title="Log Out"
+                  >
+                    <LogOut className="w-5 h-5" />
+                  </button>
+                </form>
               </div>
             )}
           </div>

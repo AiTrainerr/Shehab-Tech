@@ -20,6 +20,7 @@ export async function createProjectAction(formData: FormData) {
     const recordingDuration = formData.get("recordingDuration") ? parseFloat(formData.get("recordingDuration") as string) : null
     const reqAgeMin = formData.get("reqAgeMin") ? parseInt(formData.get("reqAgeMin") as string) : null
     const reqAgeMax = formData.get("reqAgeMax") ? parseInt(formData.get("reqAgeMax") as string) : null
+    const autoApprove = formData.get("autoApprove") === "true"
     
     const langCount = parseInt(formData.get("langCount") as string) || 0
     const imageCount = parseInt(formData.get("imageCount") as string) || 0
@@ -60,6 +61,7 @@ export async function createProjectAction(formData: FormData) {
         recordingDuration,
         reqAgeMin,
         reqAgeMax,
+        autoApprove,
         languages: {
           create: languages
         },
@@ -88,9 +90,26 @@ export async function applyToProject(projectId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Not logged in" }
 
+    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { title: true, autoApprove: true } })
+    if (!project) return { success: false, error: "Project not found" }
+
+    const status = project.autoApprove ? "APPROVED" : "PENDING"
+
     const application = await prisma.application.create({
-      data: { projectId, userId: user.id }
+      data: { projectId, userId: user.id, status }
     })
+    
+    if (project.autoApprove) {
+      // Notify user of auto-approval
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: "Application Auto-Approved!",
+          message: `Your application for "${project.title}" has been automatically approved.`,
+          link: `/member/projects/${projectId}`
+        }
+      })
+    }
     
     // Notify all admins
     const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } })
@@ -101,8 +120,9 @@ export async function applyToProject(projectId: string) {
       await prisma.notification.createMany({
         data: admins.map(admin => ({
           userId: admin.id,
-          title: "New Application",
-          message: `${applicant.firstName} ${applicant.lastName} applied for "${project.title}".`
+          title: project.autoApprove ? "New Application (Auto-Approved)" : "New Application",
+          message: `${applicant.firstName} ${applicant.lastName} applied for "${project.title}".`,
+          link: `/profile/${user.id}`
         }))
       })
     }
@@ -200,5 +220,52 @@ export async function updateProjectStatus(projectId: string, status: string) {
   } catch (error: any) {
     console.error("Update status error:", error)
     return { success: false, error: "Failed to update status" }
+  }
+}
+
+export async function updateProjectAction(projectId: string, formData: FormData) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    // Admin check
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (dbUser?.role !== "ADMIN") return { success: false, error: "Unauthorized" }
+
+    const title = formData.get("title") as string
+    const description = formData.get("description") as string
+    const privateData = formData.get("privateData") as string || null
+    const reqCountry = formData.get("reqCountry") as string || null
+    const price = parseFloat(formData.get("price") as string) || 0
+    const recordingDuration = formData.get("recordingDuration") ? parseFloat(formData.get("recordingDuration") as string) : null
+    const reqAgeMin = formData.get("reqAgeMin") ? parseInt(formData.get("reqAgeMin") as string) : null
+    const reqAgeMax = formData.get("reqAgeMax") ? parseInt(formData.get("reqAgeMax") as string) : null
+    const autoApprove = formData.get("autoApprove") === "true"
+
+    await prisma.project.update({
+      where: { id: projectId },
+      data: {
+        title,
+        description,
+        privateData,
+        reqCountry,
+        price,
+        recordingDuration,
+        reqAgeMin,
+        reqAgeMax,
+        autoApprove
+      }
+    })
+
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath("/admin/projects")
+    revalidatePath(`/admin/projects/edit/${projectId}`)
+    revalidatePath("/member/projects")
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Update project error:", error)
+    return { success: false, error: "Failed to update project" }
   }
 }

@@ -31,6 +31,7 @@ model User {
   
   // Profile specifics
   avatarUrl     String?
+  fullAvatarUrl String?
   cvUrl         String?
   bio           String?
   ranking       String   @default("BEGINNER") // BEGINNER, INTERMEDIATE, VERIFIED, EXPERT, PREMIUM
@@ -81,6 +82,7 @@ model Project {
   description     String
   instructions    String?
   privateData     String?        // Hidden info revealed only when application is APPROVED
+  autoApprove     Boolean        @default(false)
   
   // Requirements
   reqCountry      String?
@@ -163,9 +165,12 @@ model Comment {
   projectId   String
   authorId    String
   content     String
+  parentId    String?
   
-  project     Project  @relation(fields: [projectId], references: [id])
-  author      User     @relation(fields: [authorId], references: [id])
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent      Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[] @relation("CommentReplies")
   createdAt   DateTime @default(now())
 }
 

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { ArrowLeft, Briefcase, Plus, ImageIcon, FileText } from "lucide-react"
+import { ArrowLeft, Briefcase, Plus, ImageIcon, FileText, BadgeCheck } from "lucide-react"
 
 export default async function PortfolioPage() {
   const cookieStore = await cookies()
@@ -62,7 +62,7 @@ export default async function PortfolioPage() {
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <h3 className="font-bold text-lg leading-tight">{item.title}</h3>
                     {item.user.verificationStatus === "VERIFIED" && (
-                      <span className="shrink-0 text-xs font-bold px-2 py-0.5 bg-green-500/10 text-green-500 rounded-full">✓</span>
+                      <BadgeCheck className="shrink-0 w-5 h-5 text-white fill-green-500" />
                     )}
                   </div>
 

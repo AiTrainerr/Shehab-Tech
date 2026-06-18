@@ -42,7 +42,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let userRole: string | undefined;
+  let currentUser: any = null;
   
   try {
     const supabase = await createClientServer();
@@ -51,9 +51,9 @@ export default async function RootLayout({
     if (user) {
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { role: true }
+        select: { id: true, role: true, avatarUrl: true, verificationStatus: true, firstName: true, lastName: true }
       });
-      userRole = dbUser?.role;
+      currentUser = dbUser;
     }
   } catch (e) {
     console.error("Layout auth error:", e);
@@ -68,7 +68,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar userRole={userRole} />
+          <Navbar user={currentUser} />
           <main className="flex-grow pt-16">
             {children}
           </main>

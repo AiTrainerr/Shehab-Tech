@@ -4,10 +4,8 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, MessageCircle, Send, DollarSign } from "lucide-react"
-// @ts-ignore
-import { addComment } from "@/app/actions/portfolio"
-// @ts-ignore
 import { applyToProject } from "@/app/actions/projects"
+import { CommentsSection } from "@/components/comments-section"
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -39,16 +37,21 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     // Comments with author info
     const rawComments = await prisma.comment.findMany({
       where: { projectId: id },
-      include: { author: { select: { firstName: true, lastName: true, verificationStatus: true } } },
-      orderBy: { createdAt: "desc" }
+      include: { author: { select: { id: true, firstName: true, lastName: true, verificationStatus: true, avatarUrl: true, role: true } } },
+      orderBy: { createdAt: "asc" }
     })
     
     // Map to expected format
     comments = rawComments.map(c => ({
       ...c,
-      firstName: c.author.firstName,
-      lastName: c.author.lastName,
-      verificationStatus: c.author.verificationStatus
+      author: {
+        id: c.author.id,
+        firstName: c.author.firstName,
+        lastName: c.author.lastName,
+        verificationStatus: c.author.verificationStatus,
+        avatarUrl: c.author.avatarUrl,
+        role: c.author.role
+      }
     }))
     
     const appCount: any[] = await prisma.$queryRaw`SELECT COUNT(*) as count FROM Application WHERE projectId = ${id}`
@@ -60,6 +63,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const existingApplication = await prisma.application.findUnique({
     where: { projectId_userId: { projectId: id, userId } }
   })
+
+  const isApproved = existingApplication && ["APPROVED", "ACCEPTED", "WORKING", "PAID"].includes(existingApplication.status)
 
   return (
     <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
@@ -114,7 +119,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         {project.instructions && (
           <div className="glass p-6 rounded-2xl border border-border mb-6">
             <h2 className="text-lg font-bold mb-3">Instructions</h2>
-            <p className="text-foreground/70 leading-relaxed">{project.instructions}</p>
+            {isApproved ? (
+              <p className="text-foreground/70 leading-relaxed">{project.instructions}</p>
+            ) : (
+              <div className="flex items-center gap-3 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl text-orange-500">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <p className="text-sm font-semibold">Detailed instructions will be revealed after your application is approved by the admin.</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -122,19 +134,26 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         {images.length > 0 && (
           <div className="glass p-6 rounded-2xl border border-border mb-6">
             <h2 className="text-lg font-bold mb-4">Project Images</h2>
-            <div className="space-y-4">
-              {images.map((img) => (
-                <div key={img.id}>
-                  <img src={img.url} alt={img.caption || "Project image"} className="w-full rounded-xl border border-border object-cover max-h-72" />
-                  {img.caption && <p className="text-sm text-foreground/60 mt-2 italic">{img.caption}</p>}
-                </div>
-              ))}
-            </div>
+            {isApproved ? (
+              <div className="space-y-4">
+                {images.map((img) => (
+                  <div key={img.id}>
+                    <img src={img.url} alt={img.caption || "Project image"} className="w-full rounded-xl border border-border object-cover max-h-72" />
+                    {img.caption && <p className="text-sm text-foreground/60 mt-2 italic">{img.caption}</p>}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl text-orange-500">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <p className="text-sm font-semibold">Project images will be revealed after your application is approved by the admin.</p>
+              </div>
+            )}
           </div>
         )}
 
         {/* Private Data (ONLY SHOWN IF APPROVED) */}
-        {existingApplication?.status === "APPROVED" && project.privateData && (
+        {isApproved && project.privateData && (
           <div className="glass p-6 rounded-2xl border border-primary/30 bg-primary/5 mb-6 relative overflow-hidden">
             <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
               Confidential Info
@@ -181,48 +200,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </div>
 
         {/* Comments Section */}
-        <div className="glass p-6 rounded-2xl border border-border">
-          <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-            <MessageCircle className="w-5 h-5 text-primary" /> Comments ({comments.length})
-          </h2>
-
-          <form action={async (formData) => {
-            "use server"
-            formData.set("projectId", id)
-            await addComment(formData)
-            revalidatePath(`/member/projects/${id}`)
-          }} className="mb-6">
-            <div className="flex gap-3">
-              <textarea
-                name="content"
-                rows={2}
-                placeholder="Write a comment..."
-                required
-                className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none text-sm"
-              />
-              <button type="submit" className="shrink-0 px-5 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center gap-2 self-end">
-                <Send className="w-4 h-4" /> Post
-              </button>
-            </div>
-          </form>
-
-          <div className="space-y-4">
-            {comments.map((comment: any) => (
-              <div key={comment.id} className="flex gap-3">
-                <div className="shrink-0 w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-sm font-black text-primary">
-                  {comment.firstName ? comment.firstName[0] : "U"}
-                </div>
-                <div className="flex-1 bg-background rounded-xl p-4 border border-border">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-sm">{comment.firstName} {comment.lastName}</span>
-                    <span className="text-xs text-foreground/40 ml-auto">{new Date(comment.createdAt).toLocaleDateString()}</span>
-                  </div>
-                  <p className="text-sm text-foreground/80 leading-relaxed">{comment.content}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <CommentsSection projectId={id} comments={comments} currentUserId={userId} />
       </div>
     </div>
   )

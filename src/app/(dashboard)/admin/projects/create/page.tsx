@@ -155,6 +155,15 @@ export default function CreateProjectPage() {
                   <input name="reqAgeMax" type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="Max age (60)" />
                 </div>
               </div>
+              <div className="space-y-2 md:col-span-2">
+                <label className="flex items-center gap-3 p-4 bg-primary/5 border border-primary/20 rounded-xl cursor-pointer hover:bg-primary/10 transition-colors">
+                  <input name="autoApprove" type="checkbox" value="true" className="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
+                  <div>
+                    <p className="font-bold text-sm text-foreground">Auto-Approve All Applicants</p>
+                    <p className="text-xs text-foreground/60">If checked, anyone who applies will be automatically approved and can see private project instructions.</p>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
 

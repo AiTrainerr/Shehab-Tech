@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { Users, Clock, Edit2, CheckCircle, MoreVertical } from "lucide-react"
 import { updateProjectStatus } from "@/app/actions/projects"
 
@@ -53,6 +54,9 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
         </div>
 
         <div className="flex flex-col gap-3 min-w-[160px]">
+          <Link href={`/admin/projects/edit/${project.id}`} className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-bold bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors">
+            <Edit2 className="w-4 h-4" /> Edit Details
+          </Link>
           <div className="space-y-1">
             <label className="text-xs font-bold text-foreground/50 uppercase tracking-wider">Change Status</label>
             <select 

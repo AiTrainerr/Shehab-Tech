@@ -3,7 +3,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
-import { Briefcase, CheckCircle, DollarSign, Star, Bell, Clock, ArrowRight, BookOpen, Shield } from "lucide-react"
+import { Briefcase, CheckCircle, DollarSign, Star, Bell, Clock, ArrowRight, BookOpen, Shield, BadgeCheck } from "lucide-react"
 import { MemberDashboardClient } from "@/components/member-dashboard-client"
 
 export default async function MemberDashboard() {
@@ -53,7 +53,7 @@ export default async function MemberDashboard() {
           <h1 className="text-3xl font-black text-foreground flex items-center gap-2">
             Welcome back, {user.firstName}!
             {user.verificationStatus === "VERIFIED" && (
-              <CheckCircle className="w-6 h-6 text-blue-500 fill-blue-500/20" />
+              <BadgeCheck className="w-8 h-8 text-white fill-blue-500" />
             )}
           </h1>
           <p className="text-foreground/70">Here's what's happening with your projects today.</p>

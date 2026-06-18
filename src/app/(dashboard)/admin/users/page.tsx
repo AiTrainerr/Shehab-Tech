@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { Users, Shield, CheckCircle, Clock, XCircle } from "lucide-react"
+import { Users, Shield, BadgeCheck, Clock, XCircle } from "lucide-react"
 import { AdminUsersClient } from "./AdminUsersClient"
 
 export const dynamic = 'force-dynamic'
@@ -27,7 +27,7 @@ export default async function UsersPage() {
   })
 
   const statusConfig = {
-    VERIFIED:  { label: "Verified",  icon: <CheckCircle className="w-4 h-4" />, cls: "text-green-500 bg-green-500/10 border-green-500/20" },
+    VERIFIED:  { label: "Verified",  icon: <BadgeCheck className="w-4 h-4 text-white fill-green-500" />, cls: "text-blue-500 bg-blue-500/10 border-blue-500/20" },
     PENDING:   { label: "Pending",   icon: <Clock className="w-4 h-4" />,       cls: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20" },
     REJECTED:  { label: "Rejected",  icon: <XCircle className="w-4 h-4" />,     cls: "text-red-500 bg-red-500/10 border-red-500/20" },
   }

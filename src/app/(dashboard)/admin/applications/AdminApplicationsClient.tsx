@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Check, X, Search, FileText, User } from "lucide-react"
+import { Check, X, Search, FileText, User, BadgeCheck } from "lucide-react"
 import { approveApplication, rejectApplication } from "@/app/actions/projects"
 
 interface Application {
@@ -87,8 +87,8 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                   {app.user.ranking}
                 </span>
                 {app.user.verificationStatus === "VERIFIED" && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-green-500/10 text-green-500">
-                    Verified
+                  <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500">
+                    <BadgeCheck className="w-3.5 h-3.5 text-white fill-green-500" /> Verified
                   </span>
                 )}
               </div>
