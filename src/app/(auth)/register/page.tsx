@@ -36,11 +36,35 @@ export default function RegisterPage() {
     }
 
     if (step < 4) {
+      if (step === 3) {
+        // Validate phone numbers before proceeding to step 4
+        const phone = formData.get("phone") as string
+        const whatsapp = formData.get("whatsapp") as string
+        const phoneDigits = phone.replace(/\D/g, '')
+        const whatsappDigits = whatsapp.replace(/\D/g, '')
+        
+        if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+          setError("Please enter a valid phone number")
+          return
+        }
+        if (whatsappDigits.length < 8 || whatsappDigits.length > 15) {
+          setError("Please enter a valid WhatsApp number")
+          return
+        }
+      }
       setStep(step + 1)
       return
     }
 
     setIsLoading(true)
+    
+    // Prepend dial code to numbers before submitting
+    const dialCode = selectedCountry ? countryDialCodes[selectedCountry] : "+20"
+    const finalPhone = formData.get("phone") as string
+    const finalWhatsapp = formData.get("whatsapp") as string
+    formData.set("phone", `${dialCode}${finalPhone.replace(/\s+/g, '')}`)
+    formData.set("whatsapp", `${dialCode}${finalWhatsapp.replace(/\s+/g, '')}`)
+
     const result = await registerUser(formData)
     
     if (result.success) {
