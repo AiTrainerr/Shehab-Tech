@@ -7,8 +7,9 @@ import { revalidatePath } from "next/cache"
 
 export default async function VerificationPage() {
   const pendingUsers = await prisma.user.findMany({
-    where: { verificationStatus: "PENDING" },
-    select: { id: true, firstName: true, lastName: true, email: true, idCardUrl: true, selfieUrl: true }
+    where: { role: "MEMBER" },
+    select: { id: true, firstName: true, lastName: true, email: true, idCardUrl: true, selfieUrl: true, verificationStatus: true },
+    orderBy: { createdAt: "desc" }
   })
 
   async function handleApprove(formData: FormData) {
@@ -49,7 +50,17 @@ export default async function VerificationPage() {
                   
                   <div className="flex-1 space-y-4">
                     <div>
-                      <h3 className="text-xl font-bold">{user.firstName} {user.lastName}</h3>
+                      <div className="flex items-center gap-3 mb-1">
+                        <h3 className="text-xl font-bold">{user.firstName} {user.lastName}</h3>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
+                          user.verificationStatus === "VERIFIED" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                          user.verificationStatus === "PENDING" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
+                          user.verificationStatus === "REJECTED" ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                          "bg-foreground/5 text-foreground/50 border-border"
+                        }`}>
+                          {user.verificationStatus}
+                        </span>
+                      </div>
                       <p className="text-sm text-foreground/60">{user.email}</p>
                     </div>
 
@@ -74,18 +85,22 @@ export default async function VerificationPage() {
                   </div>
 
                   <div className="flex flex-col gap-3 justify-center min-w-[140px]">
-                    <form action={handleApprove}>
-                      <input type="hidden" name="userId" value={user.id} />
-                      <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 font-bold rounded-xl transition-colors border border-green-500/20">
-                        <CheckCircle className="w-4 h-4" /> Approve
-                      </button>
-                    </form>
-                    <form action={handleReject}>
-                      <input type="hidden" name="userId" value={user.id} />
-                      <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 font-bold rounded-xl transition-colors border border-red-500/20">
-                        <XCircle className="w-4 h-4" /> Reject
-                      </button>
-                    </form>
+                    {user.verificationStatus !== "VERIFIED" && (
+                      <form action={handleApprove}>
+                        <input type="hidden" name="userId" value={user.id} />
+                        <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 font-bold rounded-xl transition-colors border border-green-500/20">
+                          <CheckCircle className="w-4 h-4" /> Approve
+                        </button>
+                      </form>
+                    )}
+                    {user.verificationStatus !== "REJECTED" && (
+                      <form action={handleReject}>
+                        <input type="hidden" name="userId" value={user.id} />
+                        <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 font-bold rounded-xl transition-colors border border-red-500/20">
+                          <XCircle className="w-4 h-4" /> Reject
+                        </button>
+                      </form>
+                    )}
                   </div>
 
                 </div>

@@ -22,7 +22,7 @@ export function AdminSidebar({ pendingVerifications }: { pendingVerifications: n
   ]
 
   return (
-    <aside className="w-64 border-r border-border bg-card hidden lg:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto shrink-0">
+    <aside className="w-64 border-r border-border bg-card hidden lg:block fixed left-0 top-[64px] h-[calc(100vh-64px)] overflow-y-auto z-40">
       <div className="p-6">
         <div className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-4">Overview</div>
         <nav className="space-y-1">
