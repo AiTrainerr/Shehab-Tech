@@ -14,7 +14,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
   
   const user = await prisma.user.findUnique({
-    where: { id, role: "MEMBER" },
+    where: { id },
     include: {
       skills: { include: { skill: true } },
       portfolios: true

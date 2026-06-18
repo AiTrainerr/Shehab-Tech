@@ -4,7 +4,6 @@ import { AdminUsersClient } from "./AdminUsersClient"
 
 export default async function UsersPage() {
   const users = await prisma.user.findMany({
-    where: { role: "MEMBER" },
     select: {
       id: true,
       firstName: true,
