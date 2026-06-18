@@ -1,9 +1,8 @@
 import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 import Link from "next/link"
-import { redirect } from "next/navigation"
-import { revalidatePath } from "next/cache"
-import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, MessageCircle, Send, DollarSign } from "lucide-react"
+import { redirect, notFound } from "next/navigation"
+import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, DollarSign } from "lucide-react"
 import { applyToProject } from "@/app/actions/projects"
 import { CommentsSection } from "@/components/comments-section"
 
@@ -13,58 +12,53 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const userId = cookieStore.get("userId")?.value
   if (!userId) redirect("/login")
 
-  // Use raw query for project too
-  let project: any = null
-  try {
-    const projects: any[] = await prisma.$queryRaw`SELECT * FROM Project WHERE id = ${id}`
-    project = projects[0]
-  } catch (e) {
-    console.error(e)
-  }
+  // Fetch project with all relations using Prisma ORM
+  const project = await prisma.project.findUnique({
+    where: { id },
+    include: {
+      languages: true,
+      images: true,
+      _count: { select: { applications: true } }
+    }
+  })
 
-  if (!project) redirect("/member/projects")
+  if (!project) notFound()
 
-  // Fetch relations using raw queries
-  let languages: any[] = []
-  let images: any[] = []
-  let comments: any[] = []
-  let applicantCount = 0
-  
-  try {
-    languages = await prisma.$queryRaw`SELECT * FROM ProjectLanguage WHERE projectId = ${id}`
-    images = await prisma.$queryRaw`SELECT * FROM ProjectImage WHERE projectId = ${id}`
-    
-    // Comments with author info
-    const rawComments = await prisma.comment.findMany({
-      where: { projectId: id },
-      include: { author: { select: { id: true, firstName: true, lastName: true, verificationStatus: true, avatarUrl: true, role: true } } },
-      orderBy: { createdAt: "asc" }
-    })
-    
-    // Map to expected format
-    comments = rawComments.map(c => ({
-      ...c,
+  // Fetch comments with author info
+  const rawComments = await prisma.comment.findMany({
+    where: { projectId: id },
+    include: {
       author: {
-        id: c.author.id,
-        firstName: c.author.firstName,
-        lastName: c.author.lastName,
-        verificationStatus: c.author.verificationStatus,
-        avatarUrl: c.author.avatarUrl,
-        role: c.author.role
+        select: { id: true, firstName: true, lastName: true, verificationStatus: true, avatarUrl: true, role: true }
       }
-    }))
-    
-    const appCount: any[] = await prisma.$queryRaw`SELECT COUNT(*) as count FROM Application WHERE projectId = ${id}`
-    applicantCount = Number(appCount[0]?.count || 0)
-  } catch (e) {
-    console.error(e)
-  }
+    },
+    orderBy: { createdAt: "asc" }
+  })
+
+  const comments = rawComments.map(c => ({
+    ...c,
+    author: {
+      id: c.author.id,
+      firstName: c.author.firstName,
+      lastName: c.author.lastName,
+      verificationStatus: c.author.verificationStatus,
+      avatarUrl: c.author.avatarUrl,
+      role: c.author.role
+    }
+  }))
 
   const existingApplication = await prisma.application.findUnique({
     where: { projectId_userId: { projectId: id, userId } }
   })
 
   const isApproved = existingApplication && ["APPROVED", "ACCEPTED", "WORKING", "PAID"].includes(existingApplication.status)
+  const applicantCount = project._count.applications
+
+  // Parse countries
+  let countries: string[] = []
+  if (project.reqCountry) {
+    try { countries = JSON.parse(project.reqCountry) } catch { countries = [project.reqCountry] }
+  }
 
   return (
     <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
@@ -81,15 +75,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
           <p className="text-foreground/70 mb-6">{project.description}</p>
           <div className="flex flex-wrap gap-3 text-sm">
-            {project.reqCountry && (() => {
-              let countries: string[] = []
-              try { countries = JSON.parse(project.reqCountry) } catch { countries = [project.reqCountry] }
-              return countries.map((c: string) => (
-                <span key={c} className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
-                  <MapPin className="w-4 h-4 text-blue-400" /> {c}
-                </span>
-              ))
-            })()}
+            {countries.map(c => (
+              <span key={c} className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
+                <MapPin className="w-4 h-4 text-blue-400" /> {c}
+              </span>
+            ))}
             <span className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
               <Users className="w-4 h-4 text-purple-400" /> {applicantCount} Applicants
             </span>
@@ -101,18 +91,28 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <DollarSign className="w-4 h-4" /> ${Number(project.price).toFixed(2)} / Task
               </span>
             )}
+            {project.recordingDuration && (
+              <span className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
+                <Clock className="w-4 h-4 text-orange-400" /> {project.recordingDuration}h Recording
+              </span>
+            )}
+            {project.reqAgeMin && project.reqAgeMax && (
+              <span className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
+                Age: {project.reqAgeMin}–{project.reqAgeMax}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Languages */}
-        {languages.length > 0 && (
+        {project.languages.length > 0 && (
           <div className="glass p-6 rounded-2xl border border-border mb-6">
             <h2 className="text-lg font-bold mb-4">Language Requirements</h2>
             <div className="flex flex-wrap gap-3">
-              {languages.map((lang, i) => (
+              {project.languages.map((lang, i) => (
                 <div key={i} className="px-4 py-2 bg-primary/10 border border-primary/20 rounded-xl">
                   <p className="font-bold text-primary">{lang.language}{lang.dialect ? ` — ${lang.dialect}` : ""}</p>
-                  {lang.proficiency && <p className="text-xs text-foreground/60">{lang.proficiency}</p>}
+                  {lang.proficiency && <p className="text-xs text-foreground/60 mt-0.5">{lang.proficiency}</p>}
                 </div>
               ))}
             </div>
@@ -135,12 +135,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         )}
 
         {/* Images */}
-        {images.length > 0 && (
+        {project.images.length > 0 && (
           <div className="glass p-6 rounded-2xl border border-border mb-6">
             <h2 className="text-lg font-bold mb-4">Project Images</h2>
             {isApproved ? (
               <div className="space-y-4">
-                {images.map((img) => (
+                {project.images.map((img) => (
                   <div key={img.id}>
                     <img src={img.url} alt={img.caption || "Project image"} className="w-full rounded-xl border border-border object-cover max-h-72" />
                     {img.caption && <p className="text-sm text-foreground/60 mt-2 italic">{img.caption}</p>}
@@ -177,11 +177,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         {/* Apply Section */}
         <div className="glass p-6 rounded-2xl border border-border mb-6">
           {existingApplication ? (
-            <div className="flex items-center gap-4 text-green-500">
-              <CheckCircle className="w-8 h-8 shrink-0" />
+            <div className="flex items-center gap-4">
+              <CheckCircle className={`w-8 h-8 shrink-0 ${
+                existingApplication.status === "APPROVED" ? "text-green-500" :
+                existingApplication.status === "REJECTED" ? "text-red-500" : "text-yellow-500"
+              }`} />
               <div>
                 <p className="font-bold text-lg">Application Submitted</p>
-                <p className="text-sm text-foreground/60">Status: <span className="font-semibold">{existingApplication.status}</span></p>
+                <p className="text-sm text-foreground/60">Status: <span className={`font-bold ${
+                  existingApplication.status === "APPROVED" ? "text-green-500" :
+                  existingApplication.status === "REJECTED" ? "text-red-500" : "text-yellow-500"
+                }`}>{existingApplication.status}</span></p>
               </div>
             </div>
           ) : (
@@ -193,7 +199,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <form action={async () => {
                 "use server"
                 await applyToProject(id)
-                revalidatePath(`/member/projects/${id}`)
               }}>
                 <button type="submit" className="whitespace-nowrap px-8 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
                   Apply Now
