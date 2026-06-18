@@ -1,14 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { promises as fs } from "fs"
-import path from "path"
-import crypto from "crypto"
-import { cookies } from "next/headers"
-
 import { uploadToSupabase } from "@/lib/storage"
-
-// saveFileLocally is no longer used for production, using uploadToSupabase instead
 
 export async function createProjectAction(formData: FormData) {
   try {
@@ -25,7 +18,6 @@ export async function createProjectAction(formData: FormData) {
     const langCount = parseInt(formData.get("langCount") as string) || 0
     const imageCount = parseInt(formData.get("imageCount") as string) || 0
 
-    // Extract languages
     const languages = []
     for (let i = 0; i < langCount; i++) {
       const language = formData.get(`language_${i}`) as string
@@ -38,19 +30,16 @@ export async function createProjectAction(formData: FormData) {
       }
     }
 
-    // Extract and save images
     const images = []
     for (let i = 0; i < imageCount; i++) {
       const imageFile = formData.get(`image_${i}`) as File | null
       const caption = formData.get(`caption_${i}`) as string | null
-      
       if (imageFile && imageFile.size > 0) {
         const url = await uploadToSupabase(imageFile, 'projects')
         images.push({ url, caption })
       }
     }
 
-    // Create project
     const project = await prisma.project.create({
       data: {
         title,
@@ -62,12 +51,8 @@ export async function createProjectAction(formData: FormData) {
         reqAgeMin,
         reqAgeMax,
         autoApprove,
-        languages: {
-          create: languages
-        },
-        images: {
-          create: images
-        }
+        languages: { create: languages },
+        images: { create: images }
       }
     })
 
@@ -95,33 +80,30 @@ export async function applyToProject(projectId: string) {
 
     const status = project.autoApprove ? "APPROVED" : "PENDING"
 
-    const application = await prisma.application.create({
+    await prisma.application.create({
       data: { projectId, userId: user.id, status }
     })
     
     if (project.autoApprove) {
-      // Notify user of auto-approval
       await prisma.notification.create({
         data: {
           userId: user.id,
           title: "Application Auto-Approved!",
-          message: `Your application for "${project.title}" has been automatically approved.`,
+          content: `Your application for "${project.title}" has been automatically approved.`,
           link: `/member/projects/${projectId}`
         }
       })
     }
     
-    // Notify all admins
     const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } })
-    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { title: true } })
     const applicant = await prisma.user.findUnique({ where: { id: user.id }, select: { firstName: true, lastName: true } })
     
-    if (admins.length > 0 && project && applicant) {
+    if (admins.length > 0 && applicant) {
       await prisma.notification.createMany({
         data: admins.map(admin => ({
           userId: admin.id,
           title: project.autoApprove ? "New Application (Auto-Approved)" : "New Application",
-          message: `${applicant.firstName} ${applicant.lastName} applied for "${project.title}".`,
+          content: `${applicant.firstName} ${applicant.lastName} applied for "${project.title}".`,
           link: `/profile/${user.id}`
         }))
       })
@@ -141,19 +123,17 @@ export async function approveApplication(applicationId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Not logged in" }
     
-    // Update application
     const application = await prisma.application.update({
       where: { id: applicationId },
       data: { status: "APPROVED" },
       include: { project: true }
     })
     
-    // Notify user
     await prisma.notification.create({
       data: {
         userId: application.userId,
         title: "Application Approved!",
-        message: `Your application for "${application.project.title}" has been approved.`
+        content: `Your application for "${application.project.title}" has been approved.`
       }
     })
     
@@ -174,19 +154,17 @@ export async function rejectApplication(applicationId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Not logged in" }
     
-    // Update application
     const application = await prisma.application.update({
       where: { id: applicationId },
       data: { status: "REJECTED" },
       include: { project: true }
     })
     
-    // Notify user
     await prisma.notification.create({
       data: {
         userId: application.userId,
         title: "Application Status Update",
-        message: `Your application for "${application.project.title}" was not selected.`
+        content: `Your application for "${application.project.title}" was not selected.`
       }
     })
     
@@ -229,7 +207,6 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Not logged in" }
     
-    // Admin check
     const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
     if (dbUser?.role !== "ADMIN") return { success: false, error: "Unauthorized" }
 
@@ -245,17 +222,7 @@ export async function updateProjectAction(projectId: string, formData: FormData)
 
     await prisma.project.update({
       where: { id: projectId },
-      data: {
-        title,
-        description,
-        privateData,
-        reqCountry,
-        price,
-        recordingDuration,
-        reqAgeMin,
-        reqAgeMax,
-        autoApprove
-      }
+      data: { title, description, privateData, reqCountry, price, recordingDuration, reqAgeMin, reqAgeMax, autoApprove }
     })
 
     const { revalidatePath } = await import("next/cache")
