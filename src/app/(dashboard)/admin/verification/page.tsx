@@ -50,7 +50,11 @@ export default async function VerificationPage() {
                   <div className="flex-1 space-y-4">
                     <div>
                       <div className="flex items-center gap-3 mb-1">
-                        <h3 className="text-xl font-bold">{user.firstName} {user.lastName}</h3>
+                        <Link href={`/profile/${user.id}`}>
+                          <h3 className="text-xl font-bold hover:text-primary transition-colors hover:underline">
+                            {user.firstName} {user.lastName}
+                          </h3>
+                        </Link>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${
                           user.verificationStatus === "VERIFIED" ? "bg-green-500/10 text-green-500 border-green-500/20" :
                           user.verificationStatus === "PENDING" ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
