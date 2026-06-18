@@ -7,9 +7,9 @@ export function Footer() {
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           {/* Brand Column */}
-          <div className="md:col-span-1 space-y-6">
+          <div className="space-y-6">
             <Link href="/" className="flex items-center gap-2">
               <span className="text-3xl font-black text-primary tracking-tighter">SHEHAB</span>
               <span className="text-3xl font-light text-foreground tracking-tighter">TECH</span>
@@ -27,25 +27,11 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Platform Links */}
-          <div>
-            <h4 className="text-sm font-bold uppercase tracking-[0.2em] text-foreground mb-6">Platform</h4>
-            <ul className="space-y-4">
-              {['Browse Projects', 'Success Stories', 'Verify Account', 'Freelancer Guide'].map((item) => (
-                <li key={item}>
-                  <Link href="/projects" className="text-foreground/50 hover:text-primary transition-colors text-sm font-medium">
-                    {item}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
           {/* Legal Links */}
           <div>
             <h4 className="text-sm font-bold uppercase tracking-[0.2em] text-foreground mb-6">Legal</h4>
             <ul className="space-y-4">
-              {['Terms of Service', 'Privacy Policy', 'Cookie Policy', 'Security Compliance'].map((item) => (
+              {['Terms of Service'].map((item) => (
                 <li key={item}>
                   <Link href="/terms" className="text-foreground/50 hover:text-primary transition-colors text-sm font-medium">
                     {item}
