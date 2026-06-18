@@ -1,10 +1,17 @@
 import * as React from "react"
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
-import { Star, CheckCircle, MapPin, Briefcase, Award } from "lucide-react"
+import { cookies } from "next/headers"
+import { Star, CheckCircle, MapPin, Briefcase, Award, Shield, XCircle, FileImage } from "lucide-react"
+import { approveVerification, rejectVerification } from "@/app/actions/verification"
+import { revalidatePath } from "next/cache"
 
 export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  
+  const cookieStore = await cookies()
+  const viewerRole = cookieStore.get("userRole")?.value
+
   
   const user = await prisma.user.findUnique({
     where: { id, role: "MEMBER" },
@@ -115,6 +122,68 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         )}
 
       </div>
+
+      {viewerRole === "ADMIN" && (
+        <div className="max-w-4xl mx-auto mt-8">
+          <div className="glass rounded-3xl p-8 border-2 border-orange-500/20 bg-orange-500/5 relative overflow-hidden">
+            <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-orange-500">
+              <Shield className="w-6 h-6" /> Admin Controls (Verification)
+            </h3>
+            
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Documents */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-foreground/80">Submitted Documents</h4>
+                {user.idCardUrl || user.selfieUrl ? (
+                  <div className="flex gap-4">
+                    {user.idCardUrl && (
+                      <a href={user.idCardUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-xl text-sm font-bold hover:border-primary transition-colors">
+                        <FileImage className="w-4 h-4" /> View ID Card
+                      </a>
+                    )}
+                    {user.selfieUrl && (
+                      <a href={user.selfieUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 bg-background border border-border rounded-xl text-sm font-bold hover:border-primary transition-colors">
+                        <FileImage className="w-4 h-4" /> View Selfie
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-foreground/50 italic">No verification documents uploaded.</p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-foreground/80">Verification Status: <span className="font-black text-foreground">{user.verificationStatus}</span></h4>
+                <div className="flex gap-4">
+                  {user.verificationStatus !== "VERIFIED" && (
+                    <form action={async () => {
+                      "use server"
+                      await approveVerification(user.id)
+                      revalidatePath(`/profile/${user.id}`)
+                    }}>
+                      <button type="submit" className="flex items-center gap-2 px-6 py-2.5 bg-green-500/10 text-green-500 hover:bg-green-500/20 font-bold rounded-xl transition-colors border border-green-500/20 shadow-sm">
+                        <CheckCircle className="w-5 h-5" /> Approve Account
+                      </button>
+                    </form>
+                  )}
+                  {user.verificationStatus !== "REJECTED" && (
+                    <form action={async () => {
+                      "use server"
+                      await rejectVerification(user.id)
+                      revalidatePath(`/profile/${user.id}`)
+                    }}>
+                      <button type="submit" className="flex items-center gap-2 px-6 py-2.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 font-bold rounded-xl transition-colors border border-red-500/20 shadow-sm">
+                        <XCircle className="w-5 h-5" /> Reject Account
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

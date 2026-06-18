@@ -67,6 +67,12 @@ export async function createProjectAction(formData: FormData) {
       }
     })
 
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath("/admin/projects")
+    revalidatePath("/member/projects")
+    revalidatePath("/admin")
+    revalidatePath("/member")
+
     return { success: true, projectId: project.id }
   } catch (error: any) {
     console.error("Create project error:", error)

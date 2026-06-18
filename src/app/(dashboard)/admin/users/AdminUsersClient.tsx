@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { Users, Mail, Phone, MapPin, CheckCircle, Clock, XCircle, Search, Filter } from "lucide-react"
 import { AdminRatingForm } from "@/components/admin-rating-form"
 
@@ -65,7 +66,11 @@ export function AdminUsersClient({ initialUsers, statusConfig }: { initialUsers:
                     </div>
                     <div className="flex-1">
                       <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="text-lg font-bold">{user.firstName} {user.lastName}</h3>
+                        <Link href={`/profile/${user.id}`}>
+                          <h3 className="text-lg font-bold hover:text-primary transition-colors hover:underline">
+                            {user.firstName} {user.lastName}
+                          </h3>
+                        </Link>
                         <span className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${status.cls}`}>
                           {status.icon} {status.label}
                         </span>
