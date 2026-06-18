@@ -19,6 +19,17 @@ export async function updateProfile(formData: FormData) {
     const whatsapp = formData.get("whatsapp") as string
     const bio = formData.get("bio") as string | null
 
+    const projectTypes = formData.getAll("projectTypes") as string[]
+
+    const languages = []
+    for (let i = 0; i < 4; i++) {
+      const language = formData.get(`language_${i}`) as string
+      const proficiency = formData.get(`proficiency_${i}`) as string
+      if (language && proficiency) {
+        languages.push({ language: language.trim(), proficiency })
+      }
+    }
+
     if (!firstName || !lastName || !email) {
       return { success: false, error: "Required fields missing" }
     }
@@ -31,12 +42,22 @@ export async function updateProfile(formData: FormData) {
       phone,
       whatsapp,
       bio,
+      projectTypes,
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: updateData
-    })
+    // Use a transaction to update user and replace languages
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: updateData
+      }),
+      prisma.userLanguage.deleteMany({
+        where: { userId: user.id }
+      }),
+      prisma.userLanguage.createMany({
+        data: languages.map(l => ({ ...l, userId: user.id }))
+      })
+    ])
 
     revalidatePath("/member/profile")
     return { success: true }

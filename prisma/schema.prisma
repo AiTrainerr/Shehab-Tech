@@ -36,11 +36,13 @@ model User {
   ranking       String   @default("BEGINNER") // BEGINNER, INTERMEDIATE, VERIFIED, EXPERT, PREMIUM
   completedCount Int      @default(0)
   rating        Float     @default(0.0)
+  projectTypes  String[]  @default([])
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
   skills        UserSkill[]
+  languages     UserLanguage[]
   applications  Application[]
   notifications Notification[]
   messagesSent  Message[] @relation("SentMessages")
@@ -54,6 +56,14 @@ model Skill {
   name      String      @unique
   users     UserSkill[]
   projects  ProjectSkill[]
+}
+
+model UserLanguage {
+  id          String   @id @default(cuid())
+  userId      String
+  language    String
+  proficiency String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserSkill {

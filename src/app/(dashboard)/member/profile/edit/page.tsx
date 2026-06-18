@@ -23,6 +23,8 @@ export default async function EditProfilePage() {
       phone: true,
       whatsapp: true,
       bio: true,
+      projectTypes: true,
+      languages: true,
     }
   })
 

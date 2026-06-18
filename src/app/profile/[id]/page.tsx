@@ -17,6 +17,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
     where: { id },
     include: {
       skills: { include: { skill: true } },
+      languages: true,
       portfolios: true
     }
   })
@@ -78,6 +79,35 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
               <p className="text-foreground/80 leading-relaxed">{user.bio}</p>
             </div>
           )}
+
+          {/* Project Types & Languages */}
+          <div className="mt-8 flex flex-col md:flex-row gap-8 border-t border-border pt-6">
+            {user.projectTypes && user.projectTypes.length > 0 && (
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-foreground/50 uppercase tracking-wider mb-3">Looking to work on</h3>
+                <div className="flex flex-wrap gap-2">
+                  {user.projectTypes.map((pt, i) => (
+                    <span key={i} className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm font-semibold">
+                      {pt}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {user.languages && user.languages.length > 0 && (
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-foreground/50 uppercase tracking-wider mb-3">Languages Spoken</h3>
+                <div className="flex flex-wrap gap-2">
+                  {user.languages.map((lang, i) => (
+                    <span key={i} className="px-3 py-1 bg-foreground/5 text-foreground border border-border rounded-lg text-sm font-semibold flex items-center gap-2">
+                      {lang.language} <span className="opacity-50 text-xs">| {lang.proficiency}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Skills */}
