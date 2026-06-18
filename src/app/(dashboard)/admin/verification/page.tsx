@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache"
 
 export default async function VerificationPage() {
   const pendingUsers = await prisma.user.findMany({
-    where: { role: "MEMBER" },
     select: { id: true, firstName: true, lastName: true, email: true, idCardUrl: true, selfieUrl: true, verificationStatus: true },
     orderBy: { createdAt: "desc" }
   })
