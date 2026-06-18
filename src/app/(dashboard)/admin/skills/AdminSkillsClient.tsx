@@ -42,13 +42,10 @@ export function AdminSkillsClient({ resources }: Props) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="max-w-6xl mx-auto w-full">
+    <main className="p-4 sm:p-6 lg:p-8 w-full max-w-6xl mx-auto">
+      <div>
         <div className="mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <Link href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition-colors mb-4">
-              <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-            </Link>
             <h1 className="text-3xl font-black text-foreground flex items-center gap-3">
               <BookOpen className="w-8 h-8 text-primary" /> Learn Skills
             </h1>
@@ -153,6 +150,6 @@ export function AdminSkillsClient({ resources }: Props) {
           </div>
         )}
       </div>
-    </div>
+    </main>
   )
 }

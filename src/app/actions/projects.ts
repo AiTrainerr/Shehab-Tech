@@ -90,3 +90,25 @@ export async function applyToProject(projectId: string) {
     return { success: false, error: "Failed to apply" }
   }
 }
+
+export async function updateProjectStatus(projectId: string, status: string) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { status }
+    })
+    
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath("/admin/projects")
+    revalidatePath("/member/projects")
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Update status error:", error)
+    return { success: false, error: "Failed to update status" }
+  }
+}

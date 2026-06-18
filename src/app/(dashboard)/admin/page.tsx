@@ -28,46 +28,7 @@ export default async function AdminDashboard() {
   })
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Admin Sidebar */}
-      <aside className="w-64 border-r border-border bg-card hidden lg:block sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
-        <div className="p-6">
-          <div className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-4">Overview</div>
-          <nav className="space-y-1">
-            <Link href="/admin" className="flex items-center gap-3 px-3 py-2 bg-primary/10 text-primary rounded-lg font-medium">
-              <Activity className="w-5 h-5" /> Dashboard
-            </Link>
-            <Link href="/admin/users" className="flex items-center gap-3 px-3 py-2 text-foreground/70 hover:bg-background rounded-lg font-medium transition-colors">
-              <Users className="w-5 h-5" /> Users & Freelancers
-            </Link>
-            <Link href="/admin/projects" className="flex items-center gap-3 px-3 py-2 text-foreground/70 hover:bg-background rounded-lg font-medium transition-colors">
-              <FileText className="w-5 h-5" /> Projects
-            </Link>
-          </nav>
-
-          <div className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-4 mt-8">Management</div>
-          <nav className="space-y-1">
-            <Link href="/admin/verification" className="flex items-center gap-3 px-3 py-2 text-foreground/70 hover:bg-background rounded-lg font-medium transition-colors">
-              <AlertCircle className="w-5 h-5" /> Verification Requests
-              {pendingVerifications > 0 && (
-                <span className="ml-auto text-xs font-bold text-white bg-orange-500 rounded-full px-2 py-0.5">{pendingVerifications}</span>
-              )}
-            </Link>
-            <Link href="/admin/skills" className="flex items-center gap-3 px-3 py-2 text-foreground/70 hover:bg-background rounded-lg font-medium transition-colors">
-              <BookOpen className="w-5 h-5" /> Learn Skills
-            </Link>
-            <Link href="/portfolio" className="flex items-center gap-3 px-3 py-2 text-foreground/70 hover:bg-background rounded-lg font-medium transition-colors">
-              <Briefcase className="w-5 h-5" /> Portfolios
-            </Link>
-            <Link href="/admin/payments" className="flex items-center gap-3 px-3 py-2 text-foreground/70 hover:bg-background rounded-lg font-medium transition-colors">
-              <DollarSign className="w-5 h-5" /> Payments
-            </Link>
-          </nav>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+    <main className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-black text-foreground">Admin Overview</h1>
@@ -163,7 +124,6 @@ export default async function AdminDashboard() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
+    </main>
   )
 }

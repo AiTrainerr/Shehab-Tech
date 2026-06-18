@@ -8,6 +8,7 @@ import {
   Camera, ArrowLeft
 } from "lucide-react"
 import { ProfileAvatarUpload } from "@/components/profile-avatar-upload"
+import { ShareProfileButton } from "@/components/share-profile-button"
 
 export default async function ProfilePage() {
   const cookieStore = await cookies()
@@ -78,10 +79,13 @@ export default async function ProfilePage() {
               </div>
             </div>
 
-            {/* Edit Button */}
-            <Link href="/member/profile/edit" className="flex items-center gap-2 px-4 py-2 border border-border rounded-xl text-sm font-semibold hover:bg-card transition-colors shrink-0">
-              <Edit2 className="w-4 h-4" /> Edit Profile
-            </Link>
+            {/* Edit & Share */}
+            <div className="flex flex-col gap-3 shrink-0">
+              <Link href="/member/profile/edit" className="flex items-center justify-center gap-2 px-6 py-3 border border-border rounded-xl text-sm font-bold hover:bg-card transition-colors">
+                <Edit2 className="w-4 h-4" /> Edit Profile
+              </Link>
+              <ShareProfileButton userId={user.id} />
+            </div>
           </div>
         </div>
 

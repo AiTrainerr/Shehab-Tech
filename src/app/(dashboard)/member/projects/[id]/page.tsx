@@ -36,14 +36,20 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     languages = await prisma.$queryRaw`SELECT * FROM ProjectLanguage WHERE projectId = ${id}`
     images = await prisma.$queryRaw`SELECT * FROM ProjectImage WHERE projectId = ${id}`
     
-    // Comments with author info (raw join)
-    comments = await prisma.$queryRawUnsafe(`
-      SELECT c.*, u.firstName, u.lastName, u.verificationStatus
-      FROM Comment c
-      JOIN User u ON c.authorId = u.id
-      WHERE c.projectId = '${id}'
-      ORDER BY c.createdAt DESC
-    `)
+    // Comments with author info
+    const rawComments = await prisma.comment.findMany({
+      where: { projectId: id },
+      include: { author: { select: { firstName: true, lastName: true, verificationStatus: true } } },
+      orderBy: { createdAt: "desc" }
+    })
+    
+    // Map to expected format
+    comments = rawComments.map(c => ({
+      ...c,
+      firstName: c.author.firstName,
+      lastName: c.author.lastName,
+      verificationStatus: c.author.verificationStatus
+    }))
     
     const appCount: any[] = await prisma.$queryRaw`SELECT COUNT(*) as count FROM Application WHERE projectId = ${id}`
     applicantCount = Number(appCount[0]?.count || 0)

@@ -26,12 +26,9 @@ export default async function VerificationPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto w-full">
+    <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
+      <div>
         <div className="mb-8">
-          <Link href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition-colors mb-4">
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-          </Link>
           <h1 className="text-3xl font-black text-foreground flex items-center gap-3">
             <AlertCircle className="w-8 h-8 text-orange-500" /> Verification Requests
           </h1>
@@ -97,6 +94,6 @@ export default async function VerificationPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   )
 }

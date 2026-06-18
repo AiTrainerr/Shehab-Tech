@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { ArrowLeft, Users, Mail, Phone, MapPin, CheckCircle, Clock, XCircle, Shield } from "lucide-react"
+import { AdminRatingForm } from "@/components/admin-rating-form"
 
 export default async function UsersPage() {
   const users = await prisma.user.findMany({
@@ -32,13 +33,10 @@ export default async function UsersPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto w-full">
+    <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
+      <div>
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <Link href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition-colors mb-4">
-              <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-            </Link>
             <h1 className="text-3xl font-black text-foreground flex items-center gap-3">
               <Users className="w-8 h-8 text-primary" /> Members ({users.length})
             </h1>
@@ -107,9 +105,9 @@ export default async function UsersPage() {
                         <p className="text-xs text-foreground/50 uppercase font-semibold">Completed</p>
                         <p className="font-black text-xl">{user.completedCount}</p>
                       </div>
-                      <div>
-                        <p className="text-xs text-foreground/50 uppercase font-semibold">Rating</p>
-                        <p className="font-black text-xl">{user.rating.toFixed(1)} ★</p>
+                      <div className="flex flex-col items-center">
+                        <p className="text-xs text-foreground/50 uppercase font-semibold mb-1">Set Rating</p>
+                        <AdminRatingForm userId={user.id} currentRating={user.rating} />
                       </div>
                       <div>
                         <p className="text-xs text-foreground/50 uppercase font-semibold">Applications</p>
@@ -123,6 +121,6 @@ export default async function UsersPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   )
 }

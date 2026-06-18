@@ -40,6 +40,7 @@ export function Navbar({ userRole }: { userRole?: string }) {
                 </>
               ) : (
                 <>
+                  <Link href={userRole === "ADMIN" ? "/admin" : "/member"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Dashboard</Link>
                   <Link href={userRole === "ADMIN" ? "/admin/projects" : "/member/projects"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Available Projects</Link>
                   <Link href={userRole === "ADMIN" ? "/admin/projects" : "/member/projects?filter=past"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Past Projects</Link>
                 </>
@@ -145,6 +146,7 @@ export function Navbar({ userRole }: { userRole?: string }) {
               </>
             ) : (
               <>
+                <Link href={userRole === "ADMIN" ? "/admin" : "/member"} className="block hover:bg-card hover:text-primary px-3 py-2 rounded-md text-base font-medium">Dashboard</Link>
                 <Link href={userRole === "ADMIN" ? "/admin/projects" : "/member/projects"} className="block hover:bg-card hover:text-primary px-3 py-2 rounded-md text-base font-medium">Available Projects</Link>
                 <Link href={userRole === "ADMIN" ? "/admin/projects" : "/member/projects?filter=past"} className="block hover:bg-card hover:text-primary px-3 py-2 rounded-md text-base font-medium">Past Projects</Link>
                 {userRole !== "ADMIN" && (

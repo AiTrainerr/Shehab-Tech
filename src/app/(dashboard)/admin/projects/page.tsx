@@ -1,29 +1,47 @@
-"use client"
-
 import * as React from "react"
 import Link from "next/link"
-import { ArrowLeft, FileText, Plus } from "lucide-react"
+import { FileText, Plus, Users, Clock, Edit2 } from "lucide-react"
+import { prisma } from "@/lib/prisma"
+import { AdminProjectsClient } from "./AdminProjectsClient"
 
-export default function AdminProjectsPage() {
+export default async function AdminProjectsPage() {
+  const projects = await prisma.project.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      _count: { select: { applications: true } },
+      applications: {
+        where: { status: "ACCEPTED" }, // Or whatever status means "working on it"
+        include: { user: { select: { firstName: true, lastName: true } } }
+      }
+    }
+  })
+
   return (
-    <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto w-full">
+    <main className="p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto">
+      <div>
         <div className="flex justify-between items-start mb-8">
           <div>
-            <Link href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition-colors mb-4">
-              <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-            </Link>
-            <h1 className="text-3xl font-black text-foreground flex items-center gap-3"><FileText className="w-8 h-8"/> Manage Projects</h1>
+            <h1 className="text-3xl font-black text-foreground flex items-center gap-3"><FileText className="w-8 h-8 text-primary"/> Manage Projects</h1>
             <p className="text-foreground/70">View and edit all platform projects.</p>
           </div>
-          <Link href="/admin/projects/create" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-sm">
+          <Link href="/admin/projects/create" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
             <Plus className="w-5 h-5" /> Create Project
           </Link>
         </div>
-        <div className="glass p-8 rounded-2xl border border-border flex items-center justify-center min-h-[400px]">
-          <p className="text-foreground/60 font-semibold">Project management table backend integration in progress...</p>
-        </div>
+        
+        {projects.length === 0 ? (
+          <div className="glass p-16 rounded-2xl border border-border flex flex-col items-center justify-center text-center">
+            <FileText className="w-12 h-12 text-foreground/20 mb-4" />
+            <h3 className="text-xl font-bold mb-2">No Projects Found</h3>
+            <p className="text-foreground/60 mb-6">You haven't published any projects yet.</p>
+            <Link href="/admin/projects/create" className="px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all">
+              Create Your First Project
+            </Link>
+          </div>
+        ) : (
+          <AdminProjectsClient initialProjects={projects} />
+        )}
       </div>
-    </div>
+    </main>
   )
 }
