@@ -44,7 +44,7 @@ export default function RegisterPage() {
     const result = await registerUser(formData)
     
     if (result.success) {
-      router.push("/login?registered=true")
+      router.push("/member")
     } else {
       setError(result.error || "Something went wrong")
       setIsLoading(false)

@@ -130,7 +130,22 @@ export default function CreateProjectPage() {
               
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Price per Task ($)</label>
-                <input name="price" type="number" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="50.00" required />
+                <input name="price" type="number" step="0.01" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="50.00" required />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Recording Duration (hours) <span className="text-foreground/40 font-normal">— for voice projects</span></label>
+                <input name="recordingDuration" type="number" step="0.5" min="0.5" max="24" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="e.g. 2.5" />
+                <p className="text-xs text-foreground/50">Leave empty if not a voice recording project.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Age Range (Optional)</label>
+                <div className="flex gap-2 items-center">
+                  <input name="reqAgeMin" type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="Min age (18)" />
+                  <span className="text-foreground/50 font-bold">–</span>
+                  <input name="reqAgeMax" type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="Max age (60)" />
+                </div>
               </div>
             </div>
           </div>

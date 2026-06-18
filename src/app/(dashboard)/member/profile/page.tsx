@@ -26,7 +26,8 @@ export default async function ProfilePage() {
     VERIFIED: "text-green-500 bg-green-500/10 border-green-500/20",
     PENDING: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20",
     REJECTED: "text-red-500 bg-red-500/10 border-red-500/20",
-  }[user.verificationStatus] || "text-foreground/50"
+    NOT_VERIFIED: "text-foreground/50 bg-foreground/5 border-foreground/10",
+  }[user.verificationStatus] || "text-foreground/50 bg-foreground/5 border-foreground/10"
 
   const rankColors: Record<string, string> = {
     BEGINNER: "text-gray-400 bg-gray-400/10",
@@ -61,7 +62,8 @@ export default async function ProfilePage() {
                 </h1>
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${verificationColor}`}>
                   {user.verificationStatus === "VERIFIED" ? "✓ Verified" : 
-                   user.verificationStatus === "PENDING" ? "⏳ Pending Review" : "✗ Not Verified"}
+                   user.verificationStatus === "PENDING" ? "⏳ Pending Review" : 
+                   user.verificationStatus === "REJECTED" ? "✗ Rejected" : "○ Not Verified"}
                 </span>
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${rankColors[user.ranking] || ""}`}>
                   {user.ranking}

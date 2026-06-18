@@ -1,17 +1,13 @@
 @echo off
-echo ===================================================
-echo 🚀 بدء تشغيل Anti-Gravity لرفع منصة SHEHAB TECH...
-echo ===================================================
-
+echo === Pushing schema changes to database ===
+call npx prisma db push --accept-data-loss
 echo.
-echo [1] جاري التحقق من الصلاحيات والمصادقة...
-call vercel login
-
+echo === Committing all code changes ===
+git add -A
+git commit -m "Fix: real data dashboard, notifications, verification flow, recording duration field"
 echo.
-echo [2] جاري رفع الواجهة والمحرك الخلفي (Next.js Full-Stack)...
-:: بما أن المشروع هو Next.js، الواجهة الأمامية والخلفية مدمجة معاً!
-call vercel --prod
-
+echo === Deploying to Vercel ===
+call npx vercel --prod --yes
 echo.
-echo 🎯 اكتملت المهمة! المنصة الآن تعمل على الإنترنت.
+echo === DONE ===
 pause

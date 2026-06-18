@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { createClientServer } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
 import { cookies } from "next/headers"
+import { createNotification } from "@/app/actions/notifications"
 
 export async function registerUser(formData: FormData) {
   try {
@@ -57,8 +58,17 @@ export async function registerUser(formData: FormData) {
         age,
         phone,
         whatsapp,
+        verificationStatus: "NOT_VERIFIED",
       }
     })
+
+    // 3. Create welcome notification
+    await createNotification(
+      authData.user.id,
+      "Welcome to SHEHAB TECH! 🎉",
+      `Hi ${firstName}! Your account has been created. Complete your profile and verify your identity to start earning.`,
+      "/member/verification"
+    )
 
     return { success: true, userId: authData.user.id }
   } catch (error: any) {

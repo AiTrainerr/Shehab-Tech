@@ -27,7 +27,7 @@ model User {
   isPhoneVerified Boolean @default(false)
   idCardUrl     String?
   selfieUrl     String?
-  verificationStatus String @default("PENDING") // PENDING, VERIFIED, REJECTED
+  verificationStatus String @default("NOT_VERIFIED") // NOT_VERIFIED, PENDING, VERIFIED, REJECTED
   
   // Profile specifics
   avatarUrl     String?
@@ -79,6 +79,7 @@ model Project {
   reqExperience   String?
   
   price           Float?
+  recordingDuration Float?  // Duration in minutes (e.g. 2.5 for 2.5 hours = 150 min)
   status          String  @default("OPEN") // OPEN, IN_PROGRESS, COMPLETED, CANCELLED
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt

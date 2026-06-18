@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { createClientServer } from "@/lib/supabase"
 import { uploadToSupabase } from "@/lib/storage"
 import { revalidatePath } from "next/cache"
+import { createNotification } from "@/app/actions/notifications"
 
 export async function submitVerification(formData: FormData) {
   try {
@@ -49,7 +50,14 @@ export async function approveVerification(userId: string) {
         isEmailVerified: true,
       }
     })
+    await createNotification(
+      userId,
+      "Identity Verified ✅",
+      "Congratulations! Your identity has been verified. You can now withdraw earnings and access all platform features.",
+      "/member/profile"
+    )
     revalidatePath("/member/profile")
+    revalidatePath("/admin/verification")
     return { success: true }
   } catch (error: any) {
     console.error("Approve verification error:", error)
@@ -62,12 +70,19 @@ export async function rejectVerification(userId: string) {
     await prisma.user.update({
       where: { id: userId },
       data: {
-        verificationStatus: "REJECTED",
+        verificationStatus: "NOT_VERIFIED",
         idCardUrl: null,
         selfieUrl: null
       }
     })
+    await createNotification(
+      userId,
+      "Verification Rejected ❌",
+      "Your verification request was not approved. Please re-upload clear, valid ID documents and try again.",
+      "/member/verification"
+    )
     revalidatePath("/member/profile")
+    revalidatePath("/admin/verification")
     return { success: true }
   } catch (error: any) {
     console.error("Reject verification error:", error)

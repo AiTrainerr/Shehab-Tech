@@ -16,6 +16,9 @@ export async function createProjectAction(formData: FormData) {
     const description = formData.get("description") as string
     const reqCountry = formData.get("reqCountry") as string || null
     const price = parseFloat(formData.get("price") as string) || 0
+    const recordingDuration = formData.get("recordingDuration") ? parseFloat(formData.get("recordingDuration") as string) : null
+    const reqAgeMin = formData.get("reqAgeMin") ? parseInt(formData.get("reqAgeMin") as string) : null
+    const reqAgeMax = formData.get("reqAgeMax") ? parseInt(formData.get("reqAgeMax") as string) : null
     
     const langCount = parseInt(formData.get("langCount") as string) || 0
     const imageCount = parseInt(formData.get("imageCount") as string) || 0
@@ -52,6 +55,9 @@ export async function createProjectAction(formData: FormData) {
         description,
         reqCountry,
         price,
+        recordingDuration,
+        reqAgeMin,
+        reqAgeMax,
         languages: {
           create: languages
         },
