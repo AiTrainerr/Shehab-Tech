@@ -113,11 +113,15 @@ export function MemberProjectsClient({ initialProjects, isPast }: { initialProje
                           {lang.language}{lang.dialect ? ` (${lang.dialect})` : ""} · {lang.proficiency}
                         </span>
                       ))}
-                      {project.reqCountry && (
-                        <span className="text-xs font-semibold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-full flex items-center gap-1">
-                          <MapPin className="w-3 h-3" /> {project.reqCountry}
-                        </span>
-                      )}
+                      {project.reqCountry && (() => {
+                        let countries: string[] = []
+                        try { countries = JSON.parse(project.reqCountry) } catch { countries = [project.reqCountry] }
+                        return countries.map((c: string) => (
+                          <span key={c} className="text-xs font-semibold px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-full flex items-center gap-1">
+                            <MapPin className="w-3 h-3" /> {c}
+                          </span>
+                        ))
+                      })()}
                       {project.price && (
                         <span className="text-xs font-bold px-2.5 py-1 bg-yellow-500/10 text-yellow-500 rounded-full flex items-center gap-1">
                           <DollarSign className="w-3 h-3" /> ${Number(project.price).toFixed(2)}

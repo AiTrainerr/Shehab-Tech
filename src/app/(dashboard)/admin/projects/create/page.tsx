@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Save, Plus, Trash2 } from "lucide-react"
+import { ArrowLeft, Save, Plus, Trash2, X, Globe } from "lucide-react"
 import { createProjectAction } from "@/app/actions/projects"
 
 const COUNTRIES = [
@@ -14,6 +14,22 @@ export default function CreateProjectPage() {
   const router = useRouter()
   const [langCount, setLangCount] = React.useState(1)
   const [imageCount, setImageCount] = React.useState(1)
+  const [selectedCountries, setSelectedCountries] = React.useState<string[]>([])
+  const [countrySearch, setCountrySearch] = React.useState("")
+  const [showDropdown, setShowDropdown] = React.useState(false)
+
+  const filteredCountries = COUNTRIES.filter(c =>
+    c.toLowerCase().includes(countrySearch.toLowerCase()) && !selectedCountries.includes(c)
+  )
+
+  const addCountry = (country: string) => {
+    setSelectedCountries(prev => [...prev, country])
+    setCountrySearch("")
+  }
+
+  const removeCountry = (country: string) => {
+    setSelectedCountries(prev => prev.filter(c => c !== country))
+  }
 
   return (
     <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
@@ -125,15 +141,57 @@ export default function CreateProjectPage() {
           <div className="space-y-4 border-b border-border pb-8">
             <h3 className="text-lg font-bold text-foreground">Other Requirements</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Required Country</label>
-                <select name="reqCountry" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none transition-all appearance-none">
-                  <option value="">Anywhere</option>
-                  {COUNTRIES.map(country => (
-                    <option key={country} value={country}>{country}</option>
-                  ))}
-                  <option value="Other">Other</option>
-                </select>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-semibold flex items-center gap-2"><Globe className="w-4 h-4" /> Required Countries <span className="text-foreground/40 font-normal">(leave empty = Anywhere)</span></label>
+                
+                {/* Hidden input storing JSON array of selected countries */}
+                <input type="hidden" name="reqCountry" value={selectedCountries.length > 0 ? JSON.stringify(selectedCountries) : ""} />
+                
+                {/* Selected Country Tags */}
+                {selectedCountries.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {selectedCountries.map(c => (
+                      <span key={c} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm font-semibold">
+                        {c}
+                        <button type="button" onClick={() => removeCountry(c)} className="hover:text-red-500 transition-colors">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                    <button type="button" onClick={() => setSelectedCountries([])} className="px-3 py-1.5 text-xs text-red-400 hover:text-red-500 font-bold rounded-full border border-red-400/20 hover:bg-red-500/10 transition-colors">
+                      Clear All
+                    </button>
+                  </div>
+                )}
+
+                {/* Search & Dropdown */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={countrySearch}
+                    onChange={e => { setCountrySearch(e.target.value); setShowDropdown(true) }}
+                    onFocus={() => setShowDropdown(true)}
+                    placeholder="Search and add countries..."
+                    className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
+                  />
+                  {showDropdown && countrySearch && filteredCountries.length > 0 && (
+                    <div className="absolute z-20 w-full mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+                      <ul className="max-h-48 overflow-y-auto">
+                        {filteredCountries.slice(0, 10).map(country => (
+                          <li key={country}>
+                            <button
+                              type="button"
+                              className="w-full text-left px-4 py-2.5 text-sm font-semibold hover:bg-primary/10 hover:text-primary transition-colors"
+                              onMouseDown={e => { e.preventDefault(); addCountry(country); setShowDropdown(false) }}
+                            >
+                              {country}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="space-y-2">

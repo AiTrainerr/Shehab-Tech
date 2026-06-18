@@ -8,6 +8,7 @@ export async function createProjectAction(formData: FormData) {
     const title = formData.get("title") as string
     const description = formData.get("description") as string
     const privateData = formData.get("privateData") as string || null
+    // reqCountry can be a single country string or JSON array of countries
     const reqCountry = formData.get("reqCountry") as string || null
     const price = parseFloat(formData.get("price") as string) || 0
     const recordingDuration = formData.get("recordingDuration") ? parseFloat(formData.get("recordingDuration") as string) : null

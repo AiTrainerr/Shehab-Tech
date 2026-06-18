@@ -81,11 +81,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
           <p className="text-foreground/70 mb-6">{project.description}</p>
           <div className="flex flex-wrap gap-3 text-sm">
-            {project.reqCountry && (
-              <span className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
-                <MapPin className="w-4 h-4 text-blue-400" /> {project.reqCountry}
-              </span>
-            )}
+            {project.reqCountry && (() => {
+              let countries: string[] = []
+              try { countries = JSON.parse(project.reqCountry) } catch { countries = [project.reqCountry] }
+              return countries.map((c: string) => (
+                <span key={c} className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
+                  <MapPin className="w-4 h-4 text-blue-400" /> {c}
+                </span>
+              ))
+            })()}
             <span className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
               <Users className="w-4 h-4 text-purple-400" /> {applicantCount} Applicants
             </span>
