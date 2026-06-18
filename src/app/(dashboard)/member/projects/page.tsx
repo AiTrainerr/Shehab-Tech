@@ -13,28 +13,20 @@ export default async function MemberProjectsPage({
 
   let projects: any[] = []
   try {
-    const statusFilter = isPast ? "('COMPLETED', 'CANCELLED')" : "('OPEN')"
-    const projectsData: any[] = await prisma.$queryRawUnsafe(`
-      SELECT * FROM Project 
-      WHERE status IN ${statusFilter}
-      ORDER BY createdAt DESC
-    `)
-
-    projects = await Promise.all(projectsData.map(async (project) => {
-      try {
-        const languages: any[] = await prisma.$queryRaw`SELECT * FROM ProjectLanguage WHERE projectId = ${project.id}`
-        const images: any[] = await prisma.$queryRaw`SELECT * FROM ProjectImage WHERE projectId = ${project.id}`
-        const appCount: any[] = await prisma.$queryRaw`SELECT COUNT(*) as count FROM Application WHERE projectId = ${project.id}`
-        
-        return {
-          ...project,
-          languages: languages || [],
-          images: images || [],
-          applicantCount: Number(appCount[0]?.count || 0)
-        }
-      } catch (e) {
-        return { ...project, languages: [], images: [], applicantCount: 0 }
+    const statuses = isPast ? ["COMPLETED", "CANCELLED"] : ["OPEN"]
+    const projectsData = await prisma.project.findMany({
+      where: { status: { in: statuses } },
+      orderBy: { createdAt: "desc" },
+      include: {
+        languages: true,
+        images: true,
+        _count: { select: { applications: true } }
       }
+    })
+
+    projects = projectsData.map((project) => ({
+      ...project,
+      applicantCount: project._count.applications
     }))
   } catch (e) {
     console.error("Projects fetch error:", e)
