@@ -102,11 +102,16 @@ export async function loginUser(formData: FormData) {
       return { success: false, error: "Invalid email or password" }
     }
 
-    // 2. Fetch role from Prisma
+    // 2. Fetch role and status from Prisma
     const user = await prisma.user.findUnique({ 
       where: { id: authData.user.id },
-      select: { role: true }
+      select: { role: true, isApproved: true }
     })
+
+    if (user?.role === "MODERATOR" && !user.isApproved) {
+      await supabase.auth.signOut()
+      return { success: false, error: "Your Moderator account is pending Admin approval." }
+    }
 
     // Set legacy session cookies for compatibility with current components
     // (Ideally we should use supabase.auth.getSession in middleware/components)

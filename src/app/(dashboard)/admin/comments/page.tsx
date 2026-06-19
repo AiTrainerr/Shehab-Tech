@@ -3,12 +3,32 @@ import { prisma } from "@/lib/prisma"
 import { CommentsAdminClient } from "./CommentsAdminClient"
 import { MessageSquare } from "lucide-react"
 
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+
 export const dynamic = "force-dynamic"
 
 export default async function AdminCommentsPage() {
-  // Fetch all comments with author and project info, including replies
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("userId")?.value
+  if (!userId) redirect("/login")
+
+  const currentUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, assignedProjectId: true }
+  })
+
+  const isModerator = currentUser?.role === "MODERATOR"
+  const assignedProjectId = currentUser?.assignedProjectId || "none"
+
+  const whereClause: any = { parentId: null }
+  if (isModerator) {
+    whereClause.projectId = assignedProjectId
+  }
+
+  // Fetch comments
   const comments = await prisma.comment.findMany({
-    where: { parentId: null }, // top-level only; replies are nested
+    where: whereClause,
     orderBy: { createdAt: "desc" },
     include: {
       author: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, role: true } },
@@ -23,8 +43,15 @@ export default async function AdminCommentsPage() {
     }
   })
 
-  const totalComments = await prisma.comment.count()
-  const totalReplies  = await prisma.comment.count({ where: { parentId: { not: null } } })
+  const totalComments = await prisma.comment.count({
+    where: isModerator ? { projectId: assignedProjectId } : {}
+  })
+  const totalReplies  = await prisma.comment.count({
+    where: { 
+      parentId: { not: null },
+      ...(isModerator ? { projectId: assignedProjectId } : {})
+    }
+  })
 
   return (
     <main className="p-4 sm:p-6 lg:p-8">

@@ -23,7 +23,8 @@ export default async function VerificationPage() {
   async function handleReject(formData: FormData) {
     "use server"
     const id = formData.get("userId") as string
-    await rejectVerification(id)
+    const reason = formData.get("reason") as string
+    await rejectVerification(id, reason)
     revalidatePath("/admin/verification")
   }
 
@@ -99,10 +100,17 @@ export default async function VerificationPage() {
                       </form>
                     )}
                     {user.verificationStatus !== "REJECTED" && (
-                      <form action={handleReject}>
+                      <form action={handleReject} className="space-y-2">
                         <input type="hidden" name="userId" value={user.id} />
+                        <textarea 
+                          name="reason" 
+                          placeholder="Why is it rejected?" 
+                          required
+                          rows={2}
+                          className="w-full text-xs p-2 bg-background/50 border border-border focus:border-red-500/50 outline-none rounded-xl resize-none"
+                        />
                         <button type="submit" className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500/20 font-bold rounded-xl transition-colors border border-red-500/20">
-                          <XCircle className="w-4 h-4" /> Reject
+                          <XCircle className="w-4 h-4" /> Reject Account
                         </button>
                       </form>
                     )}

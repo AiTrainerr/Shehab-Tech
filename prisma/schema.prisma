@@ -28,6 +28,7 @@ model User {
   idCardUrl     String?
   selfieUrl     String?
   verificationStatus String @default("NOT_VERIFIED") // NOT_VERIFIED, PENDING, VERIFIED, REJECTED
+  verificationReason String?
   
   // Profile specifics
   avatarUrl     String?
@@ -51,6 +52,11 @@ model User {
   portfolios    Portfolio[]
   comments      Comment[]
   voiceRecordings VoiceRecording[]
+
+  // Moderator fields
+  isApproved         Boolean  @default(false)
+  assignedProjectId  String?
+  assignedProject    Project? @relation("ProjectModerators", fields: [assignedProjectId], references: [id], onDelete: SetNull)
 }
 
 model Skill {
@@ -120,6 +126,7 @@ model Project {
   languages       ProjectLanguage[]
   images          ProjectImage[]
   sentences       ProjectSentence[]
+  moderators      User[]           @relation("ProjectModerators")
 }
 
 model ProjectSentence {

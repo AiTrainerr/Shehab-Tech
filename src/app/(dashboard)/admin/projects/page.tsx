@@ -4,10 +4,27 @@ import { FileText, Plus, Users, Clock, Edit2 } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { AdminProjectsClient } from "./AdminProjectsClient"
 
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+
 export const dynamic = 'force-dynamic'
 
 export default async function AdminProjectsPage() {
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("userId")?.value
+  if (!userId) redirect("/login")
+
+  const currentUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, assignedProjectId: true }
+  })
+
+  const whereClause = currentUser?.role === "MODERATOR"
+    ? { id: currentUser.assignedProjectId || "none" }
+    : {}
+
   const projects = await prisma.project.findMany({
+    where: whereClause,
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { applications: true } },

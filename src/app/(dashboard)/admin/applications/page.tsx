@@ -2,10 +2,27 @@ import { prisma } from "@/lib/prisma"
 import { Users, Filter } from "lucide-react"
 import { AdminApplicationsClient } from "./AdminApplicationsClient"
 
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+
 export const dynamic = 'force-dynamic'
 
 export default async function AdminApplicationsPage() {
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("userId")?.value
+  if (!userId) redirect("/login")
+
+  const currentUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, assignedProjectId: true }
+  })
+
+  const whereClause = currentUser?.role === "MODERATOR"
+    ? { projectId: currentUser.assignedProjectId || "none" }
+    : {}
+
   const applications = await prisma.application.findMany({
+    where: whereClause,
     include: {
       project: { select: { id: true, title: true } },
       user: { select: { id: true, firstName: true, lastName: true, email: true, ranking: true, verificationStatus: true } }

@@ -5,26 +5,34 @@ import { AdminUsersClient } from "./AdminUsersClient"
 export const dynamic = 'force-dynamic'
 
 export default async function UsersPage() {
-  const users = await prisma.user.findMany({
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,        // Only shown here (admin page)
-      phone: true,        // Only shown here (admin page)
-      whatsapp: true,     // Only shown here (admin page)
-      country: true,
-      gender: true,
-      age: true,
-      ranking: true,
-      completedCount: true,
-      rating: true,
-      verificationStatus: true,
-      createdAt: true,
-      _count: { select: { applications: true, portfolios: true } }
-    },
-    orderBy: { createdAt: "desc" }
-  })
+  const [users, projects] = await Promise.all([
+    prisma.user.findMany({
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,        // Only shown here (admin page)
+        phone: true,        // Only shown here (admin page)
+        whatsapp: true,     // Only shown here (admin page)
+        country: true,
+        gender: true,
+        age: true,
+        ranking: true,
+        completedCount: true,
+        rating: true,
+        verificationStatus: true,
+        role: true,
+        isApproved: true,
+        assignedProjectId: true,
+        createdAt: true,
+        _count: { select: { applications: true, portfolios: true } }
+      },
+      orderBy: { createdAt: "desc" }
+    }),
+    prisma.project.findMany({
+      select: { id: true, title: true }
+    })
+  ])
 
   const statusConfig = {
     VERIFIED:  { label: "Verified",  icon: <BadgeCheck className="w-4 h-4 text-white fill-green-500" />, cls: "text-blue-500 bg-blue-500/10 border-blue-500/20" },
@@ -48,7 +56,7 @@ export default async function UsersPage() {
           </div>
         </div>
 
-        <AdminUsersClient initialUsers={users} statusConfig={statusConfig} />
+        <AdminUsersClient initialUsers={users} statusConfig={statusConfig} projects={projects} />
       </div>
     </main>
   )

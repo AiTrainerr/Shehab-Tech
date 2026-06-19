@@ -7,16 +7,27 @@ import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign
 
 export function AdminSidebar({ pendingVerifications }: { pendingVerifications: number }) {
   const pathname = usePathname()
+  const [role, setRole] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    const r = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("userRole="))
+      ?.split("=")[1]
+    setRole(r || null)
+  }, [])
+
+  const isModerator = role === "MODERATOR"
 
   const navItems = [
     { name: "Dashboard", href: "/admin", icon: Activity, exact: true },
-    { name: "Users", href: "/admin/users", icon: Users },
+    ...(!isModerator ? [{ name: "Users", href: "/admin/users", icon: Users }] : []),
     { name: "Projects", href: "/admin/projects", icon: FolderOpen },
     { name: "Applications", href: "/admin/applications", icon: FileText },
     { name: "Comments", href: "/admin/comments", icon: MessageSquare },
   ]
 
-  const managementItems = [
+  const managementItems = isModerator ? [] : [
     { name: "Skills", href: "/admin/skills", icon: Award },
     { name: "Verification Requests", href: "/admin/verification", icon: ShieldCheck, badge: pendingVerifications > 0 ? pendingVerifications : null },
     { name: "Learn Skills", href: "/admin/skills", icon: BookOpen },
@@ -39,20 +50,24 @@ export function AdminSidebar({ pendingVerifications }: { pendingVerifications: n
           })}
         </nav>
 
-        <div className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-4 mt-8">Management</div>
-        <nav className="space-y-1">
-          {managementItems.map((item) => {
-            const isActive = pathname.startsWith(item.href)
-            return (
-              <Link key={item.name} href={item.href} className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-foreground/70 hover:bg-background"}`}>
-                <item.icon className="w-5 h-5" /> {item.name}
-                {item.badge && (
-                  <span className="ml-auto text-xs font-bold text-white bg-orange-500 rounded-full px-2 py-0.5">{item.badge}</span>
-                )}
-              </Link>
-            )
-          })}
-        </nav>
+        {managementItems.length > 0 && (
+          <>
+            <div className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-4 mt-8">Management</div>
+            <nav className="space-y-1">
+              {managementItems.map((item) => {
+                const isActive = pathname.startsWith(item.href)
+                return (
+                  <Link key={item.name} href={item.href} className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-foreground/70 hover:bg-background"}`}>
+                    <item.icon className="w-5 h-5" /> {item.name}
+                    {item.badge && (
+                      <span className="ml-auto text-xs font-bold text-white bg-orange-500 rounded-full px-2 py-0.5">{item.badge}</span>
+                    )}
+                  </Link>
+                )
+              })}
+            </nav>
+          </>
+        )}
       </div>
     </aside>
   )

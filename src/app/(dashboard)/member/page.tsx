@@ -20,6 +20,7 @@ export default async function MemberDashboard() {
       completedCount: true,
       rating: true,
       verificationStatus: true,
+      verificationReason: true,
       notifications: {
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -63,7 +64,9 @@ export default async function MemberDashboard() {
           <div className="flex gap-4 mt-2">
             {user.verificationStatus !== "VERIFIED" && (
               <Link href="/member/verification" className="text-xs font-semibold text-orange-500 hover:underline">
-                {user.verificationStatus === "PENDING" ? "⏳ Verification under review" : "Not verified yet? Upload documents"}
+                {user.verificationStatus === "PENDING" ? "⏳ Verification under review" : 
+                 user.verificationStatus === "REJECTED" ? "❌ Verification rejected" : 
+                 "Not verified yet? Upload documents"}
               </Link>
             )}
             <Link href="/member/profile" className="text-xs font-semibold text-primary hover:underline">View My Profile →</Link>
@@ -229,15 +232,24 @@ export default async function MemberDashboard() {
             </Link>
           </div>
 
-          {/* Verification prompt if not verified */}
-          {user.verificationStatus === "NOT_VERIFIED" && (
-            <div className="glass p-6 rounded-2xl border border-orange-500/30 bg-orange-500/5">
+          {/* Verification prompt if not verified or rejected */}
+          {user.verificationStatus !== "VERIFIED" && user.verificationStatus !== "PENDING" && (
+            <div className={`glass p-6 rounded-2xl border ${user.verificationStatus === "REJECTED" ? "border-red-500/30 bg-red-500/5" : "border-orange-500/30 bg-orange-500/5"}`}>
               <div className="flex items-start gap-3">
-                <Shield className="w-6 h-6 text-orange-500 shrink-0 mt-0.5" />
+                <Shield className={`w-6 h-6 shrink-0 mt-0.5 ${user.verificationStatus === "REJECTED" ? "text-red-500" : "text-orange-500"}`} />
                 <div>
-                  <h3 className="font-bold text-orange-500 mb-1">Verify your identity</h3>
-                  <p className="text-sm text-foreground/60 mb-3">Upload your ID and selfie to unlock all features.</p>
-                  <Link href="/member/verification" className="text-sm font-bold text-orange-500 hover:underline">Verify Now →</Link>
+                  <h3 className={`font-bold mb-1 ${user.verificationStatus === "REJECTED" ? "text-red-500" : "text-orange-500"}`}>
+                    {user.verificationStatus === "REJECTED" ? "Verification Rejected" : "Verify your identity"}
+                  </h3>
+                  {user.verificationStatus === "REJECTED" && user.verificationReason && (
+                    <p className="text-xs text-red-500/80 mb-2 font-medium">Reason: {user.verificationReason}</p>
+                  )}
+                  <p className="text-sm text-foreground/60 mb-3">
+                    {user.verificationStatus === "REJECTED" ? "Please re-upload clear, valid ID documents and try again." : "Upload your ID and selfie to unlock all features."}
+                  </p>
+                  <Link href="/member/verification" className={`text-sm font-bold hover:underline ${user.verificationStatus === "REJECTED" ? "text-red-500" : "text-orange-500"}`}>
+                    Verify Now →
+                  </Link>
                 </div>
               </div>
             </div>

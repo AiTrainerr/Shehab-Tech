@@ -29,7 +29,8 @@ export async function submitVerification(formData: FormData) {
       data: {
         idCardUrl,
         selfieUrl,
-        verificationStatus: "PENDING"
+        verificationStatus: "PENDING",
+        verificationReason: null
       }
     })
 
@@ -65,12 +66,13 @@ export async function approveVerification(userId: string) {
   }
 }
 
-export async function rejectVerification(userId: string) {
+export async function rejectVerification(userId: string, reason?: string) {
   try {
     await prisma.user.update({
       where: { id: userId },
       data: {
-        verificationStatus: "NOT_VERIFIED",
+        verificationStatus: "REJECTED",
+        verificationReason: reason || null,
         idCardUrl: null,
         selfieUrl: null
       }
@@ -78,7 +80,7 @@ export async function rejectVerification(userId: string) {
     await createNotification(
       userId,
       "Verification Rejected ❌",
-      "Your verification request was not approved. Please re-upload clear, valid ID documents and try again.",
+      reason ? `Your verification request was rejected: ${reason}` : "Your verification request was not approved. Please re-upload clear, valid ID documents and try again.",
       "/member/verification"
     )
     revalidatePath("/member/profile")

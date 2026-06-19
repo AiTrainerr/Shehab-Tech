@@ -4,11 +4,30 @@ import { ArrowLeft } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { QcReviewPanel } from "@/components/qc-review-panel"
 
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
+
 export const dynamic = 'force-dynamic'
 
 export default async function AdminQcPage() {
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("userId")?.value
+  if (!userId) redirect("/login")
+
+  const currentUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, assignedProjectId: true }
+  })
+
+  const whereClause: any = { status: "PENDING" }
+  if (currentUser?.role === "MODERATOR") {
+    whereClause.sentence = {
+      projectId: currentUser.assignedProjectId || "none"
+    }
+  }
+
   const pendingRecordings = await prisma.voiceRecording.findMany({
-    where: { status: "PENDING" },
+    where: whereClause,
     include: {
       user: { select: { firstName: true, lastName: true, email: true } },
       sentence: {

@@ -135,6 +135,12 @@ export default async function ProfilePage() {
                 </div>
               ) : (
                 <div className="text-center py-4">
+                  {user.verificationStatus === "REJECTED" && (
+                    <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-500 text-xs rounded-xl text-left">
+                      <p className="font-bold">Verification Rejected:</p>
+                      <p className="mt-1">{user.verificationReason || "Documents were unclear or invalid. Please re-upload clear documents."}</p>
+                    </div>
+                  )}
                   <p className="text-sm text-foreground/60 mb-4">Upload your ID and Selfie to get verified and unlock withdrawals.</p>
                   <Link href="/member/verification" className="px-4 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors">
                     Verify Now

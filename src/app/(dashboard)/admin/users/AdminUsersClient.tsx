@@ -4,8 +4,16 @@ import * as React from "react"
 import Link from "next/link"
 import { Users, Mail, Phone, MapPin, CheckCircle, Clock, XCircle, Search, Filter } from "lucide-react"
 import { AdminRatingForm } from "@/components/admin-rating-form"
+import { toggleModeratorApproval, assignModeratorProject } from "@/app/actions/users"
+import { useRouter } from "next/navigation"
 
-export function AdminUsersClient({ initialUsers, statusConfig }: { initialUsers: any[], statusConfig: any }) {
+interface Project {
+  id: string
+  title: string
+}
+
+export function AdminUsersClient({ initialUsers, statusConfig, projects }: { initialUsers: any[], statusConfig: any, projects: Project[] }) {
+  const router = useRouter()
   const [search, setSearch] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState("")
 
@@ -77,6 +85,11 @@ export function AdminUsersClient({ initialUsers, statusConfig }: { initialUsers:
                         <span className="text-xs font-bold px-2 py-0.5 bg-card rounded-full border border-border text-foreground/60">
                           {user.ranking}
                         </span>
+                        {user.role === "MODERATOR" && (
+                          <span className="text-xs font-bold px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full">
+                            Supervisor
+                          </span>
+                        )}
                       </div>
 
                       {/* Sensitive Info — Admin Only */}
@@ -118,6 +131,59 @@ export function AdminUsersClient({ initialUsers, statusConfig }: { initialUsers:
                     </div>
                   </div>
                 </div>
+                {/* Moderator Controls */}
+                {user.role === "MODERATOR" && (
+                  <div className="mt-4 pt-4 border-t border-border/50 flex flex-wrap items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-foreground/50">Supervisor Status:</span>
+                      <button
+                        onClick={async () => {
+                          const confirmMsg = user.isApproved
+                            ? "Revoke supervisor approval? They will not be able to log in."
+                            : "Approve supervisor? They will be allowed to log in."
+                          if (!confirm(confirmMsg)) return
+                          const res = await toggleModeratorApproval(user.id, !user.isApproved)
+                          if (res.success) {
+                            router.refresh()
+                          } else {
+                            alert(res.error)
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                          user.isApproved 
+                            ? "bg-green-500/10 text-green-500 border border-green-500/20 hover:bg-green-500/20"
+                            : "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20"
+                        }`}
+                      >
+                        {user.isApproved ? "✓ Approved (Active)" : "⏳ Pending Approval"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-foreground/50">Assign Project:</span>
+                      <select
+                        value={user.assignedProjectId || ""}
+                        onChange={async (e) => {
+                          const val = e.target.value || null
+                          const res = await assignModeratorProject(user.id, val)
+                          if (res.success) {
+                            router.refresh()
+                          } else {
+                            alert(res.error)
+                          }
+                        }}
+                        className="px-2 py-1.5 bg-background border border-border rounded-lg text-xs outline-none focus:border-primary"
+                      >
+                        <option value="">Not Assigned</option>
+                        {projects.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}

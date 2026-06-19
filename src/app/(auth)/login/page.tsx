@@ -20,7 +20,7 @@ export default function LoginPage() {
     const result = await loginUser(formData)
     
     if (result.success) {
-      if (result.role === "ADMIN") {
+      if (result.role && ["ADMIN", "SUPER_ADMIN", "MODERATOR"].includes(result.role)) {
         router.push("/admin")
       } else {
         router.push("/member")
