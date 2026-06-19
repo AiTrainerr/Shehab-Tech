@@ -235,7 +235,7 @@ export async function reviewVoiceRecording(
     if (!user) return { success: false, error: "Not logged in" }
 
     const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true, firstName: true, lastName: true } })
-    if (!["ADMIN", "SUPER_ADMIN", "QC_REVIEWER"].includes(dbUser?.role || "")) {
+    if (!["ADMIN", "SUPER_ADMIN", "QC_REVIEWER", "MODERATOR"].includes(dbUser?.role || "")) {
       return { success: false, error: "Unauthorized" }
     }
 
@@ -276,7 +276,7 @@ export async function saveBulkReview(
       where: { id: user.id },
       select: { role: true, firstName: true, lastName: true }
     })
-    if (!["ADMIN", "SUPER_ADMIN", "QC_REVIEWER"].includes(dbUser?.role || "")) {
+    if (!["ADMIN", "SUPER_ADMIN", "QC_REVIEWER", "MODERATOR"].includes(dbUser?.role || "")) {
       return { success: false, error: "Unauthorized" }
     }
 

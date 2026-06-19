@@ -16,8 +16,8 @@ export default async function AdminReviewPage({ params }: { params: Promise<{ id
     select: { role: true }
   })
   
-  if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN") {
-    redirect("/dashboard")
+  if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN" && currentUser?.role !== "MODERATOR") {
+    redirect("/member")
   }
 
   const application = await prisma.application.findUnique({

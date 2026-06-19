@@ -9,6 +9,7 @@ import { NotificationBell } from "@/components/notification-bell"
 
 export function Navbar({ user }: { user?: any }) {
   const userRole = user?.role
+  const isAdminOrMod = userRole === "ADMIN" || userRole === "SUPER_ADMIN" || userRole === "MODERATOR"
   const [mounted, setMounted] = React.useState(false)
   const { theme, setTheme } = useTheme()
   const [isMenuOpen, setIsMenuOpen] = React.useState(false)
@@ -37,9 +38,9 @@ export function Navbar({ user }: { user?: any }) {
               </>
             ) : (
               <>
-                <Link href={userRole === "ADMIN" ? "/admin" : "/member"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Dashboard</Link>
-                <Link href={userRole === "ADMIN" ? "/admin/projects" : "/member/projects"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Available Projects</Link>
-                <Link href={userRole === "ADMIN" ? "/admin/projects" : "/member/projects?filter=past"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Past Projects</Link>
+                <Link href={isAdminOrMod ? "/admin" : "/member"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Dashboard</Link>
+                <Link href={isAdminOrMod ? "/admin/projects" : "/member/projects"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Available Projects</Link>
+                <Link href={isAdminOrMod ? "/admin/projects" : "/member/projects?filter=past"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Past Projects</Link>
               </>
             )}
           </div>
@@ -81,7 +82,7 @@ export function Navbar({ user }: { user?: any }) {
 
                 {/* Avatar — always visible */}
                 <Link
-                  href={userRole === "ADMIN" ? "/admin" : "/member/profile"}
+                  href={isAdminOrMod ? "/admin" : "/member/profile"}
                   className="relative flex items-center p-0.5 rounded-full border border-transparent hover:border-primary/50 transition-all group"
                   title="My Profile"
                 >
@@ -155,10 +156,10 @@ export function Navbar({ user }: { user?: any }) {
                   </div>
                 </div>
 
-                <Link href={userRole === "ADMIN" ? "/admin" : "/member"} onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Dashboard</Link>
-                <Link href={userRole === "ADMIN" ? "/admin/projects" : "/member/projects"} onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Available Projects</Link>
-                <Link href={userRole === "ADMIN" ? "/admin/projects" : "/member/projects?filter=past"} onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Past Projects</Link>
-                {userRole !== "ADMIN" && (
+                <Link href={isAdminOrMod ? "/admin" : "/member"} onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Dashboard</Link>
+                <Link href={isAdminOrMod ? "/admin/projects" : "/member/projects"} onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Available Projects</Link>
+                <Link href={isAdminOrMod ? "/admin/projects" : "/member/projects?filter=past"} onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Past Projects</Link>
+                {!isAdminOrMod && (
                   <Link href="/member/profile" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">My Profile</Link>
                 )}
 
