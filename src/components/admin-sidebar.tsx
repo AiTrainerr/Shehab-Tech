@@ -41,7 +41,6 @@ export function AdminSidebar({ pendingVerifications }: { pendingVerifications: n
   const managementItems = isModerator ? [] : [
     { name: "Skills", href: "/admin/skills", icon: Award },
     { name: "Verification Requests", href: "/admin/verification", icon: ShieldCheck, badge: pendingVerifications > 0 ? pendingVerifications : null },
-    { name: "Learn Skills", href: "/admin/skills", icon: BookOpen },
     { name: "Portfolios", href: "/portfolio", icon: Briefcase },
     { name: "Payments", href: "/admin/payments", icon: DollarSign },
   ]

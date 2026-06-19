@@ -25,6 +25,9 @@ export default async function EditProfilePage() {
       bio: true,
       projectTypes: true,
       languages: true,
+      paymentMethod: true,
+      paymentId: true,
+      paymentEmail: true,
     }
   })
 

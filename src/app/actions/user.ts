@@ -18,6 +18,9 @@ export async function updateProfile(formData: FormData) {
     const phone = formData.get("phone") as string
     const whatsapp = formData.get("whatsapp") as string
     const bio = formData.get("bio") as string | null
+    const paymentMethod = formData.get("paymentMethod") as string | null
+    const paymentId = formData.get("paymentId") as string | null
+    const paymentEmail = formData.get("paymentEmail") as string | null
 
     const projectTypes = formData.getAll("projectTypes") as string[]
 
@@ -43,6 +46,9 @@ export async function updateProfile(formData: FormData) {
       whatsapp,
       bio,
       projectTypes,
+      paymentMethod: paymentMethod || null,
+      paymentId: paymentId || null,
+      paymentEmail: paymentEmail || null,
     }
 
     // Use a transaction to update user and replace languages

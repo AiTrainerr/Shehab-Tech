@@ -291,8 +291,8 @@ export async function saveBulkReview(
     })
     if (!application) return { success: false, error: "Application not found" }
 
-    // Save all decisions in parallel
-    await Promise.all(
+    // Save all decisions in a single transaction (uses 1 connection)
+    await prisma.$transaction(
       decisions.map((d) =>
         prisma.voiceRecording.update({
           where: { id: d.recordingId },
@@ -313,7 +313,7 @@ export async function saveBulkReview(
     if (allAccepted) {
       await prisma.application.update({
         where: { id: applicationId },
-        data: { status: "APPROVED" }
+        data: { status: "FINAL_REVIEW" }
       })
     } else {
       await prisma.application.update({
@@ -326,9 +326,9 @@ export async function saveBulkReview(
     await prisma.notification.create({
       data: {
         userId: application.userId,
-        title: allAccepted ? "🎉 All Recordings Approved!" : "📋 Review Completed – Action Required",
+        title: allAccepted ? "🎉 Recordings Under Final Client Review!" : "📋 Review Completed – Action Required",
         content: allAccepted
-          ? `All your recordings for "${application.project.title}" have been accepted by the reviewer.`
+          ? `All your recordings for "${application.project.title}" have been accepted by the reviewer and are now under final client review.`
           : `Reviewer completed the review for "${application.project.title}". ${acceptedCount} accepted, ${rejectedCount} require re-recording. Please check your project.`,
         link: `/member/projects/${application.projectId}`
       }

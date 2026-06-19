@@ -17,6 +17,9 @@ interface Props {
     bio: string | null
     projectTypes: string[]
     languages: { language: string; proficiency: string }[]
+    paymentMethod?: string | null
+    paymentId?: string | null
+    paymentEmail?: string | null
   }
 }
 
@@ -186,6 +189,48 @@ export default function EditProfileForm({ user }: Props) {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Payment Details */}
+      <div className="border-t border-border pt-6 space-y-4">
+        <h3 className="text-lg font-bold">Payment Method (طريقة الدفع)</h3>
+        <p className="text-sm text-foreground/60 mb-2">Set up how you want to receive your earnings.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Method (الطريقة)</label>
+            <select 
+              name="paymentMethod" 
+              defaultValue={user.paymentMethod || ""} 
+              className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+            >
+              <option value="">Select Method</option>
+              <option value="PayPal">PayPal (بيبال)</option>
+              <option value="Binance">Binance (بينانس)</option>
+              <option value="Instapay">Instapay (انستاباي)</option>
+              <option value="Cash">Cash (كاش)</option>
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Payment ID / Number (المعرف / الرقم)</label>
+            <input 
+              name="paymentId" 
+              type="text" 
+              defaultValue={user.paymentId || ""} 
+              placeholder="e.g. Wallet ID, Phone Number" 
+              className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" 
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Payment Email (الايميل)</label>
+            <input 
+              name="paymentEmail" 
+              type="email" 
+              defaultValue={user.paymentEmail || ""} 
+              placeholder="e.g. paypal@example.com" 
+              className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" 
+            />
+          </div>
+        </div>
       </div>
 
       <div className="border-t border-border pt-6">

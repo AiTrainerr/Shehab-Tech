@@ -28,7 +28,7 @@ export default async function MemberDashboard() {
       },
       applications: {
         where: {
-          status: { in: ["ACCEPTED", "WORKING", "UNDER_REVIEW"] },
+          status: { in: ["ACCEPTED", "WORKING", "UNDER_REVIEW", "FINAL_REVIEW", "APPROVED", "PAID"] },
           project: { status: { not: "CANCELLED" } }
         },
         include: {
@@ -46,6 +46,19 @@ export default async function MemberDashboard() {
 
   const unreadCount = user.notifications.filter(n => !n.isRead).length
   const activeProjects = user.applications.length
+
+  const paidApps = await prisma.application.findMany({
+    where: {
+      userId,
+      status: { in: ["APPROVED", "PAID"] }
+    },
+    include: {
+      project: {
+        select: { price: true }
+      }
+    }
+  })
+  const totalEarnings = paidApps.reduce((sum, app) => sum + (app.project?.price || 0), 0)
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -95,11 +108,11 @@ export default async function MemberDashboard() {
             </div>
             <div>
               <p className="text-sm text-foreground/70 font-semibold uppercase">Total Earnings</p>
-              <h3 className="text-2xl font-black">$0.00</h3>
+              <h3 className="text-2xl font-black">${totalEarnings.toFixed(2)}</h3>
             </div>
           </div>
           <div className="text-sm font-medium text-foreground/60 flex items-center gap-1">
-            <span className="text-foreground/50">Complete tasks to earn</span>
+            <span className="text-foreground/50">{totalEarnings > 0 ? "Approved & Paid payouts" : "Complete tasks to earn"}</span>
           </div>
         </div>
 
@@ -178,11 +191,16 @@ export default async function MemberDashboard() {
                     <div className="text-right shrink-0">
                       <div className="text-lg font-bold text-primary">${app.project.price?.toFixed(2) ?? "—"}</div>
                       <div className={`text-xs font-semibold px-2 py-1 rounded-md inline-block mt-1 ${
-                        app.status === "ACCEPTED" ? "bg-blue-500/10 text-blue-500" :
-                        app.status === "WORKING" ? "bg-yellow-500/10 text-yellow-500" :
+                        app.status === "APPROVED" || app.status === "PAID" ? "bg-green-500/10 text-green-500" :
+                        app.status === "WORKING" || app.status === "ACCEPTED" ? "bg-yellow-500/10 text-yellow-500" :
+                        app.status === "FINAL_REVIEW" ? "bg-purple-500/10 text-purple-500" :
                         "bg-orange-500/10 text-orange-500"
                       }`}>
-                        {app.status === "ACCEPTED" ? "Accepted" : app.status === "WORKING" ? "In Progress" : "Under Review"}
+                        {app.status === "APPROVED" ? "Approved" : 
+                         app.status === "PAID" ? "Paid (تم الدفع)" : 
+                         app.status === "FINAL_REVIEW" ? "Final Client Review (تحت مراجعة العميل النهائي)" : 
+                         app.status === "WORKING" ? "In Progress" : 
+                         app.status === "ACCEPTED" ? "Accepted" : "Under Review"}
                       </div>
                     </div>
                   </div>

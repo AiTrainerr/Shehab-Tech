@@ -63,10 +63,11 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                   app.status === 'UNDER_REVIEW' ? 'text-orange-500 bg-orange-500/10 border-orange-500/20' :
                   app.status === 'WORKING' ? 'text-blue-500 bg-blue-500/10 border-blue-500/20' :
                   app.status === 'ACCEPTED' ? 'text-teal-500 bg-teal-500/10 border-teal-500/20' :
+                  app.status === 'FINAL_REVIEW' ? 'text-purple-500 bg-purple-500/10 border-purple-500/20' :
                   app.status === 'APPROVED' ? 'text-green-500 bg-green-500/10 border-green-500/20' : 
                   app.status === 'PAID' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' :
                   'text-red-500 bg-red-500/10 border-red-500/20'}`}>
-                {app.status}
+                {app.status === 'FINAL_REVIEW' ? 'FINAL CLIENT REVIEW' : app.status}
               </span>
               <h3 className="text-lg font-bold text-foreground line-clamp-2" title={app.project.title}>
                 {app.project.title}
@@ -107,20 +108,20 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                   <User className="w-4 h-4" /> Profile
                 </Link>
                 
-                {app.status === 'PENDING' && (
+                {(app.status === 'PENDING' || app.status === 'FINAL_REVIEW') && (
                   <>
                     <button 
                       onClick={() => handleReject(app.id)}
                       disabled={loading === app.id}
                       className="p-2 bg-red-500/10 text-red-500 font-bold rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                      title="Reject">
+                      title={app.status === 'FINAL_REVIEW' ? "Reject Project Review" : "Reject Application"}>
                       <X className="w-5 h-5" />
                     </button>
                     <button 
                       onClick={() => handleApprove(app.id)}
                       disabled={loading === app.id}
                       className="p-2 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition-colors disabled:opacity-50"
-                      title="Approve">
+                      title={app.status === 'FINAL_REVIEW' ? "Approve Project Review" : "Approve Application"}>
                       <Check className="w-5 h-5" />
                     </button>
                   </>

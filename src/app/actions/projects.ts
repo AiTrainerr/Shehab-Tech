@@ -461,3 +461,46 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     return { success: false, error: "Failed to update project: " + error.message }
   }
 }
+
+export async function markApplicationPaid(applicationId: string) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    // Fetch user details for role validation
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    })
+    
+    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    const application = await prisma.application.update({
+      where: { id: applicationId },
+      data: { status: "PAID" },
+      include: { project: true }
+    })
+
+    await prisma.notification.create({
+      data: {
+        userId: application.userId,
+        title: "💰 Payout Released!",
+        content: `Your payment for the project "${application.project.title}" has been processed and marked as paid.`
+      }
+    })
+
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath("/admin/payments")
+    revalidatePath("/admin/applications")
+    revalidatePath(`/member/projects/${application.projectId}`)
+    revalidatePath("/member")
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("Mark application paid error:", error)
+    return { success: false, error: "Failed to mark application as paid" }
+  }
+}

@@ -23,7 +23,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
     where: { projectId_userId: { projectId: id, userId } }
   })
 
-  const isApproved = application && ["APPROVED", "ACCEPTED", "WORKING", "PAID", "UNDER_REVIEW"].includes(application.status)
+  const isApproved = application && ["APPROVED", "ACCEPTED", "WORKING", "PAID", "UNDER_REVIEW", "FINAL_REVIEW"].includes(application.status)
   if (!isApproved) {
     redirect(`/member/projects/${id}`)
   }

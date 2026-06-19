@@ -5,7 +5,7 @@ import { notFound, redirect } from "next/navigation"
 import { 
   User, Mail, Phone, MapPin, Calendar, Star, 
   Briefcase, CheckCircle, Clock, Edit2, Shield, 
-  Camera, ArrowLeft, BadgeCheck
+  Camera, ArrowLeft, BadgeCheck, DollarSign
 } from "lucide-react"
 import { ProfileAvatarUpload } from "@/components/profile-avatar-upload"
 import { ShareProfileButton } from "@/components/share-profile-button"
@@ -115,8 +115,8 @@ export default async function ProfilePage() {
 
         <div className="grid lg:grid-cols-3 gap-6">
           
-          {/* Verification Status */}
           <div className="flex flex-col gap-6">
+            {/* Verification Status */}
             <div className="glass p-6 rounded-2xl border border-border">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-primary" /> Verification
@@ -144,6 +144,45 @@ export default async function ProfilePage() {
                   <p className="text-sm text-foreground/60 mb-4">Upload your ID and Selfie to get verified and unlock withdrawals.</p>
                   <Link href="/member/verification" className="px-4 py-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl hover:bg-primary/90 transition-colors">
                     Verify Now
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Payment Method */}
+            <div className="glass p-6 rounded-2xl border border-border">
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-primary" /> Payment Method
+              </h2>
+              {user.paymentMethod ? (
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between items-center py-1 border-b border-border">
+                    <span className="text-foreground/50">Method:</span>
+                    <span className="font-bold text-foreground">{user.paymentMethod}</span>
+                  </div>
+                  {user.paymentId && (
+                    <div className="flex justify-between items-center py-1 border-b border-border">
+                      <span className="text-foreground/50">Identifier:</span>
+                      <span className="font-mono text-foreground font-semibold">{user.paymentId}</span>
+                    </div>
+                  )}
+                  {user.paymentEmail && (
+                    <div className="flex justify-between items-center py-1 border-b border-border">
+                      <span className="text-foreground/50">Email:</span>
+                      <span className="text-foreground font-semibold truncate max-w-[150px]" title={user.paymentEmail}>{user.paymentEmail}</span>
+                    </div>
+                  )}
+                  <div className="pt-2 text-center">
+                    <Link href="/member/profile/edit" className="text-xs font-bold text-primary hover:underline">
+                      Change Details
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-foreground/60 mb-4">No payment method set up yet. Add details to receive your payouts.</p>
+                  <Link href="/member/profile/edit" className="px-4 py-2 bg-primary/10 text-primary text-sm font-bold rounded-xl hover:bg-primary/20 transition-colors">
+                    Add Method
                   </Link>
                 </div>
               )}

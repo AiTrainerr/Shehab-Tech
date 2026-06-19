@@ -55,7 +55,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     where: { projectId_userId: { projectId: id, userId } }
   })
 
-  const isApproved = existingApplication && ["APPROVED", "ACCEPTED", "WORKING", "PAID", "UNDER_REVIEW"].includes(existingApplication.status)
+  const isApproved = existingApplication && ["APPROVED", "ACCEPTED", "WORKING", "PAID", "UNDER_REVIEW", "FINAL_REVIEW"].includes(existingApplication.status)
   const applicantCount = project._count.applications
 
   // Fetch sentences for voice recording (only if approved)
@@ -197,15 +197,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           {existingApplication ? (
             <div className="flex items-center gap-4">
               <CheckCircle className={`w-8 h-8 shrink-0 ${
-                existingApplication.status === "APPROVED" ? "text-green-500" :
+                existingApplication.status === "APPROVED" || existingApplication.status === "PAID" ? "text-green-500" :
                 existingApplication.status === "REJECTED" ? "text-red-500" : "text-yellow-500"
               }`} />
               <div>
                 <p className="font-bold text-lg">Application Submitted</p>
                 <p className="text-sm text-foreground/60">Status: <span className={`font-bold ${
-                  existingApplication.status === "APPROVED" ? "text-green-500" :
+                  existingApplication.status === "APPROVED" || existingApplication.status === "PAID" ? "text-green-500" :
                   existingApplication.status === "REJECTED" ? "text-red-500" : "text-yellow-500"
-                }`}>{existingApplication.status}</span></p>
+                }`}>
+                  {existingApplication.status === "FINAL_REVIEW" ? "Under Final Client Review (تحت مراجعة العميل النهائي)" : existingApplication.status}
+                </span></p>
               </div>
             </div>
           ) : (

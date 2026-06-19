@@ -40,6 +40,11 @@ model User {
   rating        Float     @default(0.0)
   projectTypes  String[]  @default([])
   
+  // Payment info
+  paymentMethod      String?
+  paymentId          String?
+  paymentEmail       String?
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
