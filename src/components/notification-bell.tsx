@@ -126,86 +126,101 @@ export function NotificationBell({ userId }: { userId: string }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 w-80 sm:w-96 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/50">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-primary" />
-              <span className="font-bold text-sm">Notifications</span>
-              {unreadCount > 0 && (
-                <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded-full">
-                  {unreadCount} new
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllRead}
-                  disabled={loading}
-                  className="text-xs text-primary font-bold flex items-center gap-1 hover:underline disabled:opacity-50"
-                >
-                  <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+        <>
+          {/* Mobile backdrop */}
+          <div
+            className="fixed inset-0 bg-black/40 z-40 md:hidden"
+            onClick={() => setOpen(false)}
+          />
+
+          {/* Panel — full screen on mobile, dropdown on desktop */}
+          <div className="
+            fixed inset-x-2 top-20 z-50
+            md:absolute md:inset-auto md:right-0 md:top-12 md:w-96
+            bg-card border border-border rounded-2xl shadow-2xl overflow-hidden
+            max-h-[80vh] flex flex-col
+          ">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/50 shrink-0">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-primary" />
+                <span className="font-bold text-sm">Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-black rounded-full">
+                    {unreadCount} new
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    disabled={loading}
+                    className="text-xs text-primary font-bold flex items-center gap-1 hover:underline disabled:opacity-50"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+                  </button>
+                )}
+                <button onClick={() => setOpen(false)} className="p-1 text-foreground/40 hover:text-foreground rounded-lg hover:bg-background transition-colors">
+                  <X className="w-4 h-4" />
                 </button>
-              )}
-              <button onClick={() => setOpen(false)} className="p-1 text-foreground/40 hover:text-foreground rounded-lg hover:bg-background transition-colors">
-                <X className="w-4 h-4" />
-              </button>
+              </div>
             </div>
-          </div>
 
-          {/* List */}
-          <ul className="max-h-80 overflow-y-auto divide-y divide-border">
-            {notifications.length === 0 ? (
-              <li className="p-8 text-center text-foreground/50">
-                <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm font-semibold">No notifications yet</p>
-              </li>
-            ) : (
-              notifications.slice(0, 15).map(n => (
-                <li key={n.id} className={`transition-colors ${!n.isRead ? "bg-primary/5" : ""}`}>
-                  {n.link ? (
-                    <Link href={n.link} onClick={() => setOpen(false)} className="flex gap-3 px-4 py-3 hover:bg-card/80 transition-colors">
-                      <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${!n.isRead ? "bg-primary" : "bg-transparent"}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold truncate">{n.title}</p>
-                        <p className="text-xs text-foreground/60 mt-0.5 line-clamp-2">{n.content}</p>
-                        <p className="text-[10px] text-foreground/40 mt-1">
-                          {new Date(n.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </Link>
-                  ) : (
-                    <div className="flex gap-3 px-4 py-3">
-                      <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${!n.isRead ? "bg-primary" : "bg-transparent"}`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold truncate">{n.title}</p>
-                        <p className="text-xs text-foreground/60 mt-0.5 line-clamp-2">{n.content}</p>
-                        <p className="text-[10px] text-foreground/40 mt-1">
-                          {new Date(n.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                  )}
+            {/* List */}
+            <ul className="overflow-y-auto divide-y divide-border flex-1">
+              {notifications.length === 0 ? (
+                <li className="p-8 text-center text-foreground/50">
+                  <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm font-semibold">No notifications yet</p>
                 </li>
-              ))
-            )}
-          </ul>
+              ) : (
+                notifications.slice(0, 20).map(n => (
+                  <li key={n.id} className={`transition-colors ${!n.isRead ? "bg-primary/5" : ""}`}>
+                    {n.link ? (
+                      <Link href={n.link} onClick={() => setOpen(false)} className="flex gap-3 px-4 py-3 hover:bg-card/80 transition-colors">
+                        <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!n.isRead ? "bg-primary" : "bg-transparent"}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold">{n.title}</p>
+                          <p className="text-xs text-foreground/60 mt-0.5 line-clamp-2">{n.content}</p>
+                          <p className="text-[10px] text-foreground/40 mt-1">
+                            {new Date(n.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </Link>
+                    ) : (
+                      <div className="flex gap-3 px-4 py-3">
+                        <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${!n.isRead ? "bg-primary" : "bg-transparent"}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold">{n.title}</p>
+                          <p className="text-xs text-foreground/60 mt-0.5 line-clamp-2">{n.content}</p>
+                          <p className="text-[10px] text-foreground/40 mt-1">
+                            {new Date(n.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </li>
+                ))
+              )}
+            </ul>
 
-          {/* Footer */}
-          {notifications.length > 0 && (
-            <div className="px-4 py-3 border-t border-border bg-background/50">
-              <Link
-                href="/member/notifications"
-                onClick={() => setOpen(false)}
-                className="text-xs font-bold text-primary hover:underline w-full text-center block"
-              >
-                View all notifications →
-              </Link>
-            </div>
-          )}
-        </div>
+            {/* Footer */}
+            {notifications.length > 0 && (
+              <div className="px-4 py-3 border-t border-border bg-background/50 shrink-0">
+                <Link
+                  href="/member/notifications"
+                  onClick={() => setOpen(false)}
+                  className="text-xs font-bold text-primary hover:underline w-full text-center block"
+                >
+                  View all notifications →
+                </Link>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   )
 }
+
