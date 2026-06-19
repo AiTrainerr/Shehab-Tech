@@ -6,9 +6,6 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminApplicationsPage() {
   const applications = await prisma.application.findMany({
-    where: {
-      status: { in: ["PENDING", "APPROVED", "REJECTED"] }
-    },
     include: {
       project: { select: { id: true, title: true } },
       user: { select: { id: true, firstName: true, lastName: true, email: true, ranking: true, verificationStatus: true } }

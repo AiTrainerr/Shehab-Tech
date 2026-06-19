@@ -60,7 +60,11 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             <div className="mb-4">
               <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-full border mb-3
                 ${app.status === 'PENDING' ? 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20' : 
+                  app.status === 'UNDER_REVIEW' ? 'text-orange-500 bg-orange-500/10 border-orange-500/20' :
+                  app.status === 'WORKING' ? 'text-blue-500 bg-blue-500/10 border-blue-500/20' :
+                  app.status === 'ACCEPTED' ? 'text-teal-500 bg-teal-500/10 border-teal-500/20' :
                   app.status === 'APPROVED' ? 'text-green-500 bg-green-500/10 border-green-500/20' : 
+                  app.status === 'PAID' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' :
                   'text-red-500 bg-red-500/10 border-red-500/20'}`}>
                 {app.status}
               </span>
@@ -123,7 +127,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                 )}
               </div>
               
-              {['UNDER_REVIEW', 'APPROVED', 'REJECTED'].includes(app.status) && (
+              {app.status !== 'PENDING' && (
                 <Link
                   href={`/admin/applications/${app.id}/review`}
                   className={`w-full px-4 py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
