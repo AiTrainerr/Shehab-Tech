@@ -234,8 +234,9 @@ export async function reviewVoiceRecording(
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Not logged in" }
 
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true, firstName: true, lastName: true } })
-    if (!["ADMIN", "SUPER_ADMIN", "QC_REVIEWER", "MODERATOR"].includes(dbUser?.role || "")) {
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true, firstName: true, lastName: true, canReviewQC: true } })
+    const isAllowed = dbUser?.role === "ADMIN" || dbUser?.role === "SUPER_ADMIN" || dbUser?.role === "QC_REVIEWER" || (dbUser?.role === "MODERATOR" && dbUser.canReviewQC)
+    if (!isAllowed) {
       return { success: false, error: "Unauthorized" }
     }
 
@@ -274,9 +275,10 @@ export async function saveBulkReview(
 
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true, firstName: true, lastName: true }
+      select: { role: true, firstName: true, lastName: true, canReviewQC: true }
     })
-    if (!["ADMIN", "SUPER_ADMIN", "QC_REVIEWER", "MODERATOR"].includes(dbUser?.role || "")) {
+    const isAllowed = dbUser?.role === "ADMIN" || dbUser?.role === "SUPER_ADMIN" || dbUser?.role === "QC_REVIEWER" || (dbUser?.role === "MODERATOR" && dbUser.canReviewQC)
+    if (!isAllowed) {
       return { success: false, error: "Unauthorized" }
     }
 

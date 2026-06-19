@@ -105,7 +105,7 @@ export async function loginUser(formData: FormData) {
     // 2. Fetch role and status from Prisma
     const user = await prisma.user.findUnique({ 
       where: { id: authData.user.id },
-      select: { role: true, isApproved: true }
+      select: { role: true, isApproved: true, canReviewQC: true, canApproveApplications: true }
     })
 
     if (user?.role === "MODERATOR" && !user.isApproved) {
@@ -118,6 +118,8 @@ export async function loginUser(formData: FormData) {
     const cookieStore = await cookies()
     cookieStore.set("userId", authData.user.id, { httpOnly: true, path: "/" })
     cookieStore.set("userRole", user?.role || "MEMBER", { httpOnly: true, path: "/" })
+    cookieStore.set("canReviewQC", String(user?.canReviewQC ?? false), { httpOnly: true, path: "/" })
+    cookieStore.set("canApproveApplications", String(user?.canApproveApplications ?? false), { httpOnly: true, path: "/" })
 
     revalidatePath("/")
     return { success: true, role: user?.role || "MEMBER" }

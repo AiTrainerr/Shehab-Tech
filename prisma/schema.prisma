@@ -57,6 +57,8 @@ model User {
   isApproved         Boolean  @default(false)
   assignedProjectId  String?
   assignedProject    Project? @relation("ProjectModerators", fields: [assignedProjectId], references: [id], onDelete: SetNull)
+  canReviewQC        Boolean  @default(false)
+  canApproveApplications Boolean @default(false)
 }
 
 model Skill {

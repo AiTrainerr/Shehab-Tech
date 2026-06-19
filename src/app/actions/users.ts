@@ -11,9 +11,10 @@ export async function rateUser(userId: string, rating: number) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Not logged in" }
     
-    // Optional: Verify user is ADMIN
+    // Verify caller is ADMIN or authorized MODERATOR
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") return { success: false, error: "Unauthorized" }
+    const isAllowed = dbUser?.role === "ADMIN" || dbUser?.role === "SUPER_ADMIN" || (dbUser?.role === "MODERATOR" && dbUser.canApproveApplications)
+    if (!isAllowed) return { success: false, error: "Unauthorized" }
 
     await prisma.user.update({
       where: { id: userId },

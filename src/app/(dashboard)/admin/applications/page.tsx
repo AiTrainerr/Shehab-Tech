@@ -14,8 +14,12 @@ export default async function AdminApplicationsPage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, assignedProjectId: true }
+    select: { role: true, assignedProjectId: true, canApproveApplications: true }
   })
+
+  if (currentUser?.role === "MODERATOR" && !currentUser.canApproveApplications) {
+    redirect("/admin")
+  }
 
   const whereClause = currentUser?.role === "MODERATOR"
     ? { projectId: currentUser.assignedProjectId || "none" }

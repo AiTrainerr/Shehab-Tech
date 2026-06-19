@@ -13,8 +13,12 @@ export default async function AdminReviewPage({ params }: { params: Promise<{ id
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true }
+    select: { role: true, canReviewQC: true }
   })
+  
+  if (currentUser?.role === "MODERATOR" && !currentUser.canReviewQC) {
+    redirect("/admin")
+  }
   
   if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN" && currentUser?.role !== "MODERATOR") {
     redirect("/member")

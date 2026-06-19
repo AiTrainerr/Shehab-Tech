@@ -2,6 +2,7 @@ import * as React from "react"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Users, FileText, Activity, AlertCircle, Plus, BookOpen, Briefcase, DollarSign, MessageSquare } from "lucide-react"
+import { GrantPermissionsForm } from "@/components/grant-permissions-form"
 
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
@@ -27,6 +28,7 @@ export default async function AdminDashboard() {
   let openProjects = 0
   let recentVerifications: any[] = []
   let recentProjects: any[] = []
+  let activeProjectsList: { id: string; title: string }[] = []
 
   if (isModerator) {
     const [modProjCount, modUsersCount, modProject] = await Promise.all([
@@ -47,17 +49,21 @@ export default async function AdminDashboard() {
     totalUsers = modUsersCount
     recentProjects = modProject ? [modProject] : []
   } else {
-    const [allUsers, allProjects, allPendingVerifs, allOpenProjects] = await Promise.all([
+    const [allUsers, allProjects, allPendingVerifs, allOpenProjects, allActiveProjects] = await Promise.all([
       prisma.user.count(),
       prisma.project.count(),
       prisma.user.count({ where: { verificationStatus: "PENDING" } }),
       prisma.project.count({ where: { status: "OPEN" } }),
+      prisma.project.findMany({
+        select: { id: true, title: true }
+      })
     ])
 
     totalUsers = allUsers
     totalProjects = allProjects
     pendingVerifications = allPendingVerifs
     openProjects = allOpenProjects
+    activeProjectsList = allActiveProjects
 
     recentVerifications = await prisma.user.findMany({
       where: { verificationStatus: "PENDING" },
@@ -145,6 +151,13 @@ export default async function AdminDashboard() {
             </Link>
           )}
         </div>
+
+        {/* Grant Supervisor Permissions Form */}
+        {!isModerator && (
+          <div className="mb-8">
+            <GrantPermissionsForm projects={activeProjectsList} />
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Recent Verifications */}

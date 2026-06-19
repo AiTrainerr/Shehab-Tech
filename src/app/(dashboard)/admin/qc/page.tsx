@@ -16,8 +16,12 @@ export default async function AdminQcPage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, assignedProjectId: true }
+    select: { role: true, assignedProjectId: true, canReviewQC: true }
   })
+
+  if (currentUser?.role === "MODERATOR" && !currentUser.canReviewQC) {
+    redirect("/admin")
+  }
 
   const whereClause: any = { status: "PENDING" }
   if (currentUser?.role === "MODERATOR") {

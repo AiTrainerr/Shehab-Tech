@@ -11,6 +11,8 @@ export async function logoutUser() {
   const cookieStore = await cookies()
   cookieStore.delete("userId")
   cookieStore.delete("userRole")
+  cookieStore.delete("canReviewQC")
+  cookieStore.delete("canApproveApplications")
   
   redirect("/login")
 }

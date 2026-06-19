@@ -8,22 +8,33 @@ import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign
 export function AdminSidebar({ pendingVerifications }: { pendingVerifications: number }) {
   const pathname = usePathname()
   const [role, setRole] = React.useState<string | null>(null)
+  const [canReviewQC, setCanReviewQC] = React.useState<boolean>(false)
+  const [canApproveApplications, setCanApproveApplications] = React.useState<boolean>(false)
 
   React.useEffect(() => {
-    const r = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("userRole="))
-      ?.split("=")[1]
-    setRole(r || null)
+    const cookiesObj = Object.fromEntries(
+      document.cookie.split("; ").map((row) => {
+        const parts = row.split("=")
+        return [parts[0], parts[1]]
+      })
+    )
+    setRole(cookiesObj["userRole"] || null)
+    setCanReviewQC(cookiesObj["canReviewQC"] === "true")
+    setCanApproveApplications(cookiesObj["canApproveApplications"] === "true")
   }, [])
 
   const isModerator = role === "MODERATOR"
 
+  const showUsers = !isModerator
+  const showApplications = !isModerator || canApproveApplications
+  const showQC = !isModerator || canReviewQC
+
   const navItems = [
     { name: "Dashboard", href: "/admin", icon: Activity, exact: true },
-    ...(!isModerator ? [{ name: "Users", href: "/admin/users", icon: Users }] : []),
+    ...(showUsers ? [{ name: "Users", href: "/admin/users", icon: Users }] : []),
     { name: "Projects", href: "/admin/projects", icon: FolderOpen },
-    { name: "Applications", href: "/admin/applications", icon: FileText },
+    ...(showApplications ? [{ name: "Applications", href: "/admin/applications", icon: FileText }] : []),
+    ...(showQC ? [{ name: "QC Panel", href: "/admin/qc", icon: ShieldCheck }] : []),
     { name: "Comments", href: "/admin/comments", icon: MessageSquare },
   ]
 
