@@ -38,9 +38,21 @@ export function Navbar({ user }: { user?: any }) {
               </>
             ) : (
               <>
-                <Link href={isAdminOrMod ? "/admin" : "/member"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Dashboard</Link>
-                <Link href={isAdminOrMod ? "/admin/projects" : "/member/projects"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Available Projects</Link>
-                <Link href={isAdminOrMod ? "/admin/projects" : "/member/projects?filter=past"} className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Past Projects</Link>
+                {isAdminOrMod ? (
+                  <>
+                    <Link href="/admin" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Admin Dashboard</Link>
+                    {userRole === "MODERATOR" && (
+                      <Link href="/member" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Freelancer Dashboard</Link>
+                    )}
+                    <Link href="/admin/projects" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Projects</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/member" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Dashboard</Link>
+                    <Link href="/member/projects" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Available Projects</Link>
+                    <Link href="/member/projects?filter=past" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Past Projects</Link>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -156,11 +168,21 @@ export function Navbar({ user }: { user?: any }) {
                   </div>
                 </div>
 
-                <Link href={isAdminOrMod ? "/admin" : "/member"} onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Dashboard</Link>
-                <Link href={isAdminOrMod ? "/admin/projects" : "/member/projects"} onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Available Projects</Link>
-                <Link href={isAdminOrMod ? "/admin/projects" : "/member/projects?filter=past"} onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Past Projects</Link>
-                {!isAdminOrMod && (
-                  <Link href="/member/profile" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">My Profile</Link>
+                {isAdminOrMod ? (
+                  <>
+                    <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Admin Dashboard</Link>
+                    {userRole === "MODERATOR" && (
+                      <Link href="/member" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Freelancer Dashboard</Link>
+                    )}
+                    <Link href="/admin/projects" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Projects</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/member" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Dashboard</Link>
+                    <Link href="/member/projects" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Available Projects</Link>
+                    <Link href="/member/projects?filter=past" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Past Projects</Link>
+                    <Link href="/member/profile" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">My Profile</Link>
+                  </>
                 )}
 
                 {/* Logout in mobile menu */}

@@ -43,9 +43,11 @@ export default async function AdminProjectsPage() {
             <h1 className="text-3xl font-black text-foreground flex items-center gap-3"><FileText className="w-8 h-8 text-primary"/> Manage Projects</h1>
             <p className="text-foreground/70">View and edit all platform projects.</p>
           </div>
-          <Link href="/admin/projects/create" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
-            <Plus className="w-5 h-5" /> Create Project
-          </Link>
+          {currentUser?.role !== "MODERATOR" && (
+            <Link href="/admin/projects/create" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+              <Plus className="w-5 h-5" /> Create Project
+            </Link>
+          )}
         </div>
         
         {projects.length === 0 ? (
@@ -53,9 +55,11 @@ export default async function AdminProjectsPage() {
             <FileText className="w-12 h-12 text-foreground/20 mb-4" />
             <h3 className="text-xl font-bold mb-2">No Projects Found</h3>
             <p className="text-foreground/60 mb-6">You haven't published any projects yet.</p>
-            <Link href="/admin/projects/create" className="px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all">
-              Create Your First Project
-            </Link>
+            {currentUser?.role !== "MODERATOR" && (
+              <Link href="/admin/projects/create" className="px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all">
+                Create Your First Project
+              </Link>
+            )}
           </div>
         ) : (
           <AdminProjectsClient initialProjects={projects} />

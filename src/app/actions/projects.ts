@@ -6,6 +6,19 @@ import * as XLSX from "xlsx"
 
 export async function createProjectAction(formData: FormData) {
   try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    })
+    
+    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized. Only admins can publish projects." }
+    }
+
     const title = formData.get("title") as string
     const description = formData.get("description") as string
     const privateData = formData.get("privateData") as string || null

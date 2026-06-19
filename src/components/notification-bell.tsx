@@ -40,12 +40,41 @@ function playNotificationSound() {
   }
 }
 
+function showBrowserNotification(title: string, content: string, linkUrl?: string | null) {
+  if (typeof window === "undefined" || !("Notification" in window)) return
+
+  const show = () => {
+    const notif = new window.Notification(title, {
+      body: content,
+      icon: "/favicon.ico"
+    })
+    
+    notif.onclick = () => {
+      window.focus()
+      if (linkUrl) {
+        window.location.href = linkUrl
+      }
+      notif.close()
+    }
+  }
+
+  if (window.Notification.permission === "granted") {
+    show()
+  } else if (window.Notification.permission !== "denied") {
+    window.Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        show()
+      }
+    })
+  }
+}
+
 export function NotificationBell({ userId }: { userId: string }) {
   const [notifications, setNotifications] = React.useState<Notification[]>([])
   const [open, setOpen] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
   const [animate, setAnimate] = React.useState(false)
-  const prevCountRef = React.useRef<number>(0)
+  const prevCountRef = React.useRef<number | null>(null)
   const dropdownRef = React.useRef<HTMLDivElement>(null)
 
   const unreadCount = notifications.filter(n => !n.isRead).length
@@ -60,11 +89,17 @@ export function NotificationBell({ userId }: { userId: string }) {
       const newUnread = data.filter(n => !n.isRead).length
       const prevUnread = prevCountRef.current
 
-      if (prevUnread !== undefined && newUnread > prevUnread) {
+      if (prevUnread !== null && newUnread > prevUnread) {
         // New notification arrived!
         playNotificationSound()
         setAnimate(true)
         setTimeout(() => setAnimate(false), 1500)
+
+        // Find the newest unread notification
+        const newest = data.find(n => !n.isRead)
+        if (newest) {
+          showBrowserNotification(newest.title, newest.content, newest.link)
+        }
       }
 
       prevCountRef.current = newUnread
@@ -74,10 +109,19 @@ export function NotificationBell({ userId }: { userId: string }) {
     }
   }, [userId])
 
-  // Poll every 30 seconds
+  // Request browser Notification permission on mount
+  React.useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (window.Notification.permission === "default") {
+        window.Notification.requestPermission()
+      }
+    }
+  }, [])
+
+  // Poll every 10 seconds
   React.useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 30000)
+    const interval = setInterval(fetchNotifications, 10000)
     return () => clearInterval(interval)
   }, [fetchNotifications])
 

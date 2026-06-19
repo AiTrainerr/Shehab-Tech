@@ -8,8 +8,22 @@ import { updateProjectStatus } from "@/app/actions/projects"
 export function AdminProjectsClient({ initialProjects }: { initialProjects: any[] }) {
   const [projects, setProjects] = React.useState(initialProjects)
   const [updatingId, setUpdatingId] = React.useState<string | null>(null)
+  const [role, setRole] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    const cookiesObj = Object.fromEntries(
+      document.cookie.split("; ").map((row) => {
+        const parts = row.split("=")
+        return [parts[0], parts[1]]
+      })
+    )
+    setRole(cookiesObj["userRole"] || null)
+  }, [])
+
+  const isModerator = role === "MODERATOR"
 
   const handleStatusChange = async (projectId: string, newStatus: string) => {
+    if (isModerator) return
     setUpdatingId(projectId)
     const res = await updateProjectStatus(projectId, newStatus)
     setUpdatingId(null)
@@ -55,13 +69,17 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
         </div>
 
         <div className="flex flex-col gap-3 min-w-[160px]">
-          <Link href={`/admin/projects/edit/${project.id}`} className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-bold bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors">
-            <Edit2 className="w-4 h-4" /> Edit Details
-          </Link>
+          {!isModerator && (
+            <Link href={`/admin/projects/edit/${project.id}`} className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-bold bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors">
+              <Edit2 className="w-4 h-4" /> Edit Details
+            </Link>
+          )}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-foreground/50 uppercase tracking-wider">Change Status</label>
+            <label className="text-xs font-bold text-foreground/50 uppercase tracking-wider">
+              {isModerator ? "Project Status" : "Change Status"}
+            </label>
             <select 
-              disabled={updatingId === project.id}
+              disabled={isModerator || updatingId === project.id}
               value={project.status}
               onChange={(e) => handleStatusChange(project.id, e.target.value)}
               className="w-full px-3 py-2 text-sm font-semibold bg-background border border-border rounded-lg outline-none focus:border-primary transition-colors disabled:opacity-50"
