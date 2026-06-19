@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Plus, Trash2, X, Globe, FileText } from "lucide-react"
 import { updateProjectAction } from "@/app/actions/projects"
 
 const COUNTRIES = [
@@ -16,11 +16,44 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   const [project, setProject] = React.useState<any>(null)
   const [isLoading, setIsLoading] = React.useState(true)
 
+  // Dynamic lists and requirement states
+  const [languages, setLanguages] = React.useState<any[]>([])
+  const [selectedCountries, setSelectedCountries] = React.useState<string[]>([])
+  const [countrySearch, setCountrySearch] = React.useState("")
+  const [showDropdown, setShowDropdown] = React.useState(false)
+
+  // Options toggles
+  const [executionOption, setExecutionOption] = React.useState("INTERNAL")
+  const [hasScript, setHasScript] = React.useState(true)
+  const [updateScript, setUpdateScript] = React.useState(false)
+  const [scriptMode, setScriptMode] = React.useState("file")
+  const [sentenceCount, setSentenceCount] = React.useState(0)
+
   React.useEffect(() => {
     fetch(`/api/projects/${id}`)
       .then(res => res.json())
       .then(data => {
-        setProject(data.project)
+        const proj = data.project
+        setProject(proj)
+        setLanguages(proj.languages || [])
+        setExecutionOption(proj.executionOption || "INTERNAL")
+        setHasScript(proj.hasScript !== false)
+        setSentenceCount(data.sentenceCount || 0)
+
+        const initialCountries: string[] = []
+        if (proj.reqCountry) {
+          try {
+            const parsed = JSON.parse(proj.reqCountry)
+            if (Array.isArray(parsed)) {
+              initialCountries.push(...parsed)
+            } else {
+              initialCountries.push(proj.reqCountry)
+            }
+          } catch {
+            initialCountries.push(proj.reqCountry)
+          }
+        }
+        setSelectedCountries(initialCountries)
         setIsLoading(false)
       })
       .catch(err => {
@@ -28,6 +61,38 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
         setIsLoading(false)
       })
   }, [id])
+
+  const addCountry = (country: string) => {
+    if (!selectedCountries.includes(country)) {
+      setSelectedCountries(prev => [...prev, country])
+    }
+    setCountrySearch("")
+    setShowDropdown(false)
+  }
+
+  const removeCountry = (country: string) => {
+    setSelectedCountries(prev => prev.filter(c => c !== country))
+  }
+
+  const handleLangChange = (index: number, field: string, value: string) => {
+    setLanguages(prev => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], [field]: value }
+      return updated
+    })
+  }
+
+  const addLanguage = () => {
+    setLanguages(prev => [...prev, { language: "", dialect: "", proficiency: "Native" }])
+  }
+
+  const removeLanguage = (index: number) => {
+    setLanguages(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const filteredCountries = COUNTRIES.filter(c =>
+    c.toLowerCase().includes(countrySearch.toLowerCase()) && !selectedCountries.includes(c)
+  )
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>
@@ -44,11 +109,23 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           <Link href="/admin/projects" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition-colors mb-4">
             <ArrowLeft className="w-4 h-4" /> Back to Projects
           </Link>
-          <h1 className="text-3xl font-black text-foreground">Edit Project</h1>
-          <p className="text-foreground/70">Update the basic details of the project.</p>
+          <h1 className="text-3xl font-black text-foreground">Edit Project Details</h1>
+          <p className="text-foreground/70">Modify all technical specifications, requirements, configurations, and script files.</p>
         </div>
 
         <form action={async (formData) => {
+          // Append complex lists to formData
+          formData.append("langCount", languages.length.toString())
+          languages.forEach((lang, idx) => {
+            formData.append(`language_${idx}`, lang.language)
+            formData.append(`dialect_${idx}`, lang.dialect || "")
+            formData.append(`proficiency_${idx}`, lang.proficiency || "")
+          })
+
+          formData.append("reqCountry", selectedCountries.length > 0 ? JSON.stringify(selectedCountries) : "")
+          formData.append("updateScript", updateScript.toString())
+          formData.append("hasScript", hasScript.toString())
+
           const res = await updateProjectAction(id, formData)
           if (res.success) {
             router.push("/admin/projects")
@@ -57,42 +134,277 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           }
         }} className="space-y-8 glass p-8 rounded-2xl border border-border">
           
+          {/* General Information */}
           <div className="space-y-4 border-b border-border pb-8">
             <h3 className="text-lg font-bold text-foreground">General Information</h3>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Project Title</label>
-              <input name="title" defaultValue={project.title} type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" required />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Public Description</label>
-              <textarea name="description" defaultValue={project.description} className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none" required />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-semibold">Project Title</label>
+                <input name="title" defaultValue={project.title} type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" required />
+              </div>
+              
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-semibold">Public Description</label>
+                <textarea name="description" defaultValue={project.description} className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none" required />
+              </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-red-500 flex items-center gap-2">Private Data <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-xs">Hidden from public</span></label>
-              <textarea name="privateData" defaultValue={project.privateData || ""} className="w-full h-24 px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all resize-none placeholder:text-red-500/40" />
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Project Status (حالة المشروع)</label>
+                <select name="status" defaultValue={project.status} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="OPEN">Open (نشط ومتاح للتقديم)</option>
+                  <option value="IN_PROGRESS">In Progress (قيد التنفيذ)</option>
+                  <option value="COMPLETED">Completed (مكتمل)</option>
+                  <option value="CANCELLED">Cancelled (ملغي)</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Required Participants</label>
+                <input name="requiredParticipants" type="number" min="1" defaultValue={project.requiredParticipants || 1} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-semibold text-red-500 flex items-center gap-2">Private Data <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-xs">Hidden from public</span></label>
+                <textarea name="privateData" defaultValue={project.privateData || ""} className="w-full h-24 px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all resize-none placeholder:text-red-500/40" />
+              </div>
             </div>
           </div>
 
+          {/* Languages Section */}
           <div className="space-y-4 border-b border-border pb-8">
-            <h3 className="text-lg font-bold text-foreground">Other Requirements</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-foreground">Languages & Proficiencies</h3>
+              <button type="button" onClick={addLanguage} className="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
+                <Plus className="w-4 h-4" /> Add Language
+              </button>
+            </div>
+            
+            {languages.map((lang, idx) => (
+              <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border border-border rounded-xl bg-card/50 relative">
+                <button type="button" onClick={() => removeLanguage(idx)} className="absolute -top-3 -right-3 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
+                  <Trash2 className="w-3 h-3" />
+                </button>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Language</label>
+                  <input value={lang.language} onChange={e => handleLangChange(idx, "language", e.target.value)} type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Dialect (Optional)</label>
+                  <input value={lang.dialect || ""} onChange={e => handleLangChange(idx, "dialect", e.target.value)} type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Level</label>
+                  <select value={lang.proficiency || ""} onChange={e => handleLangChange(idx, "proficiency", e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required>
+                    <option value="Native">Native (نيتف)</option>
+                    <option value="Near Native">Near Native (نيرتيف)</option>
+                    <option value="Beginner">Beginner (مبتدأ)</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Execution Option & Audio Specs Section */}
+          <div className="space-y-4 border-b border-border pb-8">
+            <h3 className="text-lg font-bold text-foreground">Project Execution & Audio Specifications</h3>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Required Country</label>
-                <select name="reqCountry" defaultValue={project.reqCountry || ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none transition-all appearance-none">
-                  <option value="">Anywhere</option>
-                  {COUNTRIES.map(country => (
-                    <option key={country} value={country}>{country}</option>
-                  ))}
-                  <option value="Other">Other</option>
+                <label className="text-sm font-semibold">Execution Method</label>
+                <select
+                  name="executionOption"
+                  value={executionOption}
+                  onChange={(e) => setExecutionOption(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                >
+                  <option value="INTERNAL">Option A: Recording Inside Platform (التسجيل داخل المنصة)</option>
+                  <option value="EXTERNAL">Option B: External Platform Redirect (رابط خارجي)</option>
                 </select>
               </div>
-              {/* Duration and unit choice */}
+
+              {executionOption === "EXTERNAL" ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">External URL (رابط المنصة الخارجية)</label>
+                  <input name="externalUrl" defaultValue={project.externalUrl || ""} type="url" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
+                </div>
+              ) : (
+                <div className="space-y-2 opacity-50 select-none">
+                  <label className="text-sm font-semibold">External URL (Disabled for Internal)</label>
+                  <input type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="Disabled" disabled />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Audio Format</label>
+                <select name="audioFormat" defaultValue={project.audioFormat || "WAV"} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="WAV">WAV (Lossless)</option>
+                  <option value="FLAC">FLAC</option>
+                  <option value="WEBM">WEBM</option>
+                  <option value="MP3">MP3</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Sample Rate</label>
+                <select name="sampleRate" defaultValue={project.sampleRate || 44100} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="8000">8000 Hz</option>
+                  <option value="16000">16000 Hz</option>
+                  <option value="22050">22050 Hz</option>
+                  <option value="44100">44100 Hz</option>
+                  <option value="48000">48000 Hz</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Bit Depth</label>
+                <select name="bitDepth" defaultValue={project.bitDepth || 16} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="16">16-bit</option>
+                  <option value="24">24-bit</option>
+                  <option value="32">32-bit</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Channels</label>
+                <select name="channels" defaultValue={project.channels || "MONO"} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="MONO">Mono (1 Channel)</option>
+                  <option value="STEREO">Stereo (2 Channels)</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Minimum Duration (seconds)</label>
+                <input name="minDuration" defaultValue={project.minDuration || ""} type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 5" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Maximum Duration (seconds)</label>
+                <input name="maxDuration" defaultValue={project.maxDuration || ""} type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 60" />
+              </div>
+            </div>
+          </div>
+
+          {/* Script/Sentence Management Section */}
+          <div className="space-y-4 border-b border-border pb-8">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-foreground">Script Configuration (إعداد الجمل)</h3>
+              <span className="text-xs font-semibold px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center gap-1">
+                <FileText className="w-3 h-3" /> Current: {sentenceCount} sentences
+              </span>
+            </div>
+
+            <div className="space-y-4 bg-primary/5 p-5 border border-primary/20 rounded-2xl">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={updateScript}
+                  onChange={(e) => setUpdateScript(e.target.checked)}
+                  className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
+                />
+                <div>
+                  <p className="font-bold text-sm text-foreground">Replace project sentences/script? (تحديث وتغيير ملف الجمل)</p>
+                  <p className="text-xs text-foreground/50">Check this box if you want to upload a new script file or change the manual sentence list.</p>
+                </div>
+              </label>
+
+              {updateScript && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-primary/25">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Display Script to Freelancers?</label>
+                    <select
+                      value={hasScript.toString()}
+                      onChange={(e) => setHasScript(e.target.value === "true")}
+                      className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                    >
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </div>
+
+                  {hasScript && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">Script Type</label>
+                        <select name="scriptType" defaultValue={project.scriptType || "STATIC"} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                          <option value="STATIC">Static script for all participants</option>
+                          <option value="RANDOM">Random script from pool</option>
+                          <option value="CATEGORY">Custom category-based script</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-semibold">Upload Script Mode</label>
+                        <select
+                          value={scriptMode}
+                          onChange={(e) => setScriptMode(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                        >
+                          <option value="file">Upload File (Excel, CSV, TXT)</option>
+                          <option value="manual">Manual Input</option>
+                        </select>
+                        <input type="hidden" name="scriptMode" value={scriptMode} />
+                      </div>
+
+                      {scriptMode === "file" ? (
+                        <div className="space-y-2 md:col-span-2">
+                          <label className="text-sm font-semibold">Select Script File</label>
+                          <input name="scriptFile" type="file" accept=".xlsx,.xls,.csv,.txt" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
+                          <p className="text-xs text-foreground/50">Supported formats: XLSX, XLS, CSV, TXT</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 md:col-span-2">
+                          <label className="text-sm font-semibold">Enter Sentences (one per line)</label>
+                          <textarea name="manualScriptText" className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none" placeholder="Sentence 1&#10;Sentence 2..." required />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Requirements & Target Metrics */}
+          <div className="space-y-4 border-b border-border pb-8">
+            <h3 className="text-lg font-bold text-foreground">Target Metrics & Requirements</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-semibold flex items-center gap-2"><Globe className="w-4 h-4" /> Required Countries <span className="text-foreground/40 font-normal">(leave empty = Anywhere)</span></label>
+                
+                {/* Selected Country Tags */}
+                {selectedCountries.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {selectedCountries.map(c => (
+                      <span key={c} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm font-semibold">
+                        {c}
+                        <button type="button" onClick={() => removeCountry(c)} className="hover:text-red-500 transition-colors">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                    <button type="button" onClick={() => setSelectedCountries([])} className="px-3 py-1.5 text-xs text-red-400 hover:text-red-500 font-bold rounded-full border border-red-400/20 hover:bg-red-500/10 transition-colors">
+                      Clear All
+                    </button>
+                  </div>
+                )}
+
+                {/* Country selector */}
+                <select
+                  value=""
+                  onChange={e => { if (e.target.value) addCountry(e.target.value) }}
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                >
+                  <option value="">— Select a country to add —</option>
+                  {COUNTRIES.filter(c => !selectedCountries.includes(c)).map(country => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
+              </div>
+              
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Recording Duration (المدة المطلوبة)</label>
                 <div className="flex gap-2">
-                  <input name="recordingDuration" defaultValue={project.recordingDuration || ""} type="number" step="0.1" min="0.1" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="e.g. 2.5 or 50" />
+                  <input name="recordingDuration" defaultValue={project.recordingDuration || ""} type="number" step="0.1" min="0.1" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" />
                   <select name="durationUnit" defaultValue={project.durationUnit || "HOUR"} className="w-32 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
                     <option value="HOUR">Hours (ساعات)</option>
                     <option value="SENTENCE">Sentences (جمل)</option>
@@ -100,11 +412,10 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
 
-              {/* Price and model choice */}
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Price Configuration (سعر المشروع والتسعير)</label>
                 <div className="flex gap-2">
-                  <input name="price" defaultValue={project.price} type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="50.00" required />
+                  <input name="price" defaultValue={project.price} type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" required />
                   <select name="pricingModel" defaultValue={project.pricingModel || "FIXED_PROJECT"} className="w-48 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
                     <option value="FIXED_PROJECT">Fixed (تاسك كامل)</option>
                     <option value="PER_HOUR">Per Hour (لكل ساعة)</option>
@@ -121,17 +432,20 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                   <input name="reqAgeMax" defaultValue={project.reqAgeMax || ""} type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="Max age" />
                 </div>
               </div>
+
               <div className="space-y-2 md:col-span-2">
                 <label className="flex items-center gap-3 p-4 bg-primary/5 border border-primary/20 rounded-xl cursor-pointer hover:bg-primary/10 transition-colors">
                   <input name="autoApprove" type="checkbox" value="true" defaultChecked={project.autoApprove} className="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
                   <div>
                     <p className="font-bold text-sm text-foreground">Auto-Approve All Applicants</p>
+                    <p className="text-xs text-foreground/50">Automatically approve any member application instantly.</p>
                   </div>
                 </label>
               </div>
             </div>
           </div>
 
+          {/* Form Actions */}
           <div className="flex justify-end gap-4 pt-4">
             <Link href="/admin/projects" className="px-6 py-3 rounded-xl font-semibold text-foreground/70 hover:bg-card transition-colors">
               Cancel

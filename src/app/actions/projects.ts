@@ -302,7 +302,9 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     if (!user) return { success: false, error: "Not logged in" }
     
     const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
-    if (dbUser?.role !== "ADMIN") return { success: false, error: "Unauthorized" }
+    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
 
     const title = formData.get("title") as string
     const description = formData.get("description") as string
@@ -316,20 +318,131 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     const reqAgeMax = formData.get("reqAgeMax") ? parseInt(formData.get("reqAgeMax") as string) : null
     const autoApprove = formData.get("autoApprove") === "true"
 
-    await prisma.project.update({
-      where: { id: projectId },
-      data: {
-        title,
-        description,
-        privateData,
-        reqCountry,
-        price,
-        recordingDuration,
-        durationUnit,
-        pricingModel,
-        reqAgeMin,
-        reqAgeMax,
-        autoApprove
+    const status = formData.get("status") as string || "OPEN"
+    const executionOption = formData.get("executionOption") as string || "INTERNAL"
+    const externalUrl = formData.get("externalUrl") as string || null
+    const audioFormat = formData.get("audioFormat") as string || "WAV"
+    const sampleRate = parseInt(formData.get("sampleRate") as string) || 44100
+    const bitDepth = parseInt(formData.get("bitDepth") as string) || 16
+    const channels = formData.get("channels") as string || "MONO"
+    const minDuration = formData.get("minDuration") ? parseInt(formData.get("minDuration") as string) : null
+    const maxDuration = formData.get("maxDuration") ? parseInt(formData.get("maxDuration") as string) : null
+    const requiredParticipants = parseInt(formData.get("requiredParticipants") as string) || 1
+    const hasScript = formData.get("hasScript") === "true"
+    const scriptType = formData.get("scriptType") as string || "STATIC"
+
+    // Parse languages
+    const langCount = parseInt(formData.get("langCount") as string) || 0
+    const languages: { language: string; dialect: string | null; proficiency: string | null }[] = []
+    for (let i = 0; i < langCount; i++) {
+      const language = formData.get(`language_${i}`) as string
+      if (language) {
+        languages.push({
+          language,
+          dialect: formData.get(`dialect_${i}`) as string || null,
+          proficiency: formData.get(`proficiency_${i}`) as string || null
+        })
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.project.update({
+        where: { id: projectId },
+        data: {
+          title,
+          description,
+          privateData,
+          reqCountry,
+          price,
+          recordingDuration,
+          durationUnit,
+          pricingModel,
+          reqAgeMin,
+          reqAgeMax,
+          autoApprove,
+          status,
+          executionOption,
+          externalUrl,
+          audioFormat,
+          sampleRate,
+          bitDepth,
+          channels,
+          minDuration,
+          maxDuration,
+          hasScript,
+          scriptType,
+          requiredParticipants
+        }
+      })
+
+      // Re-create languages
+      await tx.projectLanguage.deleteMany({ where: { projectId } })
+      if (languages.length > 0) {
+        await tx.projectLanguage.createMany({
+          data: languages.map(l => ({
+            projectId,
+            ...l
+          }))
+        })
+      }
+
+      // Handle optional script update
+      const updateScript = formData.get("updateScript") === "true"
+      if (updateScript && hasScript) {
+        let sentences: string[] = []
+        const scriptMode = formData.get("scriptMode") as string
+
+        if (scriptMode === "manual") {
+          const manualScriptText = formData.get("manualScriptText") as string
+          if (manualScriptText && manualScriptText.trim()) {
+            sentences = manualScriptText
+              .split("\n")
+              .map(s => s.trim())
+              .filter(Boolean)
+          }
+        } else {
+          const file = formData.get("scriptFile") as File | null
+          if (file && file.size > 0) {
+            const name = file.name.toLowerCase()
+            const buffer = Buffer.from(await file.arrayBuffer())
+
+            if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
+              const workbook = XLSX.read(buffer, { type: "buffer" })
+              const sheet = workbook.Sheets[workbook.SheetNames[0]]
+              const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+
+              sentences = rows
+                .map((row: any[]) => {
+                  for (const cell of row) {
+                    if (cell !== undefined && cell !== null && String(cell).trim()) {
+                      return String(cell).trim()
+                    }
+                  }
+                  return null
+                })
+                .filter(Boolean) as string[]
+            } else if (name.endsWith(".txt")) {
+              const text = buffer.toString("utf-8")
+              sentences = text
+                .split("\n")
+                .map(s => s.trim())
+                .filter(Boolean)
+            } else {
+              throw new Error("Unsupported script file format. Please upload XLSX, CSV, or TXT.")
+            }
+          }
+        }
+
+        if (sentences.length > 0) {
+          await tx.projectSentence.deleteMany({ where: { projectId } })
+          await tx.projectSentence.createMany({
+            data: sentences.map((text, i) => ({
+              projectId,
+              text,
+              order: i + 1
+            }))
+          })
+        }
       }
     })
 
@@ -341,6 +454,6 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     return { success: true }
   } catch (error: any) {
     console.error("Update project error:", error)
-    return { success: false, error: "Failed to update project" }
+    return { success: false, error: "Failed to update project: " + error.message }
   }
 }

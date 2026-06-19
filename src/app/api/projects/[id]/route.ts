@@ -8,12 +8,18 @@ export async function GET(
   try {
     const { id } = await params
     const project = await prisma.project.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        languages: true
+      }
     })
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 })
     }
-    return NextResponse.json({ project })
+    const sentenceCount = await prisma.projectSentence.count({
+      where: { projectId: id }
+    })
+    return NextResponse.json({ project, sentenceCount })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
