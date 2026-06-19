@@ -101,20 +101,50 @@ export async function GET(request: NextRequest) {
       return candidateName
     }
 
-    // Build the outer folder name: ID_FirstName_LastName_Age_Gender
+    // Build the outer folder name: GXXXX_FirstName_LastName_Age_Gender
     let genderForFolder = "N-A"
     if (candidate.gender) {
       const g = candidate.gender.toLowerCase()
       if (g === "male" || g === "ذكر") {
-        genderForFolder = "ذكر"
+        genderForFolder = "male"
       } else if (g === "female" || g === "أنثى" || g === "انثى") {
-        genderForFolder = "أنثى"
+        genderForFolder = "female"
       } else {
         genderForFolder = candidate.gender
       }
     }
     const ageFolderStr = candidate.age ? String(candidate.age) : "N-A"
-    const outerFolderName = `${candidate.id}_${candidate.firstName}_${candidate.lastName}_${ageFolderStr}_${genderForFolder}`
+
+    // Get sequence number for GXXXX ID based on order of completion (UNDER_REVIEW, APPROVED, PAID)
+    const completedApps = await prisma.application.findMany({
+      where: {
+        projectId,
+        status: { in: ["UNDER_REVIEW", "APPROVED", "PAID"] }
+      },
+      orderBy: {
+        updatedAt: "asc"
+      },
+      select: {
+        userId: true
+      }
+    })
+
+    let appIndex = completedApps.findIndex(app => app.userId === targetUserId)
+    let sequenceNumber = 1
+    if (appIndex !== -1) {
+      sequenceNumber = appIndex + 1
+    } else {
+      const allApps = await prisma.application.findMany({
+        where: { projectId },
+        orderBy: { createdAt: "asc" },
+        select: { userId: true }
+      })
+      const fallbackIndex = allApps.findIndex(app => app.userId === targetUserId)
+      sequenceNumber = completedApps.length + (fallbackIndex !== -1 ? fallbackIndex + 1 : 1)
+    }
+    const sequentialId = `G${String(sequenceNumber).padStart(4, "0")}`
+
+    const outerFolderName = `${sequentialId}_${candidate.firstName}_${candidate.lastName}_${ageFolderStr}_${genderForFolder}`
 
     // Download each audio file and add to ZIP inside the outer folder
     await Promise.all(
