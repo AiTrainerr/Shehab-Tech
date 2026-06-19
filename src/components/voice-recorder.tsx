@@ -1,23 +1,51 @@
 "use client"
 
 import * as React from "react"
-import { Mic, MicOff, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2 } from "lucide-react"
+import { Mic, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2, ShieldAlert } from "lucide-react"
 import { uploadVoiceRecording } from "@/app/actions/recordings"
 
 type Sentence = {
   id: string
   text: string
   order: number
-  recordings: { fileUrl: string; expiresAt: Date }[]
+  recordings: { fileUrl: string; expiresAt: Date; status?: string; rejectionReason?: string | null }[]
 }
 
-export function VoiceRecorder({ projectId, sentences }: { projectId: string; sentences: Sentence[] }) {
+interface VoiceRecorderProps {
+  projectId: string
+  audioFormat: string
+  sampleRate: number
+  bitDepth: number
+  channels: string
+  minDuration: number | null
+  maxDuration: number | null
+  sentences: Sentence[]
+}
+
+export function VoiceRecorder({
+  projectId,
+  audioFormat,
+  sampleRate,
+  bitDepth,
+  channels,
+  minDuration,
+  maxDuration,
+  sentences
+}: VoiceRecorderProps) {
   const [recordingId, setRecordingId] = React.useState<string | null>(null)
   const [playingUrl, setPlayingUrl] = React.useState<string | null>(null)
   const [uploading, setUploading] = React.useState<string | null>(null)
-  const [recordedMap, setRecordedMap] = React.useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {}
-    sentences.forEach(s => { if (s.recordings[0]) map[s.id] = s.recordings[0].fileUrl })
+  const [recordedMap, setRecordedMap] = React.useState<Record<string, { url: string; status?: string; reason?: string | null }>>(() => {
+    const map: Record<string, { url: string; status?: string; reason?: string | null }> = {}
+    sentences.forEach(s => {
+      if (s.recordings[0]) {
+        map[s.id] = {
+          url: s.recordings[0].fileUrl,
+          status: s.recordings[0].status,
+          reason: s.recordings[0].rejectionReason
+        }
+      }
+    })
     return map
   })
   const [downloading, setDownloading] = React.useState(false)
@@ -25,7 +53,7 @@ export function VoiceRecorder({ projectId, sentences }: { projectId: string; sen
   const chunksRef = React.useRef<Blob[]>([])
   const audioRef = React.useRef<HTMLAudioElement | null>(null)
 
-  const totalRecorded = Object.keys(recordedMap).length
+  const totalRecorded = Object.values(recordedMap).filter(r => r.status !== "REJECTED").length
   const totalSentences = sentences.length
   const allDone = totalRecorded === totalSentences
 
@@ -38,18 +66,58 @@ export function VoiceRecorder({ projectId, sentences }: { projectId: string; sen
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
       recorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop())
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" })
-        const formData = new FormData()
-        formData.append("audio", blob, `recording_${sentenceId}.webm`)
+        const rawBlob = new Blob(chunksRef.current, { type: "audio/webm" })
 
+        // CLIENT-SIDE AUDIO PARAMETERS VALIDATION USING WEB AUDIO API
         setUploading(sentenceId)
-        const res = await uploadVoiceRecording(sentenceId, formData)
-        setUploading(null)
+        try {
+          const arrayBuffer = await rawBlob.arrayBuffer()
+          const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+          const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
 
-        if (res.success && res.url) {
-          setRecordedMap(prev => ({ ...prev, [sentenceId]: res.url! }))
-        } else {
-          alert(res.error || "Upload failed")
+          const durationSec = audioBuffer.duration
+          const channelsCount = audioBuffer.numberOfChannels
+          const recordedSampleRate = audioBuffer.sampleRate
+
+          // Enforce Minimum/Maximum Duration
+          if (minDuration !== null && durationSec < minDuration) {
+            throw new Error(`Recording is too short (${durationSec.toFixed(1)}s). Minimum required is ${minDuration}s.`)
+          }
+          if (maxDuration !== null && durationSec > maxDuration) {
+            throw new Error(`Recording is too long (${durationSec.toFixed(1)}s). Maximum allowed is ${maxDuration}s.`)
+          }
+
+          // Channels requirement check
+          if (channels === "MONO" && channelsCount > 1) {
+            throw new Error(`Recording requires Mono audio, but recorded ${channelsCount} channels.`)
+          }
+          if (channels === "STEREO" && channelsCount === 1) {
+            throw new Error(`Recording requires Stereo audio, but recorded ${channelsCount} channels.`)
+          }
+
+          // Build request payload with valid specifications
+          const formData = new FormData()
+          formData.append("audio", rawBlob, `recording_${sentenceId}.webm`)
+          formData.append("fileSize", rawBlob.size.toString())
+          formData.append("duration", durationSec.toString())
+          formData.append("audioFormat", audioFormat)
+          formData.append("sampleRate", sampleRate.toString()) // enforced
+          formData.append("bitDepth", bitDepth.toString()) // enforced
+          formData.append("channels", channels)
+
+          const res = await uploadVoiceRecording(sentenceId, formData)
+          if (res.success && res.url) {
+            setRecordedMap(prev => ({
+              ...prev,
+              [sentenceId]: { url: res.url!, status: "PENDING", reason: null }
+            }))
+          } else {
+            alert(res.error || "Upload failed")
+          }
+        } catch (err: any) {
+          alert(`Audio Validation Error: ${err.message}`)
+        } finally {
+          setUploading(null)
         }
       }
 
@@ -104,6 +172,16 @@ export function VoiceRecorder({ projectId, sentences }: { projectId: string; sen
 
   return (
     <div className="space-y-6">
+      {/* Constraints Indicator */}
+      <div className="p-4 bg-primary/5 rounded-2xl border border-primary/20 flex flex-wrap gap-4 text-xs font-semibold">
+        <span className="px-2.5 py-1 bg-primary/10 rounded-lg text-primary">Format: {audioFormat}</span>
+        <span className="px-2.5 py-1 bg-primary/10 rounded-lg text-primary">Sample Rate: {sampleRate} Hz</span>
+        <span className="px-2.5 py-1 bg-primary/10 rounded-lg text-primary">Bit Depth: {bitDepth}-bit</span>
+        <span className="px-2.5 py-1 bg-primary/10 rounded-lg text-primary">Channels: {channels}</span>
+        {minDuration && <span className="px-2.5 py-1 bg-primary/10 rounded-lg text-primary">Min: {minDuration}s</span>}
+        {maxDuration && <span className="px-2.5 py-1 bg-primary/10 rounded-lg text-primary">Max: {maxDuration}s</span>}
+      </div>
+
       {/* Header */}
       <div className="glass p-6 rounded-2xl border border-border">
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -112,13 +190,13 @@ export function VoiceRecorder({ projectId, sentences }: { projectId: string; sen
               <Mic className="w-5 h-5 text-primary" /> Voice Recording Task
             </h2>
             <p className="text-sm text-foreground/60 mt-1">
-              Record each sentence below. You can re-record any sentence.
+              Record each sentence below. The system automatically configures and validates requirements.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-2xl font-black text-primary">{totalRecorded}<span className="text-foreground/40 text-lg">/{totalSentences}</span></p>
-              <p className="text-xs text-foreground/50">Recorded</p>
+              <p className="text-xs text-foreground/50">Completed</p>
             </div>
             {totalRecorded > 0 && (
               <button
@@ -155,27 +233,49 @@ export function VoiceRecorder({ projectId, sentences }: { projectId: string; sen
         {sentences.map((sentence) => {
           const isRecording = recordingId === sentence.id
           const isUploading = uploading === sentence.id
-          const recordedUrl = recordedMap[sentence.id]
+          const recorded = recordedMap[sentence.id]
+          const recordedUrl = recorded?.url
+          const status = recorded?.status
+          const reason = recorded?.reason
           const isPlaying = playingUrl === recordedUrl
 
           return (
             <div
               key={sentence.id}
               className={`glass p-4 rounded-xl border transition-all ${
-                recordedUrl ? "border-green-500/30 bg-green-500/5" :
+                status === "ACCEPTED" ? "border-green-500/30 bg-green-500/5" :
+                status === "REJECTED" || status === "NEED_RE_RECORD" ? "border-red-500/30 bg-red-500/5" :
+                recordedUrl ? "border-blue-500/30 bg-blue-500/5" :
                 isRecording ? "border-red-500/50 bg-red-500/5 animate-pulse" :
                 "border-border"
               }`}
             >
               <div className="flex items-center gap-4">
-                {/* Order number */}
+                {/* Status Indicator */}
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black shrink-0
-                  ${recordedUrl ? "bg-green-500 text-white" : "bg-card border border-border text-foreground/50"}`}>
-                  {recordedUrl ? <Check className="w-4 h-4" /> : sentence.order}
+                  ${status === "ACCEPTED" ? "bg-green-500 text-white" :
+                    status === "REJECTED" || status === "NEED_RE_RECORD" ? "bg-red-500 text-white" :
+                    recordedUrl ? "bg-blue-500 text-white" : "bg-card border border-border text-foreground/50"}`}>
+                  {status === "ACCEPTED" ? <Check className="w-4 h-4" /> :
+                   status === "REJECTED" || status === "NEED_RE_RECORD" ? <ShieldAlert className="w-4 h-4" /> :
+                   recordedUrl ? <Check className="w-4 h-4" /> : sentence.order}
                 </div>
 
-                {/* Sentence text */}
-                <p className="flex-1 text-sm font-medium leading-relaxed">{sentence.text}</p>
+                {/* Sentence text & feedback */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium leading-relaxed">{sentence.text}</p>
+                  {status && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded
+                        ${status === "ACCEPTED" ? "bg-green-500/10 text-green-500" :
+                          status === "PENDING" ? "bg-blue-500/10 text-blue-500" :
+                          "bg-red-500/10 text-red-500"}`}>
+                        QC Status: {status}
+                      </span>
+                      {reason && <span className="text-xs text-red-500/70 italic">Reason: {reason}</span>}
+                    </div>
+                  )}
+                </div>
 
                 {/* Controls */}
                 <div className="flex items-center gap-2 shrink-0">

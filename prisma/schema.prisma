@@ -98,6 +98,19 @@ model Project {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
+  // New fields for audio collection specs
+  executionOption      String   @default("INTERNAL") // INTERNAL, EXTERNAL
+  externalUrl          String?
+  audioFormat          String   @default("WAV") // WAV, FLAC, MP3
+  sampleRate           Int      @default(44100) // 8000, 16000, 22050, 44100, 48000
+  bitDepth             Int      @default(16) // 16, 24, 32
+  channels             String   @default("MONO") // MONO, STEREO
+  minDuration          Int?     // in seconds
+  maxDuration          Int?     // in seconds
+  hasScript            Boolean  @default(true)
+  scriptType           String   @default("STATIC") // STATIC, RANDOM, CATEGORY
+  requiredParticipants Int      @default(1)
+
   skills          ProjectSkill[]
   applications    Application[]
   comments        Comment[]
@@ -124,6 +137,18 @@ model VoiceRecording {
   publicId     String          // Cloudinary public_id for deletion
   expiresAt    DateTime        // uploadedAt + 24h
   movedToCloud Boolean         @default(false)
+
+  // Quality Control & Audio Specs fields
+  status          String          @default("PENDING") // PENDING, ACCEPTED, REJECTED, NEED_RE_RECORD
+  rejectionReason String?
+  fileSize        Int             @default(0)
+  duration        Float           @default(0.0)
+  audioFormat     String          @default("WAV")
+  sampleRate      Int             @default(44100)
+  bitDepth        Int             @default(16)
+  channels        String          @default("MONO")
+  reviewedBy      String?
+
   sentence     ProjectSentence @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
   user         User            @relation(fields: [userId], references: [id])
   createdAt    DateTime        @default(now())
@@ -234,4 +259,14 @@ model LearningResource {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  username    String?
+  action      String
+  details     String
+  ipAddress   String?
+  createdAt   DateTime @default(now())
 }

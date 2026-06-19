@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect, notFound } from "next/navigation"
-import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, DollarSign } from "lucide-react"
+import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, DollarSign, Globe, ArrowRight } from "lucide-react"
 import { applyToProject } from "@/app/actions/projects"
 import { CommentsSection } from "@/components/comments-section"
 import { VoiceRecorder } from "@/components/voice-recorder"
@@ -220,16 +220,55 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           )}
         </div>
 
-        {/* Voice Recording Section — only for approved users when sentences exist */}
-        {isApproved && sentences.length > 0 && (
-          <div className="mb-6">
-            <VoiceRecorder projectId={id} sentences={sentences.map(s => ({
-              id: s.id,
-              text: s.text,
-              order: s.order,
-              recordings: s.recordings.map(r => ({ fileUrl: r.fileUrl, expiresAt: r.expiresAt }))
-            }))} />
-          </div>
+        {/* Execution Options: Option A (Internal) vs Option B (External) */}
+        {isApproved && (
+          project.executionOption === "EXTERNAL" ? (
+            <div className="glass p-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 mb-8">
+              <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-yellow-500" /> External Platform Task
+              </h3>
+              <p className="text-sm text-foreground/75 mb-4">
+                This project requires completing tasks on an external platform. Please click the button below to redirect.
+              </p>
+              {project.externalUrl ? (
+                <a
+                  href={project.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-yellow-500/10"
+                >
+                  Go to External Platform <ArrowRight className="w-4 h-4" />
+                </a>
+              ) : (
+                <p className="text-xs text-red-500">External URL is not set by admin.</p>
+              )}
+            </div>
+          ) : (
+            sentences.length > 0 && (
+              <div className="mb-6">
+                <VoiceRecorder
+                  projectId={id}
+                  audioFormat={project.audioFormat}
+                  sampleRate={project.sampleRate}
+                  bitDepth={project.bitDepth}
+                  channels={project.channels}
+                  minDuration={project.minDuration}
+                  maxDuration={project.maxDuration}
+                  sentences={sentences.map(s => ({
+                    id: s.id,
+                    text: s.text,
+                    order: s.order,
+                    recordings: s.recordings.map(r => ({
+                      fileUrl: r.fileUrl,
+                      expiresAt: r.expiresAt,
+                      status: r.status,
+                      rejectionReason: r.rejectionReason
+                    }))
+                  }))}
+                />
+              </div>
+            )
+          )
         )}
 
         {/* Comments Section */}

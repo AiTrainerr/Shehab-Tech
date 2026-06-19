@@ -137,6 +137,102 @@ export default function CreateProjectPage() {
             ))}
           </div>
 
+          {/* Execution Option & Audio Specs Section */}
+          <div className="space-y-4 border-b border-border pb-8">
+            <h3 className="text-lg font-bold text-foreground">Project Execution & Audio Specifications</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Execution Method</label>
+                <select name="executionOption" defaultValue="INTERNAL" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="INTERNAL">Option A: Recording Inside Platform</option>
+                  <option value="EXTERNAL">Option B: External Platform Redirect</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">External URL (For Option B)</label>
+                <input name="externalUrl" type="url" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="https://example.com/external-task" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Audio Format</label>
+                <select name="audioFormat" defaultValue="WAV" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="WAV">WAV (Lossless)</option>
+                  <option value="FLAC">FLAC</option>
+                  <option value="MP3">MP3</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Sample Rate</label>
+                <select name="sampleRate" defaultValue="44100" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="8000">8000 Hz</option>
+                  <option value="16000">16000 Hz</option>
+                  <option value="22050">22050 Hz</option>
+                  <option value="44100">44100 Hz</option>
+                  <option value="48000">48000 Hz</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Bit Depth</label>
+                <select name="bitDepth" defaultValue="16" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="16">16-bit</option>
+                  <option value="24">24-bit</option>
+                  <option value="32">32-bit</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Channels</label>
+                <select name="channels" defaultValue="MONO" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="MONO">Mono (1 Channel)</option>
+                  <option value="STEREO">Stereo (2 Channels)</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Minimum Duration (seconds)</label>
+                <input name="minDuration" type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 5" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Maximum Duration (seconds)</label>
+                <input name="maxDuration" type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 60" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Required Participants</label>
+                <input name="requiredParticipants" type="number" min="1" defaultValue="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* Script Management Section */}
+          <div className="space-y-4 border-b border-border pb-8">
+            <h3 className="text-lg font-bold text-foreground">Script Configuration</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Display Script/Texts to Freelancers?</label>
+                <select name="hasScript" defaultValue="true" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Script Type</label>
+                <select name="scriptType" defaultValue="STATIC" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="STATIC">Static script for all participants</option>
+                  <option value="RANDOM">Random script from pool</option>
+                  <option value="CATEGORY">Custom category-based script</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Other Requirements */}
           <div className="space-y-4 border-b border-border pb-8">
             <h3 className="text-lg font-bold text-foreground">Other Requirements</h3>

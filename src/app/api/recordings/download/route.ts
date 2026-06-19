@@ -48,16 +48,16 @@ export async function GET(request: NextRequest) {
     const sentencesText = recorded.map(s => `${s.order}. ${s.text}`).join("\n")
     folder.file("sentences.txt", sentencesText)
 
-    const zipBuffer = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" })
+    const zipBuffer = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" })
 
     const project = await prisma.project.findUnique({ where: { id: projectId }, select: { title: true } })
     const filename = `recordings_${project?.title?.replace(/\s+/g, "_") || projectId}.zip`
 
-    return new NextResponse(zipBuffer, {
+    return new NextResponse(zipBuffer as any, {
       headers: {
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="${filename}"`,
-        "Content-Length": zipBuffer.length.toString()
+        "Content-Length": zipBuffer.byteLength.toString()
       }
     })
   } catch (e) {

@@ -41,6 +41,18 @@ export async function createProjectAction(formData: FormData) {
       }
     }
 
+    const executionOption = formData.get("executionOption") as string || "INTERNAL"
+    const externalUrl = formData.get("externalUrl") as string || null
+    const audioFormat = formData.get("audioFormat") as string || "WAV"
+    const sampleRate = parseInt(formData.get("sampleRate") as string) || 44100
+    const bitDepth = parseInt(formData.get("bitDepth") as string) || 16
+    const channels = formData.get("channels") as string || "MONO"
+    const minDuration = formData.get("minDuration") ? parseInt(formData.get("minDuration") as string) : null
+    const maxDuration = formData.get("maxDuration") ? parseInt(formData.get("maxDuration") as string) : null
+    const hasScript = formData.get("hasScript") === "true"
+    const scriptType = formData.get("scriptType") as string || "STATIC"
+    const requiredParticipants = parseInt(formData.get("requiredParticipants") as string) || 1
+
     const project = await prisma.project.create({
       data: {
         title,
@@ -52,10 +64,24 @@ export async function createProjectAction(formData: FormData) {
         reqAgeMin,
         reqAgeMax,
         autoApprove,
+        executionOption,
+        externalUrl,
+        audioFormat,
+        sampleRate,
+        bitDepth,
+        channels,
+        minDuration,
+        maxDuration,
+        hasScript,
+        scriptType,
+        requiredParticipants,
         languages: { create: languages },
         images: { create: images }
       }
     })
+
+    const { createAuditLog } = await import("@/app/actions/audit")
+    await createAuditLog("CREATE_PROJECT", `Created project "${title}" (${project.id}) with execution option ${executionOption}`)
 
     const { revalidatePath } = await import("next/cache")
     revalidatePath("/admin/projects")
@@ -66,7 +92,7 @@ export async function createProjectAction(formData: FormData) {
     return { success: true, projectId: project.id }
   } catch (error: any) {
     console.error("Create project error:", error)
-    return { success: false, error: "Failed to create project" }
+    return { success: false, error: "Failed to create project: " + error.message }
   }
 }
 

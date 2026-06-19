@@ -61,6 +61,25 @@ export default async function AdminDashboard() {
           ))}
         </div>
 
+        {/* Audio Platform Admin Tools */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <Link href="/admin/qc" className="glass p-6 rounded-2xl border border-border hover:border-primary/50 transition-all flex items-center justify-between group">
+            <div>
+              <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">Quality Control (QC) Panel</h3>
+              <p className="text-sm text-foreground/60 mt-1">Review pending voice recordings, approve, reject, or request re-recordings.</p>
+            </div>
+            <Activity className="w-8 h-8 text-primary group-hover:scale-110 transition-all" />
+          </Link>
+
+          <Link href="/admin/storage" className="glass p-6 rounded-2xl border border-border hover:border-primary/50 transition-all flex items-center justify-between group">
+            <div>
+              <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">Storage & Audit Logs</h3>
+              <p className="text-sm text-foreground/60 mt-1">Monitor remaining storage space, execute retention cleanups, and view audit history.</p>
+            </div>
+            <FileText className="w-8 h-8 text-primary group-hover:scale-110 transition-all" />
+          </Link>
+        </div>
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Recent Verifications */}
           <div className="glass p-6 rounded-2xl border border-border">
