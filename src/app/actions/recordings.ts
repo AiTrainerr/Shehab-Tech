@@ -191,7 +191,7 @@ export async function uploadVoiceRecording(
   }
 }
 
-// ─── QC: Review / Approve / Reject Recording ──────────────────────────────
+// ─── QC: Review / Approve / Reject Recording (single, no notification) ────
 export async function reviewVoiceRecording(
   recordingId: string,
   status: "ACCEPTED" | "REJECTED" | "NEED_RE_RECORD",
@@ -209,40 +209,15 @@ export async function reviewVoiceRecording(
 
     const reviewerName = `${dbUser?.firstName} ${dbUser?.lastName}`
 
-    const updated = await prisma.voiceRecording.update({
+    await prisma.voiceRecording.update({
       where: { id: recordingId },
       data: {
         status,
         rejectionReason: rejectionReason || null,
         reviewedBy: reviewerName
-      },
-      include: {
-        sentence: true,
-        user: true
       }
     })
 
-    // Notify the user about the status update
-    await prisma.notification.create({
-      data: {
-        userId: updated.userId,
-        title: `Recording Status Update: ${status}`,
-        content: status === "ACCEPTED"
-          ? `Your recording for sentence "${updated.sentence.text.slice(0, 30)}..." has been accepted.`
-          : `Your recording for sentence "${updated.sentence.text.slice(0, 30)}..." requires attention: ${rejectionReason || "No details provided"}.`,
-        link: `/member/projects/${updated.sentence.projectId}`
-      }
-    })
-
-    // If we mark it as NEED_RE_RECORD or REJECTED, we should update the application status so the user can edit again
-    if (status === "NEED_RE_RECORD" || status === "REJECTED") {
-      await prisma.application.updateMany({
-        where: { projectId: updated.sentence.projectId, userId: updated.userId },
-        data: { status: "REJECTED" } // Using REJECTED as the "Returned for modifications" status
-      })
-    }
-
-    // Log action
     await createAuditLog(
       `QC_REVIEW_${status}`,
       `QC Reviewer ${reviewerName} reviewed recording ${recordingId} as ${status}. Reason: ${rejectionReason || "N/A"}`
@@ -251,6 +226,89 @@ export async function reviewVoiceRecording(
     return { success: true }
   } catch (e: any) {
     console.error("QC Review error:", e)
+    return { success: false, error: e.message }
+  }
+}
+
+// ─── QC: Bulk Save All Decisions + Single Notification ────────────────────
+export async function saveBulkReview(
+  applicationId: string,
+  decisions: { recordingId: string; status: "ACCEPTED" | "NEED_RE_RECORD"; reason?: string }[]
+) {
+  try {
+    const supabase = await createClientServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true, firstName: true, lastName: true }
+    })
+    if (!["ADMIN", "SUPER_ADMIN", "QC_REVIEWER"].includes(dbUser?.role || "")) {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    const reviewerName = `${dbUser?.firstName} ${dbUser?.lastName}`
+
+    // Fetch the application to get userId & projectId
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { project: true }
+    })
+    if (!application) return { success: false, error: "Application not found" }
+
+    // Save all decisions in parallel
+    await Promise.all(
+      decisions.map((d) =>
+        prisma.voiceRecording.update({
+          where: { id: d.recordingId },
+          data: {
+            status: d.status,
+            rejectionReason: d.reason || null,
+            reviewedBy: reviewerName
+          }
+        })
+      )
+    )
+
+    const rejectedCount = decisions.filter(d => d.status === "NEED_RE_RECORD").length
+    const acceptedCount = decisions.filter(d => d.status === "ACCEPTED").length
+    const allAccepted = rejectedCount === 0
+
+    // Update application status
+    if (allAccepted) {
+      await prisma.application.update({
+        where: { id: applicationId },
+        data: { status: "APPROVED" }
+      })
+    } else {
+      await prisma.application.update({
+        where: { id: applicationId },
+        data: { status: "REJECTED" }
+      })
+    }
+
+    // Send a single summary notification to the freelancer
+    await prisma.notification.create({
+      data: {
+        userId: application.userId,
+        title: allAccepted ? "🎉 All Recordings Approved!" : "📋 Review Completed – Action Required",
+        content: allAccepted
+          ? `All your recordings for "${application.project.title}" have been accepted by the reviewer.`
+          : `Reviewer completed the review for "${application.project.title}". ${acceptedCount} accepted, ${rejectedCount} require re-recording. Please check your project.`,
+        link: `/member/projects/${application.projectId}`
+      }
+    })
+
+    await createAuditLog(
+      "QC_BULK_REVIEW",
+      `${reviewerName} completed bulk review for application ${applicationId}: ${acceptedCount} accepted, ${rejectedCount} rejected.`
+    )
+
+    revalidatePath(`/admin/applications/${applicationId}/review`)
+    return { success: true, allAccepted }
+  } catch (e: any) {
+    console.error("Bulk review error:", e)
     return { success: false, error: e.message }
   }
 }
