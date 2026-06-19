@@ -164,34 +164,17 @@ export default function CreateProjectPage() {
                   </div>
                 )}
 
-                {/* Search & Dropdown */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={countrySearch}
-                    onChange={e => { setCountrySearch(e.target.value); setShowDropdown(true) }}
-                    onFocus={() => setShowDropdown(true)}
-                    placeholder="Search and add countries..."
-                    className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                  />
-                  {showDropdown && countrySearch && filteredCountries.length > 0 && (
-                    <div className="absolute z-20 w-full mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden">
-                      <ul className="max-h-48 overflow-y-auto">
-                        {filteredCountries.slice(0, 10).map(country => (
-                          <li key={country}>
-                            <button
-                              type="button"
-                              className="w-full text-left px-4 py-2.5 text-sm font-semibold hover:bg-primary/10 hover:text-primary transition-colors"
-                              onMouseDown={e => { e.preventDefault(); addCountry(country); setShowDropdown(false) }}
-                            >
-                              {country}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
+                {/* Dropdown Select */}
+                <select
+                  value=""
+                  onChange={e => { if (e.target.value) addCountry(e.target.value) }}
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none cursor-pointer"
+                >
+                  <option value="">— Select a country to add —</option>
+                  {COUNTRIES.filter(c => !selectedCountries.includes(c)).map(country => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
               </div>
               
               <div className="space-y-2">

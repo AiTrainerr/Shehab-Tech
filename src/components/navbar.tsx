@@ -5,8 +5,8 @@ import Link from "next/link"
 import { useTheme } from "next-themes"
 import { Moon, Sun, Menu, X, LayoutDashboard, LogOut, User } from "lucide-react"
 import { logoutUser } from "@/app/actions/logout"
-
 import { BadgeCheck } from "lucide-react"
+import { NotificationBell } from "@/components/notification-bell"
 
 export function Navbar({ user }: { user?: any }) {
   const userRole = user?.role
@@ -73,6 +73,11 @@ export function Navbar({ user }: { user?: any }) {
               </div>
             ) : (
               <div className="flex items-center gap-3 ms-2">
+                {/* Notification Bell — members only */}
+                {userRole === "MEMBER" && user?.id && (
+                  <NotificationBell userId={user.id} />
+                )}
+
                 <Link
                   href={userRole === "ADMIN" ? "/admin" : "/member/profile"}
                   className="flex items-center gap-2 p-1 rounded-full transition-all border border-transparent hover:border-primary/50 relative group"
