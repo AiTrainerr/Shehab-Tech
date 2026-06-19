@@ -5,6 +5,7 @@ import { redirect, notFound } from "next/navigation"
 import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, DollarSign } from "lucide-react"
 import { applyToProject } from "@/app/actions/projects"
 import { CommentsSection } from "@/components/comments-section"
+import { VoiceRecorder } from "@/components/voice-recorder"
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -57,6 +58,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const isApproved = existingApplication && ["APPROVED", "ACCEPTED", "WORKING", "PAID"].includes(existingApplication.status)
   const applicantCount = project._count.applications
+
+  // Fetch sentences for voice recording (only if approved)
+  const sentences = isApproved ? await prisma.projectSentence.findMany({
+    where: { projectId: id },
+    orderBy: { order: "asc" },
+    include: { recordings: { where: { userId } } }
+  }) : []
 
   // Parse countries
   let countries: string[] = []
@@ -211,6 +219,18 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
           )}
         </div>
+
+        {/* Voice Recording Section — only for approved users when sentences exist */}
+        {isApproved && sentences.length > 0 && (
+          <div className="mb-6">
+            <VoiceRecorder projectId={id} sentences={sentences.map(s => ({
+              id: s.id,
+              text: s.text,
+              order: s.order,
+              recordings: s.recordings.map(r => ({ fileUrl: r.fileUrl, expiresAt: r.expiresAt }))
+            }))} />
+          </div>
+        )}
 
         {/* Comments Section */}
         <CommentsSection projectId={id} comments={comments} currentUserId={userId} currentUserRole={currentUserRole} />

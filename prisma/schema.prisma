@@ -50,6 +50,7 @@ model User {
   messagesRecv  Message[] @relation("ReceivedMessages")
   portfolios    Portfolio[]
   comments      Comment[]
+  voiceRecordings VoiceRecording[]
 }
 
 model Skill {
@@ -102,6 +103,31 @@ model Project {
   comments        Comment[]
   languages       ProjectLanguage[]
   images          ProjectImage[]
+  sentences       ProjectSentence[]
+}
+
+model ProjectSentence {
+  id          String          @id @default(cuid())
+  projectId   String
+  text        String
+  order       Int
+  project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  recordings  VoiceRecording[]
+  createdAt   DateTime        @default(now())
+}
+
+model VoiceRecording {
+  id           String          @id @default(cuid())
+  sentenceId   String
+  userId       String
+  fileUrl      String          // Cloudinary URL
+  publicId     String          // Cloudinary public_id for deletion
+  expiresAt    DateTime        // uploadedAt + 24h
+  movedToCloud Boolean         @default(false)
+  sentence     ProjectSentence @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id])
+  createdAt    DateTime        @default(now())
+  @@unique([sentenceId, userId])
 }
 
 model ProjectLanguage {
