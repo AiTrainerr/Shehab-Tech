@@ -3,6 +3,32 @@ import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 import JSZip from "jszip"
 
+function getTransformedCloudinaryUrl(url: string, format: string, sampleRate?: number) {
+  let transformedUrl = url
+  
+  // 1. Change extension at the end of the URL to match the target format
+  const targetExt = format.toLowerCase()
+  const lastDotIdx = transformedUrl.lastIndexOf(".")
+  if (lastDotIdx !== -1) {
+    transformedUrl = transformedUrl.substring(0, lastDotIdx) + "." + targetExt
+  }
+  
+  // 2. Insert transformations (sample rate) after '/upload/'
+  if (sampleRate) {
+    const uploadPattern = "/upload/"
+    const uploadIdx = transformedUrl.indexOf(uploadPattern)
+    if (uploadIdx !== -1) {
+      const insertionPoint = uploadIdx + uploadPattern.length
+      transformedUrl = 
+        transformedUrl.substring(0, insertionPoint) + 
+        `ar_${sampleRate}/` + 
+        transformedUrl.substring(insertionPoint)
+    }
+  }
+  
+  return transformedUrl
+}
+
 export async function GET(request: NextRequest) {
   const projectId = request.nextUrl.searchParams.get("projectId")
   if (!projectId) return NextResponse.json({ error: "Missing projectId" }, { status: 400 })
@@ -57,19 +83,6 @@ export async function GET(request: NextRequest) {
     const zip = new JSZip()
     const usedNames = new Set<string>()
 
-    const getExtension = (url: string, defaultFormat: string) => {
-      try {
-        const urlObj = new URL(url)
-        const pathname = urlObj.pathname
-        const lastDot = pathname.lastIndexOf(".")
-        if (lastDot !== -1) {
-          const ext = pathname.substring(lastDot + 1).toLowerCase()
-          if (ext && ext.length <= 4) return ext
-        }
-      } catch {}
-      return defaultFormat.toLowerCase() || "webm"
-    }
-
     const cleanFilename = (text: string) => {
       return text.trim().replace(/[\/\\:\*\?"<>\|]/g, "_").replace(/\s+/g, "_")
     }
@@ -105,10 +118,15 @@ export async function GET(request: NextRequest) {
       recorded.map(async (sentence) => {
         const rec = sentence.recordings[0]
         try {
-          const res = await fetch(rec.fileUrl)
+          const targetFormat = (project.audioFormat || "WAV").toUpperCase()
+          const targetSampleRate = rec.sampleRate || 44100
+          
+          const fetchUrl = getTransformedCloudinaryUrl(rec.fileUrl, targetFormat, targetSampleRate)
+          
+          const res = await fetch(fetchUrl)
           const buffer = await res.arrayBuffer()
           
-          const ext = getExtension(rec.fileUrl, project.audioFormat || "webm")
+          const ext = targetFormat.toLowerCase()
           let innerFilename = ""
           
           if (project.namingRule === "TEXT") {

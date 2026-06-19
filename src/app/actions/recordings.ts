@@ -99,6 +99,32 @@ export async function uploadSentences(
   }
 }
 
+function getTransformedCloudinaryUrl(url: string, format: string, sampleRate?: number) {
+  let transformedUrl = url
+  
+  // 1. Change extension at the end of the URL to match the target format
+  const targetExt = format.toLowerCase()
+  const lastDotIdx = transformedUrl.lastIndexOf(".")
+  if (lastDotIdx !== -1) {
+    transformedUrl = transformedUrl.substring(0, lastDotIdx) + "." + targetExt
+  }
+  
+  // 2. Insert transformations (sample rate) after '/upload/'
+  if (sampleRate) {
+    const uploadPattern = "/upload/"
+    const uploadIdx = transformedUrl.indexOf(uploadPattern)
+    if (uploadIdx !== -1) {
+      const insertionPoint = uploadIdx + uploadPattern.length
+      transformedUrl = 
+        transformedUrl.substring(0, insertionPoint) + 
+        `ar_${sampleRate}/` + 
+        transformedUrl.substring(insertionPoint)
+    }
+  }
+  
+  return transformedUrl
+}
+
 // ─── Freelancer: Upload a single recording ────────────────────────────────
 export async function uploadVoiceRecording(
   sentenceId: string,
@@ -144,6 +170,8 @@ export async function uploadVoiceRecording(
 
     const { url, publicId } = await uploadAudioToCloudinary(buffer, filename, folderName)
 
+    const transformedUrl = getTransformedCloudinaryUrl(url, audioFormat, sampleRate)
+
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h expiration placeholder
 
     // Upsert recording metadata
@@ -152,7 +180,7 @@ export async function uploadVoiceRecording(
       create: {
         sentenceId,
         userId: user.id,
-        fileUrl: url,
+        fileUrl: transformedUrl,
         publicId,
         expiresAt,
         status: "PENDING",
@@ -164,7 +192,7 @@ export async function uploadVoiceRecording(
         channels
       },
       update: {
-        fileUrl: url,
+        fileUrl: transformedUrl,
         publicId,
         expiresAt,
         status: "PENDING",
@@ -174,7 +202,8 @@ export async function uploadVoiceRecording(
         sampleRate,
         bitDepth,
         channels,
-        movedToCloud: false
+        movedToCloud: false,
+        rejectionReason: null
       }
     })
 
@@ -184,7 +213,7 @@ export async function uploadVoiceRecording(
       `Uploaded recording for sentence ${sentenceId}. Format: ${audioFormat}, Sample Rate: ${sampleRate}Hz, Size: ${fileSize} bytes`
     )
 
-    return { success: true, url }
+    return { success: true, url: transformedUrl }
   } catch (e: any) {
     console.error("Upload recording error:", e)
     return { success: false, error: "Failed to upload recording: " + e.message }
@@ -233,7 +262,7 @@ export async function reviewVoiceRecording(
 // ─── QC: Bulk Save All Decisions + Single Notification ────────────────────
 export async function saveBulkReview(
   applicationId: string,
-  decisions: { recordingId: string; status: "ACCEPTED" | "NEED_RE_RECORD"; reason?: string }[]
+  decisions: { recordingId: string; status: "ACCEPTED" | "NEED_RE_RECORD" | "REJECTED"; reason?: string }[]
 ) {
   try {
     const supabase = await createClientServer()
@@ -271,7 +300,7 @@ export async function saveBulkReview(
       )
     )
 
-    const rejectedCount = decisions.filter(d => d.status === "NEED_RE_RECORD").length
+    const rejectedCount = decisions.filter(d => d.status === "NEED_RE_RECORD" || d.status === "REJECTED").length
     const acceptedCount = decisions.filter(d => d.status === "ACCEPTED").length
     const allAccepted = rejectedCount === 0
 
@@ -284,7 +313,7 @@ export async function saveBulkReview(
     } else {
       await prisma.application.update({
         where: { id: applicationId },
-        data: { status: "REJECTED" }
+        data: { status: "WORKING" }
       })
     }
 
@@ -499,7 +528,7 @@ export async function reviewAllRecordings(applicationId: string, action: "APPROV
       })
       await prisma.application.update({
         where: { id: applicationId },
-        data: { status: "REJECTED" } // Means "returned"
+        data: { status: "WORKING" } // Set to WORKING to let the freelancer re-record
       })
       
       await prisma.notification.create({

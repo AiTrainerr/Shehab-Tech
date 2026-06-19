@@ -153,7 +153,7 @@ export function QcReviewPanel({ initialRecordings }: { initialRecordings: Record
                   </button>
 
                   <button
-                    onClick={() => openReasonModal(rec, "REJECTED")}
+                    onClick={() => handleAction(rec.id, "REJECTED", "Rejected directly")}
                     disabled={isLoading}
                     className="p-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-colors disabled:opacity-40"
                     title="Reject Recording"

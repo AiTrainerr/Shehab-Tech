@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign, FolderOpen, Award, ShieldCheck } from "lucide-react"
+import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign, FolderOpen, Award, ShieldCheck, MessageSquare } from "lucide-react"
 
 export function AdminSidebar({ pendingVerifications }: { pendingVerifications: number }) {
   const pathname = usePathname()
@@ -13,6 +13,7 @@ export function AdminSidebar({ pendingVerifications }: { pendingVerifications: n
     { name: "Users", href: "/admin/users", icon: Users },
     { name: "Projects", href: "/admin/projects", icon: FolderOpen },
     { name: "Applications", href: "/admin/applications", icon: FileText },
+    { name: "Comments", href: "/admin/comments", icon: MessageSquare },
   ]
 
   const managementItems = [

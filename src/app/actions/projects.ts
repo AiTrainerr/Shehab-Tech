@@ -55,6 +55,7 @@ export async function createProjectAction(formData: FormData) {
     const requiredParticipants = parseInt(formData.get("requiredParticipants") as string) || 1
     const durationUnit = formData.get("durationUnit") as string || "HOUR"
     const pricingModel = formData.get("pricingModel") as string || "FIXED_PROJECT"
+    const namingRule = formData.get("namingRule") as string || "SEQUENCE"
 
     const project = await prisma.$transaction(async (tx) => {
       const proj = await tx.project.create({
@@ -80,6 +81,7 @@ export async function createProjectAction(formData: FormData) {
           maxDuration,
           hasScript,
           scriptType,
+          namingRule,
           requiredParticipants,
           languages: { create: languages },
           images: { create: images }
@@ -330,6 +332,7 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     const requiredParticipants = parseInt(formData.get("requiredParticipants") as string) || 1
     const hasScript = formData.get("hasScript") === "true"
     const scriptType = formData.get("scriptType") as string || "STATIC"
+    const namingRule = formData.get("namingRule") as string || "SEQUENCE"
 
     // Parse languages
     const langCount = parseInt(formData.get("langCount") as string) || 0
@@ -371,6 +374,7 @@ export async function updateProjectAction(projectId: string, formData: FormData)
           maxDuration,
           hasScript,
           scriptType,
+          namingRule,
           requiredParticipants
         }
       })

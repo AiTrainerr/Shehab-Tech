@@ -163,6 +163,14 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 <input name="requiredParticipants" type="number" min="1" defaultValue={project.requiredParticipants || 1} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
               </div>
 
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">ZIP Internal Recording Naming Rule</label>
+                <select name="namingRule" defaultValue={project.namingRule || "SEQUENCE"} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="SEQUENCE">Sequential Number (1, 2, 3...)</option>
+                  <option value="TEXT">Recorded Sentence Text (sentence_text)</option>
+                </select>
+              </div>
+
               <div className="space-y-2 md:col-span-2">
                 <label className="text-sm font-semibold text-red-500 flex items-center gap-2">Private Data <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-xs">Hidden from public</span></label>
                 <textarea name="privateData" defaultValue={project.privateData || ""} className="w-full h-24 px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all resize-none placeholder:text-red-500/40" />

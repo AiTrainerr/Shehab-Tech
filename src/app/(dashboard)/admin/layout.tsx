@@ -2,6 +2,8 @@ import * as React from "react"
 import { prisma } from "@/lib/prisma"
 import { AdminSidebar } from "@/components/admin-sidebar"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const pendingVerifications = await prisma.user.count({ where: { verificationStatus: "PENDING" } })
 

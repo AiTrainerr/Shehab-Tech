@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Mic, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2, ShieldAlert, ChevronLeft, ChevronRight, UploadCloud, Volume2, Lock } from "lucide-react"
+import { Mic, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2, ShieldAlert, ChevronLeft, ChevronRight, UploadCloud, Volume2, Lock, X } from "lucide-react"
 import { uploadVoiceRecording, submitAllRecordings, generateProjectZipUrl } from "@/app/actions/recordings"
 import { Send } from "lucide-react"
 
@@ -110,13 +110,21 @@ export function VoiceRecorder({
     chunksRef.current = []
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const constraints: MediaStreamConstraints = {
+        audio: {
+          sampleRate: sampleRate,
+          channelCount: channels === "MONO" ? 1 : 2,
+          echoCancellation: false,
+          noiseSuppression: false,
+        }
+      }
+      const stream = await navigator.mediaDevices.getUserMedia(constraints)
       const recorder = new MediaRecorder(stream)
       mediaRecorderRef.current = recorder
 
       // Live volume visualization
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-      const audioCtx = new AudioCtx()
+      const audioCtx = new AudioCtx({ sampleRate: sampleRate })
       const source = audioCtx.createMediaStreamSource(stream)
       const analyser = audioCtx.createAnalyser()
       analyser.fftSize = 256
@@ -188,7 +196,7 @@ export function VoiceRecorder({
     try {
       const arrayBuffer = await localAudioBlob.arrayBuffer()
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-      const audioCtx = new AudioCtx()
+      const audioCtx = new AudioCtx({ sampleRate: sampleRate })
       const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
 
       const durationSec = audioBuffer.duration
@@ -310,7 +318,7 @@ export function VoiceRecorder({
               <p className="text-2xl font-black text-primary">{totalRecorded}<span className="text-foreground/40 text-lg">/{totalSentences}</span></p>
               <p className="text-xs text-foreground/50">Completed</p>
             </div>
-            {totalRecorded > 0 && (
+            {allDone && (
               <button
                 onClick={downloadZip}
                 disabled={downloading}
@@ -361,12 +369,23 @@ export function VoiceRecorder({
           )}
 
           {/* QC Rejection Banner */}
-          {savedRecord && (savedRecord.status === "REJECTED" || savedRecord.status === "NEED_RE_RECORD") && (
+          {savedRecord && savedRecord.status === "REJECTED" && (
             <div className="p-4 bg-red-500/10 border border-red-500/25 rounded-2xl max-w-md mx-auto flex items-center justify-center gap-3 text-red-500">
               <ShieldAlert className="w-5 h-5 shrink-0" />
               <div className="text-left">
-                <p className="font-bold text-sm">QC Re-recording Requested</p>
+                <p className="font-bold text-sm">QC Recording Rejected</p>
                 {savedRecord.reason && <p className="text-xs text-red-500/80">Reason: {savedRecord.reason}</p>}
+              </div>
+            </div>
+          )}
+
+          {/* QC Re-recording Banner */}
+          {savedRecord && savedRecord.status === "NEED_RE_RECORD" && (
+            <div className="p-4 bg-yellow-500/10 border border-yellow-500/25 rounded-2xl max-w-md mx-auto flex items-center justify-center gap-3 text-yellow-600">
+              <RotateCcw className="w-5 h-5 shrink-0 text-yellow-600" />
+              <div className="text-left">
+                <p className="font-bold text-sm">QC Re-recording Requested</p>
+                {savedRecord.reason && <p className="text-xs text-yellow-600/90 font-medium">Feedback: {savedRecord.reason}</p>}
               </div>
             </div>
           )}
@@ -453,21 +472,30 @@ export function VoiceRecorder({
               <div className="space-y-4">
                 <div className={`flex flex-col items-center justify-center gap-2 text-sm font-bold p-4 rounded-xl border ${
                   savedRecord.status === 'ACCEPTED' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                  savedRecord.status === 'NEED_RE_RECORD' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                  savedRecord.status === 'NEED_RE_RECORD' ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' :
+                  savedRecord.status === 'REJECTED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
                   'bg-primary/10 text-primary border-primary/20'
                 }`}>
                   <div className="flex items-center gap-2">
                     {savedRecord.status === 'ACCEPTED' ? <Check className="w-5 h-5" /> : 
                      savedRecord.status === 'NEED_RE_RECORD' ? <RotateCcw className="w-5 h-5" /> : 
+                     savedRecord.status === 'REJECTED' ? <X className="w-5 h-5" /> :
                      <Check className="w-5 h-5" />}
                     {savedRecord.status === 'ACCEPTED' ? 'Sentence Accepted' :
                      savedRecord.status === 'NEED_RE_RECORD' ? 'Re-record Required' :
+                     savedRecord.status === 'REJECTED' ? 'Recording Rejected' :
                      'Saved & Uploaded'}
                   </div>
                   
                   {savedRecord.status === 'NEED_RE_RECORD' && savedRecord.reason && (
-                    <p className="mt-2 text-xs opacity-90 text-center font-normal">
-                      <strong className="block mb-1 text-sm">Reason for rejection:</strong>
+                    <p className="mt-2 text-xs opacity-90 text-center font-normal text-yellow-600">
+                      <strong className="block mb-1 text-sm">Feedback:</strong>
+                      {savedRecord.reason}
+                    </p>
+                  )}
+                  {savedRecord.status === 'REJECTED' && savedRecord.reason && (
+                    <p className="mt-2 text-xs opacity-90 text-center font-normal text-red-500">
+                      <strong className="block mb-1 text-sm">Reason:</strong>
                       {savedRecord.reason}
                     </p>
                   )}
@@ -556,8 +584,10 @@ export function VoiceRecorder({
               bgClass = "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/25"
             } else if (status === "ACCEPTED") {
               bgClass = "bg-green-500/20 text-green-500 border-green-500/30"
-            } else if (status === "REJECTED" || status === "NEED_RE_RECORD") {
+            } else if (status === "REJECTED") {
               bgClass = "bg-red-500/20 text-red-500 border-red-500/30 animate-pulse"
+            } else if (status === "NEED_RE_RECORD") {
+              bgClass = "bg-yellow-500/20 text-yellow-600 border-yellow-500/30"
             } else if (hasRec) {
               bgClass = "bg-blue-500/20 text-blue-500 border-blue-500/30"
             }
@@ -593,11 +623,6 @@ export function VoiceRecorder({
                 const res = await submitAllRecordings(projectId)
                 if (res.success) {
                   setSubmittedAll(true)
-                  // Pre-generate ZIP URL
-                  const zipRes = await generateProjectZipUrl(projectId)
-                  if (zipRes.success && zipRes.url) {
-                    setZipUrl(zipRes.url)
-                  }
                 } else {
                   alert("Failed to notify admin: " + res.error)
                 }
@@ -624,19 +649,8 @@ export function VoiceRecorder({
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                   <button
-                    onClick={async () => {
-                      if (zipUrl) {
-                        window.open(zipUrl, '_blank')
-                      } else {
-                        // Generate if not available yet (e.g., page reloaded)
-                        const zipRes = await generateProjectZipUrl(projectId)
-                        if (zipRes.success && zipRes.url) {
-                          setZipUrl(zipRes.url)
-                          window.open(zipRes.url, '_blank')
-                        } else {
-                          alert("Could not generate ZIP: " + zipRes.error)
-                        }
-                      }
+                    onClick={() => {
+                      window.open(`/api/recordings/download?projectId=${projectId}`, '_blank')
                     }}
                     className="flex items-center justify-center gap-2 px-6 py-3 bg-card border border-border hover:border-primary/50 text-foreground font-bold rounded-xl transition-all"
                   >

@@ -1,13 +1,13 @@
 "use client"
 
 import * as React from "react"
-import { Check, X, Play, Square, Loader2, AlertTriangle, Download, Save, ChevronDown, ChevronUp } from "lucide-react"
+import { Check, X, Play, Square, Loader2, AlertTriangle, Download, Save, ChevronDown, ChevronUp, RotateCcw } from "lucide-react"
 import { saveBulkReview } from "@/app/actions/recordings"
 import { useRouter } from "next/navigation"
 
 type Decision = {
   recordingId: string
-  status: "ACCEPTED" | "NEED_RE_RECORD" | null
+  status: "ACCEPTED" | "NEED_RE_RECORD" | "REJECTED" | null
   reason: string
 }
 
@@ -25,7 +25,7 @@ export function ReviewClient({ application, sentences }: { application: any; sen
       if (rec) {
         map[rec.id] = {
           recordingId: rec.id,
-          status: (rec.status === "ACCEPTED" || rec.status === "NEED_RE_RECORD") ? rec.status : null,
+          status: (rec.status === "ACCEPTED" || rec.status === "NEED_RE_RECORD" || rec.status === "REJECTED") ? rec.status : null,
           reason: rec.rejectionReason || ""
         }
       }
@@ -33,12 +33,12 @@ export function ReviewClient({ application, sentences }: { application: any; sen
     return map
   })
 
-  const setStatus = (recordingId: string, status: "ACCEPTED" | "NEED_RE_RECORD" | null) => {
+  const setStatus = (recordingId: string, status: "ACCEPTED" | "NEED_RE_RECORD" | "REJECTED" | null) => {
     setDecisions(prev => ({
       ...prev,
       [recordingId]: { ...prev[recordingId], recordingId, status }
     }))
-    // Auto-expand reason field when rejecting
+    // Auto-expand reason field when requesting re-recording
     if (status === "NEED_RE_RECORD") setExpandedReason(recordingId)
     else if (expandedReason === recordingId) setExpandedReason(null)
   }
@@ -50,7 +50,7 @@ export function ReviewClient({ application, sentences }: { application: any; sen
     }))
   }
 
-  const handleBatchDecision = (status: "ACCEPTED" | "NEED_RE_RECORD") => {
+  const handleBatchDecision = (status: "ACCEPTED" | "NEED_RE_RECORD" | "REJECTED") => {
     const updated: Record<string, Decision> = { ...decisions }
     sentences.forEach((s) => {
       const rec = s.recordings[0]
@@ -68,14 +68,14 @@ export function ReviewClient({ application, sentences }: { application: any; sen
   }
 
   const handleSave = async () => {
-    const pending = Object.values(decisions).filter(d => d.status !== null) as (Decision & { status: "ACCEPTED" | "NEED_RE_RECORD" })[]
+    const pending = Object.values(decisions).filter(d => d.status !== null) as (Decision & { status: "ACCEPTED" | "NEED_RE_RECORD" | "REJECTED" })[]
 
     if (pending.length === 0) {
-      alert("Please mark at least one recording as Accepted or Needs Re-record before saving.")
+      alert("Please mark at least one recording before saving.")
       return
     }
 
-    // Validate: rejected ones must have a reason
+    // Validate: NEED_RE_RECORD ones must have a reason
     const missingReason = pending.filter(d => d.status === "NEED_RE_RECORD" && !d.reason.trim())
     if (missingReason.length > 0) {
       alert(`Please provide a rejection reason for ${missingReason.length} recording(s) marked as "Needs Re-record".`)
@@ -108,15 +108,21 @@ export function ReviewClient({ application, sentences }: { application: any; sen
         <div>
           <h3 className="font-bold text-lg">Batch Actions</h3>
           <p className="text-sm text-foreground/60">
-            Mark all as accepted or needs re-record at once.
+            Mark all recordings at once.
           </p>
         </div>
-        <div className="flex gap-3 w-full sm:w-auto">
+        <div className="flex gap-3 w-full sm:w-auto flex-wrap">
           <button
-            onClick={() => handleBatchDecision("NEED_RE_RECORD")}
+            onClick={() => handleBatchDecision("REJECTED")}
             className="flex-1 sm:flex-none px-5 py-2.5 bg-red-500/10 text-red-500 font-bold rounded-xl hover:bg-red-500/20 transition-all text-sm"
           >
             ✕ Reject All
+          </button>
+          <button
+            onClick={() => handleBatchDecision("NEED_RE_RECORD")}
+            className="flex-1 sm:flex-none px-5 py-2.5 bg-yellow-500/10 text-yellow-600 font-bold rounded-xl hover:bg-yellow-500/20 transition-all text-sm"
+          >
+            ↺ Re-record All
           </button>
           <button
             onClick={() => handleBatchDecision("ACCEPTED")}
@@ -163,7 +169,8 @@ export function ReviewClient({ application, sentences }: { application: any; sen
 
           const decision = decisions[recording.id]
           const isAccepted = decision?.status === "ACCEPTED"
-          const isRejected = decision?.status === "NEED_RE_RECORD"
+          const isRejected = decision?.status === "REJECTED"
+          const isNeedReRecord = decision?.status === "NEED_RE_RECORD"
           const isExpanded = expandedReason === recording.id || expandedReason === "ALL"
 
           return (
@@ -172,6 +179,7 @@ export function ReviewClient({ application, sentences }: { application: any; sen
               className={`glass p-5 rounded-2xl border transition-all ${
                 isAccepted ? "border-green-500/30 bg-green-500/5" :
                 isRejected ? "border-red-500/30 bg-red-500/5" :
+                isNeedReRecord ? "border-yellow-500/30 bg-yellow-500/5" :
                 "border-border"
               }`}
             >
@@ -180,6 +188,7 @@ export function ReviewClient({ application, sentences }: { application: any; sen
                 <div className={`w-10 h-10 shrink-0 font-black rounded-xl flex items-center justify-center text-sm ${
                   isAccepted ? "bg-green-500/20 text-green-500" :
                   isRejected ? "bg-red-500/20 text-red-500" :
+                  isNeedReRecord ? "bg-yellow-500/20 text-yellow-600" :
                   "bg-primary/10 text-primary"
                 }`}>
                   {s.order}
@@ -202,17 +211,31 @@ export function ReviewClient({ application, sentences }: { application: any; sen
                 {/* Decision Buttons */}
                 <div className="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
                   <button
-                    onClick={() => setStatus(recording.id, isRejected ? null : "NEED_RE_RECORD")}
+                    onClick={() => setStatus(recording.id, isRejected ? null : "REJECTED")}
                     className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
                       isRejected
                         ? "bg-red-500 text-white shadow-lg shadow-red-500/25"
                         : "bg-red-500/10 text-red-500 hover:bg-red-500/20"
                     }`}
-                    title="Needs Re-record"
+                    title="Reject"
                   >
                     <X className="w-4 h-4" />
                     <span className="hidden sm:inline">Reject</span>
                   </button>
+
+                  <button
+                    onClick={() => setStatus(recording.id, isNeedReRecord ? null : "NEED_RE_RECORD")}
+                    className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                      isNeedReRecord
+                        ? "bg-yellow-500 text-white shadow-lg shadow-yellow-500/25"
+                        : "bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20"
+                    }`}
+                    title="Needs Re-record"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span className="hidden sm:inline">Re-record</span>
+                  </button>
+
                   <button
                     onClick={() => setStatus(recording.id, isAccepted ? null : "ACCEPTED")}
                     className={`flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl font-bold text-sm transition-all ${
@@ -226,31 +249,34 @@ export function ReviewClient({ application, sentences }: { application: any; sen
                     <span className="hidden sm:inline">Accept</span>
                   </button>
 
-                  {/* Toggle reason field */}
-                  {isRejected && (
-                    <button
-                      onClick={() => setExpandedReason(isExpanded ? null : recording.id)}
-                      className="p-2.5 bg-card border border-border rounded-xl hover:border-red-500/30 transition-colors"
-                      title="Add/Edit rejection reason"
-                    >
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-foreground/50" /> : <ChevronDown className="w-4 h-4 text-foreground/50" />}
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {/* Rejection Reason Input – shown when rejected & expanded */}
-              {isRejected && isExpanded && (
-                <div className="mt-4 pt-4 border-t border-red-500/20">
-                  <label className="text-xs font-bold text-red-500 mb-1.5 block">
-                    Reason for rejection <span className="text-red-400">*</span>
+              {/* Saved/Previous Comment */}
+              {recording.rejectionReason && (
+                <div className="mt-3 p-3 bg-yellow-500/5 border border-yellow-500/10 rounded-xl text-xs text-foreground/80 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-yellow-600">Saved Comment/Feedback:</span>{" "}
+                    <span className="italic">{recording.rejectionReason}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Rejection Reason Input – shown when re-record or rejected */}
+              {(isNeedReRecord || isRejected) && (
+                <div className={`mt-4 pt-4 border-t ${isRejected ? 'border-red-500/20' : 'border-yellow-500/20'}`}>
+                  <label className={`text-xs font-bold mb-1.5 block ${isRejected ? 'text-red-500' : 'text-yellow-600'}`}>
+                    Feedback / Comment {isNeedReRecord && <span className="text-red-400">*</span>}
                   </label>
                   <input
                     type="text"
                     value={decision?.reason || ""}
                     onChange={(e) => setReason(recording.id, e.target.value)}
-                    placeholder="e.g. Too much background noise, unclear pronunciation..."
-                    className="w-full px-4 py-2.5 bg-background border border-red-500/30 rounded-xl text-sm text-foreground placeholder:text-foreground/40 focus:outline-none focus:border-red-500 transition-colors"
+                    placeholder={isRejected ? "Optional rejection comment..." : "Feedback for re-recording (required)..."}
+                    className={`w-full px-4 py-2.5 bg-background rounded-xl text-sm text-foreground placeholder:text-foreground/40 focus:outline-none border transition-colors ${
+                      isRejected ? 'border-red-500/30 focus:border-red-500' : 'border-yellow-500/30 focus:border-yellow-500'
+                    }`}
                   />
                 </div>
               )}

@@ -223,6 +223,14 @@ export default function CreateProjectPage() {
                 <label className="text-sm font-semibold">Required Participants</label>
                 <input name="requiredParticipants" type="number" min="1" defaultValue="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" />
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">ZIP Internal Recording Naming Rule</label>
+                <select name="namingRule" defaultValue="SEQUENCE" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="SEQUENCE">Sequential Number (1, 2, 3...)</option>
+                  <option value="TEXT">Recorded Sentence Text (sentence_text)</option>
+                </select>
+              </div>
             </div>
           </div>
 

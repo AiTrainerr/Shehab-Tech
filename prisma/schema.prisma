@@ -111,6 +111,7 @@ model Project {
   maxDuration          Int?     // in seconds
   hasScript            Boolean  @default(true)
   scriptType           String   @default("STATIC") // STATIC, RANDOM, CATEGORY
+  namingRule           String   @default("SEQUENCE") // TEXT, SEQUENCE
   requiredParticipants Int      @default(1)
 
   skills          ProjectSkill[]
