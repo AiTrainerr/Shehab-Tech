@@ -94,31 +94,47 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
               </div>
             </div>
 
-            <div className="mt-auto flex gap-2">
-              <Link 
-                href={`/profile/${app.user.id}`} 
-                target="_blank"
-                className="flex-1 px-4 py-2 bg-primary/10 text-primary text-sm font-bold rounded-xl hover:bg-primary/20 transition-colors flex items-center justify-center gap-1">
-                <User className="w-4 h-4" /> Profile
-              </Link>
+            <div className="mt-auto flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Link 
+                  href={`/profile/${app.user.id}`} 
+                  target="_blank"
+                  className="flex-1 px-4 py-2 bg-primary/10 text-primary text-sm font-bold rounded-xl hover:bg-primary/20 transition-colors flex items-center justify-center gap-1">
+                  <User className="w-4 h-4" /> Profile
+                </Link>
+                
+                {app.status === 'PENDING' && (
+                  <>
+                    <button 
+                      onClick={() => handleReject(app.id)}
+                      disabled={loading === app.id}
+                      className="p-2 bg-red-500/10 text-red-500 font-bold rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                      title="Reject">
+                      <X className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => handleApprove(app.id)}
+                      disabled={loading === app.id}
+                      className="p-2 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition-colors disabled:opacity-50"
+                      title="Approve">
+                      <Check className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+              </div>
               
-              {app.status === 'PENDING' && (
-                <>
-                  <button 
-                    onClick={() => handleReject(app.id)}
-                    disabled={loading === app.id}
-                    className="p-2 bg-red-500/10 text-red-500 font-bold rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                    title="Reject">
-                    <X className="w-5 h-5" />
-                  </button>
-                  <button 
-                    onClick={() => handleApprove(app.id)}
-                    disabled={loading === app.id}
-                    className="p-2 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition-colors disabled:opacity-50"
-                    title="Approve">
-                    <Check className="w-5 h-5" />
-                  </button>
-                </>
+              {['UNDER_REVIEW', 'APPROVED', 'REJECTED'].includes(app.status) && (
+                <Link
+                  href={`/admin/applications/${app.id}/review`}
+                  className={`w-full px-4 py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
+                    app.status === 'UNDER_REVIEW' 
+                      ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/20' 
+                      : 'bg-card border border-border hover:border-primary/50'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" /> 
+                  {app.status === 'UNDER_REVIEW' ? 'Review Recordings' : 'View Recordings'}
+                </Link>
               )}
             </div>
           </div>

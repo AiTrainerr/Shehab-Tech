@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import { Mic, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2, ShieldAlert, ChevronLeft, ChevronRight, UploadCloud, Volume2, Lock } from "lucide-react"
-import { uploadVoiceRecording, submitAllRecordings } from "@/app/actions/recordings"
+import { uploadVoiceRecording, submitAllRecordings, generateProjectZipUrl } from "@/app/actions/recordings"
+import { Send } from "lucide-react"
 
 type Sentence = {
   id: string
@@ -13,6 +14,7 @@ type Sentence = {
 
 interface VoiceRecorderProps {
   projectId: string
+  applicationStatus: string
   audioFormat: string
   sampleRate: number
   bitDepth: number
@@ -24,6 +26,7 @@ interface VoiceRecorderProps {
 
 export function VoiceRecorder({
   projectId,
+  applicationStatus,
   audioFormat,
   sampleRate,
   bitDepth,
@@ -43,6 +46,7 @@ export function VoiceRecorder({
   const [uploading, setUploading] = React.useState<string | null>(null)
   const [isSubmittingAll, setIsSubmittingAll] = React.useState(false)
   const [submittedAll, setSubmittedAll] = React.useState(false)
+  const [zipUrl, setZipUrl] = React.useState<string | null>(null)
 
   // Local unsaved recording states
   const [localAudioBlob, setLocalAudioBlob] = React.useState<Blob | null>(null)
@@ -275,8 +279,8 @@ export function VoiceRecorder({
     setDownloading(false)
   }
 
-  // Lock status check
-  const isLocked = savedRecord && (savedRecord.status === "PENDING" || savedRecord.status === "ACCEPTED")
+  // Only lock if the whole application is UNDER_REVIEW or APPROVED, or the specific recording is ACCEPTED
+  const isLocked = applicationStatus === "UNDER_REVIEW" || applicationStatus === "APPROVED" || applicationStatus === "ACCEPTED" || (savedRecord && savedRecord.status === "ACCEPTED")
 
   return (
     <div className="space-y-6">
@@ -447,8 +451,26 @@ export function VoiceRecorder({
             ) : savedRecord ? (
               // ───────── Already Saved & Uploaded Mode ─────────
               <div className="space-y-4">
-                <div className="flex items-center justify-center gap-2 text-green-500 text-sm font-bold">
-                  <Check className="w-5 h-5" /> Saved & Uploaded
+                <div className={`flex flex-col items-center justify-center gap-2 text-sm font-bold p-4 rounded-xl border ${
+                  savedRecord.status === 'ACCEPTED' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                  savedRecord.status === 'NEED_RE_RECORD' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                  'bg-primary/10 text-primary border-primary/20'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {savedRecord.status === 'ACCEPTED' ? <Check className="w-5 h-5" /> : 
+                     savedRecord.status === 'NEED_RE_RECORD' ? <RotateCcw className="w-5 h-5" /> : 
+                     <Check className="w-5 h-5" />}
+                    {savedRecord.status === 'ACCEPTED' ? 'Sentence Accepted' :
+                     savedRecord.status === 'NEED_RE_RECORD' ? 'Re-record Required' :
+                     'Saved & Uploaded'}
+                  </div>
+                  
+                  {savedRecord.status === 'NEED_RE_RECORD' && savedRecord.reason && (
+                    <p className="mt-2 text-xs opacity-90 text-center font-normal">
+                      <strong className="block mb-1 text-sm">Reason for rejection:</strong>
+                      {savedRecord.reason}
+                    </p>
+                  )}
                 </div>
 
                 <button
@@ -464,7 +486,11 @@ export function VoiceRecorder({
 
                 {!isLocked && (
                   <button
-                    onClick={() => startRecording(activeSentence.id)}
+                    onClick={() => {
+                      if (confirm("Are you sure you want to re-record this sentence? Your old recording will be overwritten upon upload.")) {
+                        startRecording(activeSentence.id)
+                      }
+                    }}
                     className="w-full py-3 border border-dashed border-red-500/40 text-red-500 font-bold rounded-xl hover:bg-red-500/5 transition-colors flex items-center justify-center gap-2"
                   >
                     <RotateCcw className="w-4 h-4" /> Re-record
@@ -560,13 +586,18 @@ export function VoiceRecorder({
           <p className="font-bold text-green-500">All sentences recorded! 🎉</p>
           <p className="text-sm text-foreground/60 mt-1">Your recordings are now saved.</p>
           
-          {!submittedAll ? (
+          {!submittedAll && applicationStatus !== "UNDER_REVIEW" && applicationStatus !== "APPROVED" ? (
             <button
               onClick={async () => {
                 setIsSubmittingAll(true)
                 const res = await submitAllRecordings(projectId)
                 if (res.success) {
                   setSubmittedAll(true)
+                  // Pre-generate ZIP URL
+                  const zipRes = await generateProjectZipUrl(projectId)
+                  if (zipRes.success && zipRes.url) {
+                    setZipUrl(zipRes.url)
+                  }
                 } else {
                   alert("Failed to notify admin: " + res.error)
                 }
@@ -579,8 +610,49 @@ export function VoiceRecorder({
               {isSubmittingAll ? "Submitting..." : "Submit to Admin for Review"}
             </button>
           ) : (
-            <div className="mt-6 p-4 bg-green-500/20 rounded-xl text-green-600 font-bold flex items-center justify-center gap-2">
-              <Check className="w-5 h-5" /> Successfully submitted to Admin!
+            <div className="mt-6 flex flex-col gap-4">
+              <div className="p-4 bg-green-500/20 rounded-xl text-green-600 font-bold flex items-center justify-center gap-2">
+                <Check className="w-5 h-5" /> Successfully submitted to Admin!
+              </div>
+
+              <div className="p-6 glass border border-border rounded-xl">
+                <h4 className="font-bold mb-2">Need to send files via WhatsApp?</h4>
+                <p className="text-sm text-foreground/60 mb-4">
+                  Step 1: Download your files as a ZIP.<br/>
+                  Step 2: Send a message to the Admin via WhatsApp and attach the ZIP manually.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={async () => {
+                      if (zipUrl) {
+                        window.open(zipUrl, '_blank')
+                      } else {
+                        // Generate if not available yet (e.g., page reloaded)
+                        const zipRes = await generateProjectZipUrl(projectId)
+                        if (zipRes.success && zipRes.url) {
+                          setZipUrl(zipRes.url)
+                          window.open(zipRes.url, '_blank')
+                        } else {
+                          alert("Could not generate ZIP: " + zipRes.error)
+                        }
+                      }
+                    }}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-card border border-border hover:border-primary/50 text-foreground font-bold rounded-xl transition-all"
+                  >
+                    <Download className="w-4 h-4" /> Download ZIP
+                  </button>
+
+                  <a
+                    href="https://wa.me/?text=Hello!%20I%20have%20finished%20my%20recordings%20for%20the%20project.%20I%20will%20attach%20the%20ZIP%20file%20below."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] text-white font-bold rounded-xl hover:bg-[#20bd5a] transition-all"
+                  >
+                    <Send className="w-4 h-4" /> Share on WhatsApp
+                  </a>
+                </div>
+              </div>
             </div>
           )}
         </div>

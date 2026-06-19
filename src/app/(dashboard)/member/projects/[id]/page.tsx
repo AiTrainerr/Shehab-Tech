@@ -55,7 +55,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     where: { projectId_userId: { projectId: id, userId } }
   })
 
-  const isApproved = existingApplication && ["APPROVED", "ACCEPTED", "WORKING", "PAID"].includes(existingApplication.status)
+  const isApproved = existingApplication && ["APPROVED", "ACCEPTED", "WORKING", "PAID", "UNDER_REVIEW"].includes(existingApplication.status)
   const applicantCount = project._count.applications
 
   // Fetch sentences for voice recording (only if approved)

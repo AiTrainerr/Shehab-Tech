@@ -23,7 +23,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
     where: { projectId_userId: { projectId: id, userId } }
   })
 
-  const isApproved = application && ["APPROVED", "ACCEPTED", "WORKING", "PAID"].includes(application.status)
+  const isApproved = application && ["APPROVED", "ACCEPTED", "WORKING", "PAID", "UNDER_REVIEW"].includes(application.status)
   if (!isApproved) {
     redirect(`/member/projects/${id}`)
   }
@@ -55,6 +55,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
         {sentences.length > 0 ? (
           <VoiceRecorder
             projectId={id}
+            applicationStatus={application.status}
             audioFormat={project.audioFormat}
             sampleRate={project.sampleRate}
             bitDepth={project.bitDepth}

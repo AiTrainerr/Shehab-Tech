@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { createClientServer } from "@/lib/supabase"
-import { uploadAudioToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary"
+import { uploadAudioToCloudinary, deleteFromCloudinary, cloudinary } from "@/lib/cloudinary"
 import { createAuditLog } from "@/app/actions/audit"
 import { revalidatePath } from "next/cache"
 import * as XLSX from "xlsx"
@@ -234,6 +234,14 @@ export async function reviewVoiceRecording(
       }
     })
 
+    // If we mark it as NEED_RE_RECORD or REJECTED, we should update the application status so the user can edit again
+    if (status === "NEED_RE_RECORD" || status === "REJECTED") {
+      await prisma.application.updateMany({
+        where: { projectId: updated.sentence.projectId, userId: updated.userId },
+        data: { status: "REJECTED" } // Using REJECTED as the "Returned for modifications" status
+      })
+    }
+
     // Log action
     await createAuditLog(
       `QC_REVIEW_${status}`,
@@ -342,6 +350,114 @@ export async function submitAllRecordings(projectId: string) {
     return { success: true }
   } catch (e: any) {
     console.error("Submit all recordings error:", e)
+    return { success: false, error: e.message }
+  }
+}
+
+// ─── Freelancer / Admin: Generate ZIP download URL ────────────────────────
+export async function generateProjectZipUrl(projectId: string, targetUserId?: string) {
+  try {
+    const supabase = await createClientServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+
+    const uid = targetUserId || user.id
+    
+    const dbUser = await prisma.user.findUnique({
+      where: { id: uid },
+      select: { firstName: true, lastName: true, age: true, gender: true }
+    })
+    
+    if (!dbUser) return { success: false, error: "User not found" }
+
+    const ageStr = dbUser.age ? dbUser.age.toString() : 'N-A'
+    const genderStr = dbUser.gender ? dbUser.gender : 'N-A'
+    const folderName = `shehab-tech/recordings/${uid}_${dbUser.firstName}_${dbUser.lastName}_${ageStr}_${genderStr}`
+
+    // Note: Cloudinary's generate_archive_url creates a signed URL for a zip.
+    // It requires the API key/secret, so we must do it on the server.
+    const zipUrl = cloudinary.utils.download_zip_url({
+      prefixes: folderName,
+      resource_type: "video" // Audio is stored as video in cloudinary
+    })
+
+    return { success: true, url: zipUrl }
+  } catch (e: any) {
+    console.error("ZIP Generation error:", e)
+    return { success: false, error: e.message }
+  }
+}
+
+
+// ─── Admin: Approve or Reject ALL Recordings ───────────────────────────────
+export async function reviewAllRecordings(applicationId: string, action: "APPROVE_ALL" | "REJECT_ALL", reason?: string) {
+  try {
+    const supabase = await createClientServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") return { success: false, error: "Unauthorized" }
+
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { project: true }
+    })
+    
+    if (!application) return { success: false, error: "Application not found" }
+
+    // Find all recordings by this user for this project
+    const recordings = await prisma.voiceRecording.findMany({
+      where: {
+        userId: application.userId,
+        sentence: { projectId: application.projectId }
+      }
+    })
+
+    if (recordings.length === 0) return { success: false, error: "No recordings found" }
+
+    if (action === "APPROVE_ALL") {
+      await prisma.voiceRecording.updateMany({
+        where: { id: { in: recordings.map(r => r.id) } },
+        data: { status: "ACCEPTED", reviewedBy: user.id }
+      })
+      await prisma.application.update({
+        where: { id: applicationId },
+        data: { status: "APPROVED" }
+      })
+      
+      await prisma.notification.create({
+        data: {
+          userId: application.userId,
+          title: "Project Approved! 🎉",
+          content: `Your recordings for ${application.project.title} have been fully approved.`,
+          link: `/member/projects/${application.projectId}`
+        }
+      })
+    } else {
+      await prisma.voiceRecording.updateMany({
+        where: { id: { in: recordings.map(r => r.id) } },
+        data: { status: "NEED_RE_RECORD", rejectionReason: reason || "Entire batch rejected.", reviewedBy: user.id }
+      })
+      await prisma.application.update({
+        where: { id: applicationId },
+        data: { status: "REJECTED" } // Means "returned"
+      })
+      
+      await prisma.notification.create({
+        data: {
+          userId: application.userId,
+          title: "Recordings Rejected",
+          content: `All recordings for ${application.project.title} need to be re-recorded. Reason: ${reason || "Quality issues."}`,
+          link: `/member/projects/${application.projectId}/record`
+        }
+      })
+    }
+
+    revalidatePath(`/admin/applications/[id]/review`, "page")
+    return { success: true }
+  } catch (e: any) {
+    console.error("Review all error:", e)
     return { success: false, error: e.message }
   }
 }
