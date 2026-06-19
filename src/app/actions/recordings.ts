@@ -109,7 +109,10 @@ function getTransformedCloudinaryUrl(url: string, format: string, sampleRate?: n
     transformedUrl = transformedUrl.substring(0, lastDotIdx) + "." + targetExt
   }
   
-  // 2. Insert transformations (sample rate) after '/upload/'
+  // 2. Remove any existing af_xxx/ or ar_xxx/ transformation right after /upload/
+  transformedUrl = transformedUrl.replace(/\/upload\/(af_\d+|ar_\d+)\//, "/upload/")
+
+  // 3. Insert the new audio frequency transformation if sampleRate is provided
   if (sampleRate) {
     const uploadPattern = "/upload/"
     const uploadIdx = transformedUrl.indexOf(uploadPattern)
@@ -117,7 +120,7 @@ function getTransformedCloudinaryUrl(url: string, format: string, sampleRate?: n
       const insertionPoint = uploadIdx + uploadPattern.length
       transformedUrl = 
         transformedUrl.substring(0, insertionPoint) + 
-        `ar_${sampleRate}/` + 
+        `af_${sampleRate}/` + 
         transformedUrl.substring(insertionPoint)
     }
   }
