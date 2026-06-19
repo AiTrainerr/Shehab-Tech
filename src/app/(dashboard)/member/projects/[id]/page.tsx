@@ -12,6 +12,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const userId = cookieStore.get("userId")?.value
   if (!userId) redirect("/login")
 
+  // Get current user role
+  const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+  const currentUserRole = currentUser?.role || "MEMBER"
+
   // Fetch project with all relations using Prisma ORM
   const project = await prisma.project.findUnique({
     where: { id },
@@ -209,7 +213,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </div>
 
         {/* Comments Section */}
-        <CommentsSection projectId={id} comments={comments} currentUserId={userId} />
+        <CommentsSection projectId={id} comments={comments} currentUserId={userId} currentUserRole={currentUserRole} />
       </div>
     </div>
   )

@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { addComment, deleteComment } from "@/app/actions/comments"
-import { MessageSquare, Reply, Trash2, User, Loader2, X } from "lucide-react"
+import { MessageSquare, Reply, Trash2, User, Loader2, X, ShieldCheck } from "lucide-react"
 
 type CommentData = {
   id: string
@@ -23,15 +23,21 @@ function CommentItem({
   replies, 
   projectId, 
   currentUserId,
+  currentUserRole,
   onReply
 }: { 
   comment: CommentData, 
   replies: CommentData[], 
   projectId: string,
   currentUserId: string,
-  onReply: (parentId: string) => void
+  currentUserRole: string,
+  onReply: (parentId: string, authorName: string) => void
 }) {
   const [isDeleting, setIsDeleting] = React.useState(false)
+
+  const isAdmin = currentUserRole === "ADMIN"
+  const isOwner = comment.author.id === currentUserId
+  const canDelete = isOwner || isAdmin
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this comment?")) return
@@ -53,14 +59,19 @@ function CommentItem({
       </div>
       
       <div className="flex-1 space-y-2">
-        <div className="bg-card border border-border rounded-2xl rounded-tl-none p-4 shadow-sm relative group">
+        <div className={`bg-card border rounded-2xl rounded-tl-none p-4 shadow-sm relative group transition-colors
+          ${isAdmin && !isOwner ? "border-primary/30 bg-primary/[0.02]" : "border-border"}`}
+        >
+          {/* Admin badge on their own comments */}
           <div className="flex items-center justify-between gap-4 mb-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-sm">
                 {comment.author.firstName} {comment.author.lastName}
               </span>
               {comment.author.role === "ADMIN" && (
-                <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider">Admin</span>
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-black uppercase tracking-wider">
+                  <ShieldCheck className="w-3 h-3" /> Admin
+                </span>
               )}
             </div>
             <span className="text-xs text-foreground/50 shrink-0">
@@ -70,19 +81,24 @@ function CommentItem({
           
           <p className="text-sm text-foreground/80 whitespace-pre-wrap">{comment.content}</p>
 
-          <div className="flex items-center gap-4 mt-3">
+          {/* Actions */}
+          <div className="flex items-center gap-3 mt-3">
             <button 
-              onClick={() => onReply(comment.id)}
+              onClick={() => onReply(comment.id, `${comment.author.firstName} ${comment.author.lastName}`)}
               className="text-xs font-bold text-foreground/50 hover:text-primary transition-colors flex items-center gap-1"
             >
               <Reply className="w-3.5 h-3.5" /> Reply
             </button>
             
-            {(comment.author.id === currentUserId) && (
+            {canDelete && (
               <button 
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="text-xs font-bold text-foreground/50 hover:text-red-500 transition-colors flex items-center gap-1 opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                className={`text-xs font-bold transition-colors flex items-center gap-1 disabled:opacity-50
+                  ${isAdmin && !isOwner 
+                    ? "text-red-400 hover:text-red-500" 
+                    : "text-foreground/40 hover:text-red-500 opacity-0 group-hover:opacity-100"
+                  }`}
               >
                 {isDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />} 
                 Delete
@@ -93,14 +109,15 @@ function CommentItem({
 
         {/* Replies */}
         {replies.length > 0 && (
-          <div className="space-y-4 mt-4">
+          <div className="space-y-4 mt-4 ml-4 pl-4 border-l-2 border-border">
             {replies.map(reply => (
               <CommentItem 
                 key={reply.id} 
                 comment={reply} 
-                replies={[]} // Only nesting 1 level deep for UI simplicity
+                replies={[]}
                 projectId={projectId} 
                 currentUserId={currentUserId}
+                currentUserRole={currentUserRole}
                 onReply={onReply}
               />
             ))}
@@ -114,18 +131,28 @@ function CommentItem({
 export function CommentsSection({ 
   projectId, 
   comments, 
-  currentUserId 
+  currentUserId,
+  currentUserRole = "MEMBER"
 }: { 
   projectId: string, 
   comments: CommentData[],
-  currentUserId: string
+  currentUserId: string,
+  currentUserRole?: string
 }) {
   const [content, setContent] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [replyToId, setReplyToId] = React.useState<string | null>(null)
+  const [replyToName, setReplyToName] = React.useState<string>("")
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
   const topLevelComments = comments.filter(c => !c.parentId)
   const getReplies = (parentId: string) => comments.filter(c => c.parentId === parentId)
+
+  const handleReply = (parentId: string, authorName: string) => {
+    setReplyToId(parentId)
+    setReplyToName(authorName)
+    setTimeout(() => textareaRef.current?.focus(), 100)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -138,18 +165,24 @@ export function CommentsSection({
     if (res.success) {
       setContent("")
       setReplyToId(null)
+      setReplyToName("")
     } else {
       alert(res.error || "Failed to post comment")
     }
   }
 
-  const replyUser = replyToId ? comments.find(c => c.id === replyToId)?.author : null
+  const isAdmin = currentUserRole === "ADMIN"
 
   return (
     <div className="space-y-8 mt-12 pt-8 border-t border-border">
       <div className="flex items-center gap-2 mb-6">
         <MessageSquare className="w-5 h-5 text-primary" />
         <h3 className="text-xl font-bold">Discussion ({comments.length})</h3>
+        {isAdmin && (
+          <span className="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs font-bold">
+            <ShieldCheck className="w-3.5 h-3.5" /> Admin Mode — you can delete any comment
+          </span>
+        )}
       </div>
 
       <div className="space-y-6">
@@ -165,25 +198,23 @@ export function CommentsSection({
               replies={getReplies(comment.id)} 
               projectId={projectId}
               currentUserId={currentUserId}
-              onReply={(id) => {
-                setReplyToId(id)
-                document.getElementById('comment-input')?.focus()
-              }}
+              currentUserRole={currentUserRole}
+              onReply={handleReply}
             />
           ))
         )}
       </div>
 
-      {/* Add Comment Form */}
-      <form onSubmit={handleSubmit} className="bg-card border border-border rounded-3xl p-4 sm:p-6 shadow-sm relative">
-        {replyToId && replyUser && (
+      {/* Add Comment / Reply Form */}
+      <form onSubmit={handleSubmit} className="bg-card border border-border rounded-3xl p-4 sm:p-6 shadow-sm">
+        {replyToId && replyToName && (
           <div className="flex items-center justify-between bg-primary/5 text-primary text-sm font-semibold px-4 py-2 rounded-xl mb-4">
             <span className="flex items-center gap-2">
-              <Reply className="w-4 h-4" /> Replying to {replyUser.firstName}
+              <Reply className="w-4 h-4" /> Replying to <strong>{replyToName}</strong>
             </span>
             <button 
               type="button" 
-              onClick={() => setReplyToId(null)}
+              onClick={() => { setReplyToId(null); setReplyToName("") }}
               className="hover:text-foreground transition-colors"
             >
               <X className="w-4 h-4" />
@@ -192,19 +223,28 @@ export function CommentsSection({
         )}
         
         <textarea
-          id="comment-input"
+          ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder={replyToId ? "Write your reply..." : "Ask a question or leave a comment..."}
+          placeholder={
+            isAdmin
+              ? replyToId ? "Write your admin reply..." : "Write an admin comment..."
+              : replyToId ? "Write your reply..." : "Ask a question or leave a comment..."
+          }
           className="w-full h-24 px-4 py-3 rounded-2xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none text-sm"
           disabled={isSubmitting}
         />
         
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-between items-center mt-4">
+          {isAdmin && (
+            <span className="text-xs text-foreground/40 flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Posting as Admin
+            </span>
+          )}
           <button
             type="submit"
             disabled={!content.trim() || isSubmitting}
-            className="px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 disabled:hover:bg-primary flex items-center gap-2"
+            className="ml-auto px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center gap-2"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquare className="w-4 h-4" />}
             {replyToId ? "Post Reply" : "Post Comment"}
