@@ -53,6 +53,8 @@ export async function createProjectAction(formData: FormData) {
     const hasScript = formData.get("hasScript") === "true"
     const scriptType = formData.get("scriptType") as string || "STATIC"
     const requiredParticipants = parseInt(formData.get("requiredParticipants") as string) || 1
+    const durationUnit = formData.get("durationUnit") as string || "HOUR"
+    const pricingModel = formData.get("pricingModel") as string || "FIXED_PROJECT"
 
     const project = await prisma.$transaction(async (tx) => {
       const proj = await tx.project.create({
@@ -63,6 +65,8 @@ export async function createProjectAction(formData: FormData) {
           reqCountry,
           price,
           recordingDuration,
+          durationUnit,
+          pricingModel,
           reqAgeMin,
           reqAgeMax,
           autoApprove,
@@ -306,13 +310,27 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     const reqCountry = formData.get("reqCountry") as string || null
     const price = parseFloat(formData.get("price") as string) || 0
     const recordingDuration = formData.get("recordingDuration") ? parseFloat(formData.get("recordingDuration") as string) : null
+    const durationUnit = formData.get("durationUnit") as string || "HOUR"
+    const pricingModel = formData.get("pricingModel") as string || "FIXED_PROJECT"
     const reqAgeMin = formData.get("reqAgeMin") ? parseInt(formData.get("reqAgeMin") as string) : null
     const reqAgeMax = formData.get("reqAgeMax") ? parseInt(formData.get("reqAgeMax") as string) : null
     const autoApprove = formData.get("autoApprove") === "true"
 
     await prisma.project.update({
       where: { id: projectId },
-      data: { title, description, privateData, reqCountry, price, recordingDuration, reqAgeMin, reqAgeMax, autoApprove }
+      data: {
+        title,
+        description,
+        privateData,
+        reqCountry,
+        price,
+        recordingDuration,
+        durationUnit,
+        pricingModel,
+        reqAgeMin,
+        reqAgeMax,
+        autoApprove
+      }
     })
 
     const { revalidatePath } = await import("next/cache")

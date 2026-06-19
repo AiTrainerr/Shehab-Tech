@@ -88,15 +88,29 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                   <option value="Other">Other</option>
                 </select>
               </div>
-              
+              {/* Duration and unit choice */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Price per Task ($)</label>
-                <input name="price" defaultValue={project.price} type="number" step="0.01" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" required />
+                <label className="text-sm font-semibold">Recording Duration (المدة المطلوبة)</label>
+                <div className="flex gap-2">
+                  <input name="recordingDuration" defaultValue={project.recordingDuration || ""} type="number" step="0.1" min="0.1" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="e.g. 2.5 or 50" />
+                  <select name="durationUnit" defaultValue={project.durationUnit || "HOUR"} className="w-32 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                    <option value="HOUR">Hours (ساعات)</option>
+                    <option value="SENTENCE">Sentences (جمل)</option>
+                  </select>
+                </div>
               </div>
 
+              {/* Price and model choice */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Recording Duration (hours)</label>
-                <input name="recordingDuration" defaultValue={project.recordingDuration || ""} type="number" step="0.5" min="0.5" max="24" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" />
+                <label className="text-sm font-semibold">Price Configuration (سعر المشروع والتسعير)</label>
+                <div className="flex gap-2">
+                  <input name="price" defaultValue={project.price} type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="50.00" required />
+                  <select name="pricingModel" defaultValue={project.pricingModel || "FIXED_PROJECT"} className="w-48 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                    <option value="FIXED_PROJECT">Fixed (تاسك كامل)</option>
+                    <option value="PER_HOUR">Per Hour (لكل ساعة)</option>
+                    <option value="PER_SENTENCE">Per Sentence (لكل جملة)</option>
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-2">

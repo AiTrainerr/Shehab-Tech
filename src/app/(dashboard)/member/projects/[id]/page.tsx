@@ -100,12 +100,19 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </span>
             {project.price && (
               <span className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 text-yellow-500 rounded-lg border border-yellow-500/20 font-bold">
-                <DollarSign className="w-4 h-4" /> ${Number(project.price).toFixed(2)} / Task
+                <DollarSign className="w-4 h-4" /> ${Number(project.price).toFixed(2)} / {
+                  project.pricingModel === "PER_HOUR" ? "Hour (ساعة)" :
+                  project.pricingModel === "PER_SENTENCE" ? "Sentence (جملة)" :
+                  "Task (تاسك كامل)"
+                }
               </span>
             )}
             {project.recordingDuration && (
               <span className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
-                <Clock className="w-4 h-4 text-orange-400" /> {project.recordingDuration}h Recording
+                <Clock className="w-4 h-4 text-orange-400" /> {project.recordingDuration}{
+                  project.durationUnit === "HOUR" ? "h Recording (ساعة تسجيل)" :
+                  " Sentences (جملة تسجيل)"
+                }
               </span>
             )}
             {project.reqAgeMin && project.reqAgeMax && (
