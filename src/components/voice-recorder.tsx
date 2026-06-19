@@ -196,11 +196,10 @@ export function VoiceRecorder({
     try {
       const arrayBuffer = await localAudioBlob.arrayBuffer()
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-      const audioCtx = new AudioCtx({ sampleRate: sampleRate })
+      const audioCtx = new AudioCtx()
       const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
 
       const durationSec = audioBuffer.duration
-      const channelsCount = audioBuffer.numberOfChannels
 
       // Enforce Minimum/Maximum Duration
       if (minDuration !== null && durationSec < minDuration) {
@@ -210,19 +209,31 @@ export function VoiceRecorder({
         throw new Error(`Recording is too long (${durationSec.toFixed(1)}s). Maximum allowed is ${maxDuration}s.`)
       }
 
-      // Channels requirement check
-      if (channels === "MONO" && channelsCount > 1) {
-        throw new Error(`Recording requires Mono audio, but recorded ${channelsCount} channels.`)
-      }
-      if (channels === "STEREO" && channelsCount === 1) {
-        throw new Error(`Recording requires Stereo audio, but recorded ${channelsCount} channels.`)
-      }
+      // Automatically downmix/upmix and resample using OfflineAudioContext
+      const targetChannelsCount = channels === "MONO" ? 1 : 2
+      const OfflineCtx = window.OfflineAudioContext || (window as any).webkitOfflineAudioContext
+      const offlineCtx = new OfflineCtx(
+        targetChannelsCount,
+        Math.floor(durationSec * sampleRate),
+        sampleRate
+      )
+
+      const source = offlineCtx.createBufferSource()
+      source.buffer = audioBuffer
+      source.connect(offlineCtx.destination)
+      source.start()
+
+      const renderedBuffer = await offlineCtx.startRendering()
+
+      // Convert the rendered buffer to a standard WAV Blob matching project requirements
+      const wavArrayBuffer = audioBufferToWav(renderedBuffer, bitDepth)
+      const finalWavBlob = new Blob([wavArrayBuffer], { type: "audio/wav" })
 
       const formData = new FormData()
-      formData.append("audio", localAudioBlob, `recording_${activeSentence.id}.webm`)
-      formData.append("fileSize", localAudioBlob.size.toString())
+      formData.append("audio", finalWavBlob, `recording_${activeSentence.id}.wav`)
+      formData.append("fileSize", finalWavBlob.size.toString())
       formData.append("duration", durationSec.toString())
-      formData.append("audioFormat", audioFormat)
+      formData.append("audioFormat", "WAV")
       formData.append("sampleRate", sampleRate.toString())
       formData.append("bitDepth", bitDepth.toString())
       formData.append("channels", channels)
@@ -673,4 +684,85 @@ export function VoiceRecorder({
       )}
     </div>
   )
+}
+
+function audioBufferToWav(buffer: AudioBuffer, bitDepth: number = 16): ArrayBuffer {
+  const numChannels = buffer.numberOfChannels
+  const sampleRate = buffer.sampleRate
+  const format = 1 // 1 = PCM uncompressed
+  const bytesPerSample = bitDepth === 24 ? 3 : 2
+  const blockAlign = numChannels * bytesPerSample
+  
+  const bufferLength = buffer.length
+  const dataLength = bufferLength * blockAlign
+  const headerLength = 44
+  
+  const wav = new ArrayBuffer(headerLength + dataLength)
+  const view = new DataView(wav)
+  
+  // RIFF identifier
+  writeString(view, 0, "RIFF")
+  // file length minus RIFF identifier length and file description length
+  view.setUint32(4, 36 + dataLength, true)
+  // RIFF type
+  writeString(view, 8, "WAVE")
+  // format chunk identifier
+  writeString(view, 12, "fmt ")
+  // format chunk length
+  view.setUint32(16, 16, true)
+  // sample format (raw)
+  view.setUint16(20, format, true)
+  // channel count
+  view.setUint16(22, numChannels, true)
+  // sample rate
+  view.setUint32(24, sampleRate, true)
+  // byte rate = (sample rate * block align)
+  view.setUint32(28, sampleRate * blockAlign, true)
+  // block align (channel count * bytes per sample)
+  view.setUint16(32, blockAlign, true)
+  // bits per sample
+  view.setUint16(34, bitDepth, true)
+  // data chunk identifier
+  writeString(view, 36, "data")
+  // data chunk length
+  view.setUint32(40, dataLength, true)
+  
+  // Write interleaved PCM samples
+  const offset = 44
+  if (bitDepth === 24) {
+    for (let i = 0; i < bufferLength; i++) {
+      for (let channel = 0; channel < numChannels; channel++) {
+        let sample = buffer.getChannelData(channel)[i]
+        // clamp sample to [-1, 1]
+        sample = Math.max(-1, Math.min(1, sample))
+        // convert to 24-bit integer
+        const sampleVal = sample < 0 ? sample * 0x800000 : sample * 0x7FFFFF
+        const intVal = Math.floor(sampleVal)
+        const index = offset + (i * blockAlign) + (channel * bytesPerSample)
+        view.setUint8(index, intVal & 0xFF)
+        view.setUint8(index + 1, (intVal >> 8) & 0xFF)
+        view.setUint8(index + 2, (intVal >> 16) & 0xFF)
+      }
+    }
+  } else {
+    // 16-bit PCM
+    for (let i = 0; i < bufferLength; i++) {
+      for (let channel = 0; channel < numChannels; channel++) {
+        let sample = buffer.getChannelData(channel)[i]
+        // clamp sample to [-1, 1]
+        sample = Math.max(-1, Math.min(1, sample))
+        // convert to 16-bit integer
+        const sampleVal = sample < 0 ? sample * 0x8000 : sample * 0x7FFF
+        view.setInt16(offset + (i * blockAlign) + (channel * bytesPerSample), Math.floor(sampleVal), true)
+      }
+    }
+  }
+  
+  return wav
+}
+
+function writeString(view: DataView, offset: number, string: string) {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i))
+  }
 }
