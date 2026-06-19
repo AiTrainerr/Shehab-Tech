@@ -47,7 +47,7 @@ function CommentItem({
   }
 
   return (
-    <div className="flex gap-3 sm:gap-4">
+    <div id={`comment-${comment.id}`} className="flex gap-3 sm:gap-4 scroll-mt-24">
       <div className="shrink-0">
         {comment.author.avatarUrl ? (
           <img src={comment.author.avatarUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover border border-border" />

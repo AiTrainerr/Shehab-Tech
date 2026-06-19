@@ -32,7 +32,8 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
   }
 
   const activeProjects = projects.filter(p => p.status === "OPEN" || p.status === "IN_PROGRESS")
-  const pastProjects = projects.filter(p => p.status === "COMPLETED" || p.status === "CANCELLED")
+  const pastProjects = projects.filter(p => p.status === "COMPLETED")
+  const cancelledProjects = projects.filter(p => p.status === "CANCELLED")
 
   const ProjectCard = ({ project }: { project: any }) => (
     <div key={project.id} className="glass p-6 rounded-2xl border border-border">
@@ -102,6 +103,20 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
         ) : (
           <div className="space-y-4 opacity-75 hover:opacity-100 transition-opacity">
             {pastProjects.map(p => <ProjectCard key={p.id} project={p} />)}
+          </div>
+        )}
+      </div>
+
+      {/* Cancelled Projects (Dedicated Section) */}
+      <div className="pt-6 border-t border-red-500/10">
+        <h2 className="text-2xl font-black mb-6 flex items-center gap-2 text-red-500/80">
+          Cancelled Projects <span className="text-sm font-bold bg-red-500/10 text-red-500 px-3 py-1 rounded-full">{cancelledProjects.length}</span>
+        </h2>
+        {cancelledProjects.length === 0 ? (
+          <p className="text-foreground/50 italic p-4 bg-background/50 rounded-xl border border-border">No cancelled projects.</p>
+        ) : (
+          <div className="space-y-4 opacity-60 hover:opacity-100 transition-opacity">
+            {cancelledProjects.map(p => <ProjectCard key={p.id} project={p} />)}
           </div>
         )}
       </div>

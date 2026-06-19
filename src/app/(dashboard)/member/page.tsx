@@ -26,7 +26,10 @@ export default async function MemberDashboard() {
         select: { id: true, title: true, content: true, isRead: true, createdAt: true, link: true }
       },
       applications: {
-        where: { status: { in: ["ACCEPTED", "WORKING", "UNDER_REVIEW"] } },
+        where: {
+          status: { in: ["ACCEPTED", "WORKING", "UNDER_REVIEW"] },
+          project: { status: { not: "CANCELLED" } }
+        },
         include: {
           project: {
             select: { id: true, title: true, price: true, description: true }

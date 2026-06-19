@@ -19,7 +19,7 @@ export default async function MemberProjectsPage({
 
   let projects: any[] = []
   try {
-    const statuses = isPast ? ["COMPLETED", "CANCELLED"] : ["OPEN"]
+    const statuses = isPast ? ["COMPLETED"] : ["OPEN"]
     const projectsData = await prisma.project.findMany({
       where: { status: { in: statuses } },
       orderBy: { createdAt: "desc" },

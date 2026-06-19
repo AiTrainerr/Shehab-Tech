@@ -104,9 +104,9 @@ export default function CreateProjectPage() {
                   <label className="text-sm font-semibold">Level</label>
                   <select name={`proficiency_${i}`} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none appearance-none" required>
                     <option value="">Select Level</option>
-                    <option value="Native">Native (نيتف)</option>
-                    <option value="Near Native">Near Native (نيرتيف)</option>
-                    <option value="Beginner">Beginner (مبتدأ)</option>
+                    <option value="Native">Native</option>
+                    <option value="Near Native">Near Native</option>
+                    <option value="Beginner">Beginner</option>
                   </select>
                 </div>
               </div>
@@ -155,14 +155,14 @@ export default function CreateProjectPage() {
                   onChange={(e) => setExecutionOption(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
                 >
-                  <option value="INTERNAL">Option A: Recording Inside Platform (التسجيل داخل المنصة)</option>
-                  <option value="EXTERNAL">Option B: External Platform Redirect (رابط خارجي)</option>
+                  <option value="INTERNAL">Option A: Recording Inside Platform</option>
+                  <option value="EXTERNAL">Option B: External Platform Redirect</option>
                 </select>
               </div>
 
               {executionOption === "EXTERNAL" ? (
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold">External URL (رابط المنصة الخارجية)</label>
+                  <label className="text-sm font-semibold">External URL</label>
                   <input name="externalUrl" type="url" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="https://example.com/external-task" required />
                 </div>
               ) : (
@@ -228,26 +228,26 @@ export default function CreateProjectPage() {
 
           {/* Script Management Section */}
           <div className="space-y-4 border-b border-border pb-8">
-            <h3 className="text-lg font-bold text-foreground">Script Configuration (إعداد جمل التسجيل)</h3>
+            <h3 className="text-lg font-bold text-foreground">Script Configuration</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Display Script/Texts to Freelancers? (هل يعرض المنصة جمل للتسجيل؟)</label>
+                <label className="text-sm font-semibold">Display Script/Texts to Freelancers?</label>
                 <select
                   name="hasScript"
                   value={hasScript.toString()}
                   onChange={(e) => setHasScript(e.target.value === "true")}
                   className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
                 >
-                  <option value="true">Yes (نعم)</option>
-                  <option value="false">No (لا)</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
                 </select>
               </div>
 
               {hasScript && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold">Script Type (نوع الجمل)</label>
+                    <label className="text-sm font-semibold">Script Type</label>
                     <select name="scriptType" defaultValue="STATIC" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
                       <option value="STATIC">Static script for all participants</option>
                       <option value="RANDOM">Random script from pool</option>
@@ -256,14 +256,14 @@ export default function CreateProjectPage() {
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-semibold">Upload Script Mode (طريقة إدخال الجمل)</label>
+                    <label className="text-sm font-semibold">Upload Script Mode</label>
                     <select
                       value={scriptMode}
                       onChange={(e) => setScriptMode(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
                     >
-                      <option value="file">Upload File (رفع ملف XLSX, CSV, TXT)</option>
-                      <option value="manual">Manual Input (كتابة يدوية)</option>
+                      <option value="file">Upload File (XLSX, CSV, TXT)</option>
+                      <option value="manual">Manual Input</option>
                     </select>
                     {/* Hidden input to pass scriptMode to Server Action */}
                     <input type="hidden" name="scriptMode" value={scriptMode} />
@@ -271,13 +271,13 @@ export default function CreateProjectPage() {
 
                   {scriptMode === "file" ? (
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-semibold">Select Script File (اختر ملف الجمل)</label>
+                      <label className="text-sm font-semibold">Select Script File</label>
                       <input name="scriptFile" type="file" accept=".xlsx,.xls,.csv,.txt" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
                       <p className="text-xs text-foreground/50">Supported formats: Excel (.xlsx, .xls), CSV (.csv), Plain Text (.txt)</p>
                     </div>
                   ) : (
                     <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-semibold">Enter Sentences (اكتب الجمل - جملة في كل سطر)</label>
+                      <label className="text-sm font-semibold">Enter Sentences (one sentence per line)</label>
                       <textarea name="manualScriptText" className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none" placeholder="Sentence 1&#10;Sentence 2&#10;Sentence 3..." required />
                     </div>
                   )}
@@ -328,25 +328,25 @@ export default function CreateProjectPage() {
               
               {/* Duration and unit choice */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Recording Duration (المدة المطلوبة)</label>
+                <label className="text-sm font-semibold">Recording Duration</label>
                 <div className="flex gap-2">
                   <input name="recordingDuration" type="number" step="0.1" min="0.1" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="e.g. 2.5 or 50" />
                   <select name="durationUnit" defaultValue="HOUR" className="w-32 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                    <option value="HOUR">Hours (ساعات)</option>
-                    <option value="SENTENCE">Sentences (جمل)</option>
+                    <option value="HOUR">Hours</option>
+                    <option value="SENTENCE">Sentences</option>
                   </select>
                 </div>
               </div>
 
               {/* Price and model choice */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Price Configuration (سعر المشروع والتسعير)</label>
+                <label className="text-sm font-semibold">Price Configuration</label>
                 <div className="flex gap-2">
                   <input name="price" type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="50.00" required />
                   <select name="pricingModel" defaultValue="FIXED_PROJECT" className="w-48 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                    <option value="FIXED_PROJECT">Fixed (تاسك كامل)</option>
-                    <option value="PER_HOUR">Per Hour (لكل ساعة)</option>
-                    <option value="PER_SENTENCE">Per Sentence (لكل جملة)</option>
+                    <option value="FIXED_PROJECT">Fixed Task</option>
+                    <option value="PER_HOUR">Per Hour</option>
+                    <option value="PER_SENTENCE">Per Sentence</option>
                   </select>
                 </div>
               </div>

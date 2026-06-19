@@ -149,12 +149,12 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Project Status (حالة المشروع)</label>
+                <label className="text-sm font-semibold">Project Status</label>
                 <select name="status" defaultValue={project.status} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="OPEN">Open (نشط ومتاح للتقديم)</option>
-                  <option value="IN_PROGRESS">In Progress (قيد التنفيذ)</option>
-                  <option value="COMPLETED">Completed (مكتمل)</option>
-                  <option value="CANCELLED">Cancelled (ملغي)</option>
+                  <option value="OPEN">Open</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
                 </select>
               </div>
 
@@ -195,9 +195,9 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">Level</label>
                   <select value={lang.proficiency || ""} onChange={e => handleLangChange(idx, "proficiency", e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required>
-                    <option value="Native">Native (نيتف)</option>
-                    <option value="Near Native">Near Native (نيرتيف)</option>
-                    <option value="Beginner">Beginner (مبتدأ)</option>
+                    <option value="Native">Native</option>
+                    <option value="Near Native">Near Native</option>
+                    <option value="Beginner">Beginner</option>
                   </select>
                 </div>
               </div>
@@ -217,14 +217,14 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                   onChange={(e) => setExecutionOption(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
                 >
-                  <option value="INTERNAL">Option A: Recording Inside Platform (التسجيل داخل المنصة)</option>
-                  <option value="EXTERNAL">Option B: External Platform Redirect (رابط خارجي)</option>
+                  <option value="INTERNAL">Option A: Recording Inside Platform</option>
+                  <option value="EXTERNAL">Option B: External Platform Redirect</option>
                 </select>
               </div>
 
               {executionOption === "EXTERNAL" ? (
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold">External URL (رابط المنصة الخارجية)</label>
+                  <label className="text-sm font-semibold">External URL</label>
                   <input name="externalUrl" defaultValue={project.externalUrl || ""} type="url" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
                 </div>
               ) : (
@@ -287,7 +287,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           {/* Script/Sentence Management Section */}
           <div className="space-y-4 border-b border-border pb-8">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-foreground">Script Configuration (إعداد الجمل)</h3>
+              <h3 className="text-lg font-bold text-foreground">Script Configuration</h3>
               <span className="text-xs font-semibold px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center gap-1">
                 <FileText className="w-3 h-3" /> Current: {sentenceCount} sentences
               </span>
@@ -302,7 +302,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                   className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
                 />
                 <div>
-                  <p className="font-bold text-sm text-foreground">Replace project sentences/script? (تحديث وتغيير ملف الجمل)</p>
+                  <p className="font-bold text-sm text-foreground">Replace project sentences/script?</p>
                   <p className="text-xs text-foreground/50">Check this box if you want to upload a new script file or change the manual sentence list.</p>
                 </div>
               </label>
@@ -402,24 +402,24 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Recording Duration (المدة المطلوبة)</label>
+                <label className="text-sm font-semibold">Recording Duration</label>
                 <div className="flex gap-2">
                   <input name="recordingDuration" defaultValue={project.recordingDuration || ""} type="number" step="0.1" min="0.1" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" />
                   <select name="durationUnit" defaultValue={project.durationUnit || "HOUR"} className="w-32 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                    <option value="HOUR">Hours (ساعات)</option>
-                    <option value="SENTENCE">Sentences (جمل)</option>
+                    <option value="HOUR">Hours</option>
+                    <option value="SENTENCE">Sentences</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Price Configuration (سعر المشروع والتسعير)</label>
+                <label className="text-sm font-semibold">Price Configuration</label>
                 <div className="flex gap-2">
                   <input name="price" defaultValue={project.price} type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" required />
                   <select name="pricingModel" defaultValue={project.pricingModel || "FIXED_PROJECT"} className="w-48 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                    <option value="FIXED_PROJECT">Fixed (تاسك كامل)</option>
-                    <option value="PER_HOUR">Per Hour (لكل ساعة)</option>
-                    <option value="PER_SENTENCE">Per Sentence (لكل جملة)</option>
+                    <option value="FIXED_PROJECT">Fixed Task</option>
+                    <option value="PER_HOUR">Per Hour</option>
+                    <option value="PER_SENTENCE">Per Sentence</option>
                   </select>
                 </div>
               </div>

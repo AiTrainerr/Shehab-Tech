@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Mic, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2, ShieldAlert, ChevronLeft, ChevronRight, UploadCloud, Volume2, Lock } from "lucide-react"
-import { uploadVoiceRecording } from "@/app/actions/recordings"
+import { uploadVoiceRecording, submitAllRecordings } from "@/app/actions/recordings"
 
 type Sentence = {
   id: string
@@ -41,6 +41,8 @@ export function VoiceRecorder({
   const [recordingId, setRecordingId] = React.useState<string | null>(null)
   const [playingUrl, setPlayingUrl] = React.useState<string | null>(null)
   const [uploading, setUploading] = React.useState<string | null>(null)
+  const [isSubmittingAll, setIsSubmittingAll] = React.useState(false)
+  const [submittedAll, setSubmittedAll] = React.useState(false)
 
   // Local unsaved recording states
   const [localAudioBlob, setLocalAudioBlob] = React.useState<Blob | null>(null)
@@ -302,7 +304,7 @@ export function VoiceRecorder({
           <div className="flex items-center gap-3">
             <div className="text-right">
               <p className="text-2xl font-black text-primary">{totalRecorded}<span className="text-foreground/40 text-lg">/{totalSentences}</span></p>
-              <p className="text-xs text-foreground/50">Completed (مكتمل)</p>
+              <p className="text-xs text-foreground/50">Completed</p>
             </div>
             {totalRecorded > 0 && (
               <button
@@ -337,7 +339,7 @@ export function VoiceRecorder({
         <div className="space-y-8 mt-4 text-center">
           {/* Large Sentence Text */}
           <div className="py-4">
-            <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest mb-2">Please read the following text / اقرأ النص التالي:</p>
+            <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest mb-2">Please read the following text:</p>
             <h2 className="text-2xl sm:text-3xl font-black text-foreground leading-relaxed whitespace-pre-line">
               "{activeSentence.text}"
             </h2>
@@ -348,7 +350,7 @@ export function VoiceRecorder({
             <div className="p-4 bg-green-500/10 border border-green-500/25 rounded-2xl max-w-md mx-auto flex items-center justify-center gap-3 text-green-500">
               <Lock className="w-5 h-5" />
               <div className="text-left">
-                <p className="font-bold text-sm">Recording Locked (تم حفظ التسجيل وقفله)</p>
+                <p className="font-bold text-sm">Recording Locked</p>
                 <p className="text-xs text-green-500/80">Pending Quality Control approval. Modification is disabled.</p>
               </div>
             </div>
@@ -393,7 +395,7 @@ export function VoiceRecorder({
                   onClick={stopRecording}
                   className="w-full py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
                 >
-                  <Square className="w-4 h-4" /> Stop Recording (إنهاء التسجيل)
+                  <Square className="w-4 h-4" /> Stop Recording
                 </button>
               </div>
             ) : localAudioUrl ? (
@@ -412,7 +414,7 @@ export function VoiceRecorder({
                     {playingUrl === localAudioUrl ? (
                       <><Square className="w-4 h-4 text-primary" /> Stop Playback</>
                     ) : (
-                      <><Play className="w-4 h-4 text-primary" /> Play Recording (سماع)</>
+                      <><Play className="w-4 h-4 text-primary" /> Play Recording</>
                     )}
                   </button>
 
@@ -438,7 +440,7 @@ export function VoiceRecorder({
                   {uploading ? (
                     <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</>
                   ) : (
-                    <><UploadCloud className="w-4.5 h-4.5" /> Save & Submit (الرفع والاعتماد)</>
+                    <><UploadCloud className="w-4.5 h-4.5" /> Save & Submit</>
                   )}
                 </button>
               </div>
@@ -456,7 +458,7 @@ export function VoiceRecorder({
                   {playingUrl === savedRecord.url ? (
                     <><Square className="w-4 h-4 text-primary" /> Stop Playback</>
                   ) : (
-                    <><Play className="w-4 h-4 text-primary" /> Play Uploaded Audio (سماع)</>
+                    <><Play className="w-4 h-4 text-primary" /> Play Uploaded Audio</>
                   )}
                 </button>
 
@@ -465,7 +467,7 @@ export function VoiceRecorder({
                     onClick={() => startRecording(activeSentence.id)}
                     className="w-full py-3 border border-dashed border-red-500/40 text-red-500 font-bold rounded-xl hover:bg-red-500/5 transition-colors flex items-center justify-center gap-2"
                   >
-                    <RotateCcw className="w-4 h-4" /> Re-record (إعادة التسجيل)
+                    <RotateCcw className="w-4 h-4" /> Re-record
                   </button>
                 )}
               </div>
@@ -477,7 +479,7 @@ export function VoiceRecorder({
                   onClick={() => startRecording(activeSentence.id)}
                   className="w-full py-3.5 bg-primary text-primary-foreground font-black rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 hover:-translate-y-0.5 flex items-center justify-center gap-2"
                 >
-                  <Mic className="w-4.5 h-4.5" /> Click to Record (بدء التسجيل)
+                  <Mic className="w-4.5 h-4.5" /> Click to Record
                 </button>
               </div>
             )}
@@ -496,7 +498,7 @@ export function VoiceRecorder({
             disabled={currentIndex === 0}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-card border border-border rounded-xl font-bold text-sm text-foreground/70 hover:bg-primary/10 hover:text-primary transition-colors disabled:opacity-40 disabled:hover:bg-card disabled:hover:text-foreground/70"
           >
-            <ChevronLeft className="w-4 h-4" /> Previous (السابق)
+            <ChevronLeft className="w-4 h-4" /> Previous
           </button>
 
           <button
@@ -509,14 +511,14 @@ export function VoiceRecorder({
             disabled={currentIndex === sentences.length - 1}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-card border border-border rounded-xl font-bold text-sm text-foreground/70 hover:bg-primary/10 hover:text-primary transition-colors disabled:opacity-40 disabled:hover:bg-card disabled:hover:text-foreground/70"
           >
-            Next (التالي) <ChevronRight className="w-4 h-4" />
+            Next <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Grid selector representing all sentences for easy click-to-nav */}
       <div className="glass p-5 rounded-2xl border border-border">
-        <h3 className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-3">All Sentences Map (خارطة الجمل):</h3>
+        <h3 className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-3">All Sentences Map:</h3>
         <div className="flex flex-wrap gap-2">
           {sentences.map((s, idx) => {
             const status = recordedMap[s.id]?.status
@@ -555,8 +557,32 @@ export function VoiceRecorder({
       {allDone && (
         <div className="p-6 bg-green-500/10 border border-green-500/20 rounded-2xl text-center">
           <Check className="w-8 h-8 text-green-500 mx-auto mb-2" />
-          <p className="font-bold text-green-500">All sentences recorded & submitted! 🎉</p>
-          <p className="text-sm text-foreground/60 mt-1">Your recordings are now locked and submitted for QC review.</p>
+          <p className="font-bold text-green-500">All sentences recorded! 🎉</p>
+          <p className="text-sm text-foreground/60 mt-1">Your recordings are now saved.</p>
+          
+          {!submittedAll ? (
+            <button
+              onClick={async () => {
+                setIsSubmittingAll(true)
+                const res = await submitAllRecordings(projectId)
+                if (res.success) {
+                  setSubmittedAll(true)
+                } else {
+                  alert("Failed to notify admin: " + res.error)
+                }
+                setIsSubmittingAll(false)
+              }}
+              disabled={isSubmittingAll}
+              className="mt-6 px-6 py-3 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition-all flex items-center justify-center gap-2 mx-auto shadow-lg shadow-green-500/20 disabled:opacity-50"
+            >
+              {isSubmittingAll ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
+              {isSubmittingAll ? "Submitting..." : "Submit to Admin for Review"}
+            </button>
+          ) : (
+            <div className="mt-6 p-4 bg-green-500/20 rounded-xl text-green-600 font-bold flex items-center justify-center gap-2">
+              <Check className="w-5 h-5" /> Successfully submitted to Admin!
+            </div>
+          )}
         </div>
       )}
     </div>

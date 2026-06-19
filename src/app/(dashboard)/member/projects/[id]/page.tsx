@@ -100,17 +100,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             {project.price && (
               <span className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 text-yellow-500 rounded-lg border border-yellow-500/20 font-bold">
                 <DollarSign className="w-4 h-4" /> ${Number(project.price).toFixed(2)} / {
-                  project.pricingModel === "PER_HOUR" ? "Hour (ساعة)" :
-                  project.pricingModel === "PER_SENTENCE" ? "Sentence (جملة)" :
-                  "Task (تاسك كامل)"
+                  project.pricingModel === "PER_HOUR" ? "Hour" :
+                  project.pricingModel === "PER_SENTENCE" ? "Sentence" :
+                  "Task"
                 }
               </span>
             )}
             {project.recordingDuration && (
               <span className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
                 <Clock className="w-4 h-4 text-orange-400" /> {project.recordingDuration}{
-                  project.durationUnit === "HOUR" ? "h Recording (ساعة تسجيل)" :
-                  " Sentences (جملة تسجيل)"
+                  project.durationUnit === "HOUR" ? "h Recording" :
+                  " Sentences"
                 }
               </span>
             )}
@@ -253,7 +253,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             sentences.length > 0 && (
               <div className="glass p-8 rounded-2xl border border-primary/20 bg-primary/5 mb-8 text-center">
                 <Mic className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
-                <h3 className="text-xl font-bold text-foreground mb-2">Voice Recording Task (البدء في مهمة التسجيل)</h3>
+                <h3 className="text-xl font-bold text-foreground mb-2">Voice Recording Task</h3>
                 <p className="text-sm text-foreground/75 mb-6 max-w-md mx-auto">
                   This project contains {sentences.length} sentences to record. Please ensure you are in a quiet environment before starting.
                 </p>
@@ -261,7 +261,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   href={`/member/projects/${id}/record`}
                   className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 hover:-translate-y-0.5"
                 >
-                  Start Recording (البدء في التسجيل) <ArrowRight className="w-4 h-4" />
+                  Start Recording <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             )

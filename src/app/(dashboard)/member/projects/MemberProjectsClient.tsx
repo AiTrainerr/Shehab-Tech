@@ -125,16 +125,16 @@ export function MemberProjectsClient({ initialProjects, isPast }: { initialProje
                       {project.price && (
                         <span className="text-xs font-bold px-2.5 py-1 bg-yellow-500/10 text-yellow-500 rounded-full flex items-center gap-1">
                           <DollarSign className="w-3 h-3" /> ${Number(project.price).toFixed(2)} / {
-                            project.pricingModel === "PER_HOUR" ? "Hour (ساعة)" :
-                            project.pricingModel === "PER_SENTENCE" ? "Sentence (جملة)" :
-                            "Task (كامل)"
+                            project.pricingModel === "PER_HOUR" ? "Hour" :
+                            project.pricingModel === "PER_SENTENCE" ? "Sentence" :
+                            "Task"
                           }
                         </span>
                       )}
                       {project.recordingDuration && (
                         <span className="text-xs font-semibold px-2.5 py-1 bg-card border border-border text-foreground/75 rounded-full flex items-center gap-1">
                           <Clock className="w-3 h-3 text-orange-400" /> {project.recordingDuration} {
-                            project.durationUnit === "HOUR" ? "Hours (ساعات)" : "Sentences (جمل)"
+                            project.durationUnit === "HOUR" ? "Hours" : "Sentences"
                           }
                         </span>
                       )}

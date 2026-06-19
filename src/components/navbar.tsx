@@ -74,8 +74,8 @@ export function Navbar({ user }: { user?: any }) {
               </>
             ) : (
               <>
-                {/* Notification Bell — always visible for members */}
-                {userRole === "MEMBER" && user?.id && (
+                {/* Notification Bell — always visible for members and admins */}
+                {user?.id && (
                   <NotificationBell userId={user.id} />
                 )}
 

@@ -14,7 +14,7 @@ export async function addComment(projectId: string, content: string, parentId?: 
       return { success: false, error: "Comment cannot be empty" }
     }
 
-    await prisma.comment.create({
+    const newComment = await prisma.comment.create({
       data: {
         content: content.trim(),
         projectId,
@@ -22,6 +22,58 @@ export async function addComment(projectId: string, content: string, parentId?: 
         parentId: parentId || null
       }
     })
+
+    // Trigger Admin and parent author notifications
+    try {
+      const project = await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { title: true }
+      })
+      const commenter = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: { firstName: true, lastName: true }
+      })
+      const commenterName = commenter ? `${commenter.firstName} ${commenter.lastName}` : "Someone"
+
+      const admins = await prisma.user.findMany({
+        where: { role: "ADMIN" },
+        select: { id: true }
+      })
+
+      const parentComment = parentId ? await prisma.comment.findUnique({
+        where: { id: parentId },
+        select: { authorId: true }
+      }) : null
+
+      const notificationsToCreate = admins
+        .filter(admin => admin.id !== user.id)
+        .map(admin => ({
+          userId: admin.id,
+          title: `New Comment on ${project?.title || "Project"}`,
+          content: `${commenterName} commented: "${content.trim().substring(0, 60)}${content.trim().length > 60 ? '...' : ''}"`,
+          link: `/member/projects/${projectId}#comment-${newComment.id}`
+        }))
+
+      if (parentComment && parentComment.authorId !== user.id) {
+        const isAlreadyNotified = admins.some(admin => admin.id === parentComment.authorId)
+        if (!isAlreadyNotified) {
+          notificationsToCreate.push({
+            userId: parentComment.authorId,
+            title: `New Reply to your comment`,
+            content: `${commenterName} replied: "${content.trim().substring(0, 60)}${content.trim().length > 60 ? '...' : ''}"`,
+            link: `/member/projects/${projectId}#comment-${newComment.id}`
+          })
+        }
+      }
+
+      if (notificationsToCreate.length > 0) {
+        await prisma.notification.createMany({
+          data: notificationsToCreate
+        })
+      }
+    } catch (notifErr) {
+      console.error("Failed to create notifications for comment:", notifErr)
+    }
 
     revalidatePath(`/member/projects/${projectId}`)
     revalidatePath(`/admin/projects/${projectId}`)

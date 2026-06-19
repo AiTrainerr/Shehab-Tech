@@ -120,10 +120,29 @@ export async function uploadVoiceRecording(
     const bitDepth = parseInt(formData.get("bitDepth") as string || "16")
     const channels = formData.get("channels") as string || "MONO"
 
-    const buffer = Buffer.from(await audioFile.arrayBuffer())
-    const filename = `${sentenceId}_${user.id}_${Date.now()}`
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { firstName: true, lastName: true, age: true, gender: true }
+    })
+    
+    const sentence = await prisma.projectSentence.findUnique({
+      where: { id: sentenceId },
+      select: { order: true, projectId: true }
+    })
 
-    const { url, publicId } = await uploadAudioToCloudinary(buffer, filename)
+    if (!dbUser || !sentence) return { success: false, error: "User or Sentence not found" }
+
+    const buffer = Buffer.from(await audioFile.arrayBuffer())
+    
+    // User folder: ID_FirstName_LastName_Age_Gender
+    const ageStr = dbUser.age ? dbUser.age.toString() : 'N-A'
+    const genderStr = dbUser.gender ? dbUser.gender : 'N-A'
+    const folderName = `shehab-tech/recordings/${user.id}_${dbUser.firstName}_${dbUser.lastName}_${ageStr}_${genderStr}`
+    
+    // File name: FirstName_LastName_Sentence_Order
+    const filename = `${dbUser.firstName}_${dbUser.lastName}_Sentence_${sentence.order}`
+
+    const { url, publicId } = await uploadAudioToCloudinary(buffer, filename, folderName)
 
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h expiration placeholder
 
@@ -273,5 +292,56 @@ export async function cleanupExpiredRecordings() {
   } catch (e) {
     console.error("Cleanup error:", e)
     return { success: false }
+  }
+}
+
+// ─── Freelancer: Submit all recordings for a project ──────────────────────────
+export async function submitAllRecordings(projectId: string) {
+  try {
+    const supabase = await createClientServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { firstName: true, lastName: true }
+    })
+    
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { title: true }
+    })
+
+    if (!dbUser || !project) return { success: false, error: "User or Project not found" }
+
+    // Update the application status to "UNDER_REVIEW" if it's currently something else
+    await prisma.application.updateMany({
+      where: { projectId, userId: user.id },
+      data: { status: "UNDER_REVIEW" }
+    })
+
+    // Fetch admins
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMIN" },
+      select: { id: true }
+    })
+
+    const notificationsToCreate = admins.map(admin => ({
+      userId: admin.id,
+      title: `Recordings Submitted for ${project.title}`,
+      content: `${dbUser.firstName} ${dbUser.lastName} has completed recording all sentences for this project. You can now download the files.`,
+      link: `/admin/projects/edit/${projectId}`
+    }))
+
+    if (notificationsToCreate.length > 0) {
+      await prisma.notification.createMany({
+        data: notificationsToCreate
+      })
+    }
+
+    return { success: true }
+  } catch (e: any) {
+    console.error("Submit all recordings error:", e)
+    return { success: false, error: e.message }
   }
 }

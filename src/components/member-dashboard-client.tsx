@@ -50,13 +50,15 @@ export function MemberDashboardClient({ notifications, unreadCount }: Props) {
               </div>
             ) : (
               notifications.map((notif) => (
-                <div
+                <Link
                   key={notif.id}
-                  className={`p-4 border-b border-border hover:bg-background cursor-pointer transition-colors ${!notif.isRead ? "bg-primary/5" : ""}`}
+                  href={notif.link || "/member/notifications"}
+                  onClick={() => setShowNotifs(false)}
+                  className={`block p-4 border-b border-border hover:bg-background cursor-pointer transition-colors ${!notif.isRead ? "bg-primary/5" : ""}`}
                 >
                   <p className="text-sm font-semibold">{notif.title}</p>
                   <p className="text-xs text-foreground/70 mt-1">{notif.content}</p>
-                </div>
+                </Link>
               ))
             )}
           </div>
