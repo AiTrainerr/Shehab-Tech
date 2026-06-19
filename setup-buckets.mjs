@@ -9,7 +9,7 @@ const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY // User act
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 async function setupBuckets() {
-  const buckets = ['avatars', 'portfolio', 'projects']
+  const buckets = ['avatars', 'portfolio', 'projects', 'verification', 'learning']
   
   for (const bucket of buckets) {
     console.log(`Checking bucket: ${bucket}...`)
@@ -19,8 +19,7 @@ async function setupBuckets() {
       console.log(`Creating bucket: ${bucket}...`)
       const { data, error } = await supabase.storage.createBucket(bucket, {
         public: true,
-        allowedMimeTypes: ['image/*'],
-        fileSizeLimit: 5242880 // 5MB
+        fileSizeLimit: 10485760 // 10MB
       })
       if (error) {
         console.error(`Failed to create ${bucket}:`, error.message)
@@ -31,8 +30,7 @@ async function setupBuckets() {
       console.log(`Bucket ${bucket} already exists. Updating to public...`)
       await supabase.storage.updateBucket(bucket, {
         public: true,
-        allowedMimeTypes: ['image/*'],
-        fileSizeLimit: 5242880
+        fileSizeLimit: 10485760
       })
     } else if (getError) {
       console.error(`Error checking ${bucket}:`, getError.message)
