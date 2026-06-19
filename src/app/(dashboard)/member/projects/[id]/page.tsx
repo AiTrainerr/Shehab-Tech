@@ -2,10 +2,9 @@ import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect, notFound } from "next/navigation"
-import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, DollarSign, Globe, ArrowRight } from "lucide-react"
+import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, DollarSign, Globe, ArrowRight, Mic } from "lucide-react"
 import { applyToProject } from "@/app/actions/projects"
 import { CommentsSection } from "@/components/comments-section"
-import { VoiceRecorder } from "@/components/voice-recorder"
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -252,27 +251,18 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
           ) : (
             sentences.length > 0 && (
-              <div className="mb-6">
-                <VoiceRecorder
-                  projectId={id}
-                  audioFormat={project.audioFormat}
-                  sampleRate={project.sampleRate}
-                  bitDepth={project.bitDepth}
-                  channels={project.channels}
-                  minDuration={project.minDuration}
-                  maxDuration={project.maxDuration}
-                  sentences={sentences.map(s => ({
-                    id: s.id,
-                    text: s.text,
-                    order: s.order,
-                    recordings: s.recordings.map(r => ({
-                      fileUrl: r.fileUrl,
-                      expiresAt: r.expiresAt,
-                      status: r.status,
-                      rejectionReason: r.rejectionReason
-                    }))
-                  }))}
-                />
+              <div className="glass p-8 rounded-2xl border border-primary/20 bg-primary/5 mb-8 text-center">
+                <Mic className="w-12 h-12 text-primary mx-auto mb-4 animate-pulse" />
+                <h3 className="text-xl font-bold text-foreground mb-2">Voice Recording Task (البدء في مهمة التسجيل)</h3>
+                <p className="text-sm text-foreground/75 mb-6 max-w-md mx-auto">
+                  This project contains {sentences.length} sentences to record. Please ensure you are in a quiet environment before starting.
+                </p>
+                <Link
+                  href={`/member/projects/${id}/record`}
+                  className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 hover:-translate-y-0.5"
+                >
+                  Start Recording (البدء في التسجيل) <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
             )
           )

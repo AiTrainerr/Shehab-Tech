@@ -21,7 +21,6 @@ export async function uploadAudioToCloudinary(
         resource_type: "video", // Cloudinary uses "video" for audio files
         folder,
         public_id: filename,
-        format: "webm",
       },
       (error, result) => {
         if (error || !result) return reject(error)
