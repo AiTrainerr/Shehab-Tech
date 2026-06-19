@@ -18,6 +18,11 @@ export default function CreateProjectPage() {
   const [countrySearch, setCountrySearch] = React.useState("")
   const [showDropdown, setShowDropdown] = React.useState(false)
 
+  // Interactive UI state options
+  const [executionOption, setExecutionOption] = React.useState("INTERNAL")
+  const [hasScript, setHasScript] = React.useState(true)
+  const [scriptMode, setScriptMode] = React.useState("file")
+
   const filteredCountries = COUNTRIES.filter(c =>
     c.toLowerCase().includes(countrySearch.toLowerCase()) && !selectedCountries.includes(c)
   )
@@ -144,16 +149,28 @@ export default function CreateProjectPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Execution Method</label>
-                <select name="executionOption" defaultValue="INTERNAL" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="INTERNAL">Option A: Recording Inside Platform</option>
-                  <option value="EXTERNAL">Option B: External Platform Redirect</option>
+                <select
+                  name="executionOption"
+                  value={executionOption}
+                  onChange={(e) => setExecutionOption(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                >
+                  <option value="INTERNAL">Option A: Recording Inside Platform (التسجيل داخل المنصة)</option>
+                  <option value="EXTERNAL">Option B: External Platform Redirect (رابط خارجي)</option>
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">External URL (For Option B)</label>
-                <input name="externalUrl" type="url" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="https://example.com/external-task" />
-              </div>
+              {executionOption === "EXTERNAL" ? (
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">External URL (رابط المنصة الخارجية)</label>
+                  <input name="externalUrl" type="url" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="https://example.com/external-task" required />
+                </div>
+              ) : (
+                <div className="space-y-2 opacity-50 select-none">
+                  <label className="text-sm font-semibold">External URL (Disabled for Internal)</label>
+                  <input type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="Disabled" disabled />
+                </div>
+              )}
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold">Audio Format</label>
@@ -211,25 +228,61 @@ export default function CreateProjectPage() {
 
           {/* Script Management Section */}
           <div className="space-y-4 border-b border-border pb-8">
-            <h3 className="text-lg font-bold text-foreground">Script Configuration</h3>
+            <h3 className="text-lg font-bold text-foreground">Script Configuration (إعداد جمل التسجيل)</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Display Script/Texts to Freelancers?</label>
-                <select name="hasScript" defaultValue="true" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
+                <label className="text-sm font-semibold">Display Script/Texts to Freelancers? (هل يعرض المنصة جمل للتسجيل؟)</label>
+                <select
+                  name="hasScript"
+                  value={hasScript.toString()}
+                  onChange={(e) => setHasScript(e.target.value === "true")}
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                >
+                  <option value="true">Yes (نعم)</option>
+                  <option value="false">No (لا)</option>
                 </select>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Script Type</label>
-                <select name="scriptType" defaultValue="STATIC" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="STATIC">Static script for all participants</option>
-                  <option value="RANDOM">Random script from pool</option>
-                  <option value="CATEGORY">Custom category-based script</option>
-                </select>
-              </div>
+              {hasScript && (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Script Type (نوع الجمل)</label>
+                    <select name="scriptType" defaultValue="STATIC" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                      <option value="STATIC">Static script for all participants</option>
+                      <option value="RANDOM">Random script from pool</option>
+                      <option value="CATEGORY">Custom category-based script</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-semibold">Upload Script Mode (طريقة إدخال الجمل)</label>
+                    <select
+                      value={scriptMode}
+                      onChange={(e) => setScriptMode(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                    >
+                      <option value="file">Upload File (رفع ملف XLSX, CSV, TXT)</option>
+                      <option value="manual">Manual Input (كتابة يدوية)</option>
+                    </select>
+                    {/* Hidden input to pass scriptMode to Server Action */}
+                    <input type="hidden" name="scriptMode" value={scriptMode} />
+                  </div>
+
+                  {scriptMode === "file" ? (
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-sm font-semibold">Select Script File (اختر ملف الجمل)</label>
+                      <input name="scriptFile" type="file" accept=".xlsx,.xls,.csv,.txt" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
+                      <p className="text-xs text-foreground/50">Supported formats: Excel (.xlsx, .xls), CSV (.csv), Plain Text (.txt)</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-sm font-semibold">Enter Sentences (اكتب الجمل - جملة في كل سطر)</label>
+                      <textarea name="manualScriptText" className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none" placeholder="Sentence 1&#10;Sentence 2&#10;Sentence 3..." required />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
 

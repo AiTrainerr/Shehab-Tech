@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { uploadToSupabase } from "@/lib/storage"
+import * as XLSX from "xlsx"
 
 export async function createProjectAction(formData: FormData) {
   try {
@@ -19,7 +20,7 @@ export async function createProjectAction(formData: FormData) {
     const langCount = parseInt(formData.get("langCount") as string) || 0
     const imageCount = parseInt(formData.get("imageCount") as string) || 0
 
-    const languages = []
+    const languages: { language: string; dialect: string | null; proficiency: string | null }[] = []
     for (let i = 0; i < langCount; i++) {
       const language = formData.get(`language_${i}`) as string
       if (language) {
@@ -31,7 +32,7 @@ export async function createProjectAction(formData: FormData) {
       }
     }
 
-    const images = []
+    const images: { url: string; caption: string | null }[] = []
     for (let i = 0; i < imageCount; i++) {
       const imageFile = formData.get(`image_${i}`) as File | null
       const caption = formData.get(`caption_${i}`) as string | null
@@ -53,31 +54,93 @@ export async function createProjectAction(formData: FormData) {
     const scriptType = formData.get("scriptType") as string || "STATIC"
     const requiredParticipants = parseInt(formData.get("requiredParticipants") as string) || 1
 
-    const project = await prisma.project.create({
-      data: {
-        title,
-        description,
-        privateData,
-        reqCountry,
-        price,
-        recordingDuration,
-        reqAgeMin,
-        reqAgeMax,
-        autoApprove,
-        executionOption,
-        externalUrl,
-        audioFormat,
-        sampleRate,
-        bitDepth,
-        channels,
-        minDuration,
-        maxDuration,
-        hasScript,
-        scriptType,
-        requiredParticipants,
-        languages: { create: languages },
-        images: { create: images }
+    const project = await prisma.$transaction(async (tx) => {
+      const proj = await tx.project.create({
+        data: {
+          title,
+          description,
+          privateData,
+          reqCountry,
+          price,
+          recordingDuration,
+          reqAgeMin,
+          reqAgeMax,
+          autoApprove,
+          executionOption,
+          externalUrl,
+          audioFormat,
+          sampleRate,
+          bitDepth,
+          channels,
+          minDuration,
+          maxDuration,
+          hasScript,
+          scriptType,
+          requiredParticipants,
+          languages: { create: languages },
+          images: { create: images }
+        }
+      })
+
+      if (hasScript) {
+        let sentences: string[] = []
+        const scriptMode = formData.get("scriptMode") as string // "file" or "manual"
+
+        if (scriptMode === "manual") {
+          const manualScriptText = formData.get("manualScriptText") as string
+          if (manualScriptText && manualScriptText.trim()) {
+            sentences = manualScriptText
+              .split("\n")
+              .map(s => s.trim())
+              .filter(Boolean)
+          }
+        } else {
+          const file = formData.get("scriptFile") as File | null
+          if (file && file.size > 0) {
+            const name = file.name.toLowerCase()
+            const buffer = Buffer.from(await file.arrayBuffer())
+
+            if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
+              const workbook = XLSX.read(buffer, { type: "buffer" })
+              const sheet = workbook.Sheets[workbook.SheetNames[0]]
+              const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+
+              sentences = rows
+                .map((row: any[]) => {
+                  for (const cell of row) {
+                    if (cell !== undefined && cell !== null && String(cell).trim()) {
+                      return String(cell).trim()
+                    }
+                  }
+                  return null
+                })
+                .filter(Boolean) as string[]
+            } else if (name.endsWith(".txt")) {
+              const text = buffer.toString("utf-8")
+              sentences = text
+                .split("\n")
+                .map(s => s.trim())
+                .filter(Boolean)
+            } else {
+              throw new Error("Unsupported script file format. Please upload XLSX, CSV, or TXT.")
+            }
+          }
+        }
+
+        if (sentences.length > 0) {
+          await tx.projectSentence.createMany({
+            data: sentences.map((text, i) => ({
+              projectId: proj.id,
+              text,
+              order: i + 1
+            }))
+          })
+        } else {
+          throw new Error("Script configuration enabled, but no sentences could be parsed or found.")
+        }
       }
+
+      return proj
     })
 
     const { createAuditLog } = await import("@/app/actions/audit")
