@@ -5,25 +5,20 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign, FolderOpen, Award, ShieldCheck, MessageSquare } from "lucide-react"
 
-export function AdminSidebar({ pendingVerifications }: { pendingVerifications: number }) {
+export function AdminSidebar({ 
+  pendingVerifications,
+  userRole,
+  canReviewQC,
+  canApproveApplications
+}: { 
+  pendingVerifications: number
+  userRole?: string
+  canReviewQC?: boolean
+  canApproveApplications?: boolean
+}) {
   const pathname = usePathname()
-  const [role, setRole] = React.useState<string | null>(null)
-  const [canReviewQC, setCanReviewQC] = React.useState<boolean>(false)
-  const [canApproveApplications, setCanApproveApplications] = React.useState<boolean>(false)
 
-  React.useEffect(() => {
-    const cookiesObj = Object.fromEntries(
-      document.cookie.split("; ").map((row) => {
-        const parts = row.split("=")
-        return [parts[0], parts[1]]
-      })
-    )
-    setRole(cookiesObj["userRole"] || null)
-    setCanReviewQC(cookiesObj["canReviewQC"] === "true")
-    setCanApproveApplications(cookiesObj["canApproveApplications"] === "true")
-  }, [])
-
-  const isModerator = role === "MODERATOR"
+  const isModerator = userRole === "MODERATOR"
 
   const showUsers = !isModerator
   const showApplications = !isModerator || canApproveApplications

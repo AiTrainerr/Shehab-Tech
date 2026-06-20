@@ -170,11 +170,15 @@ export function Navbar({ user }: { user?: any }) {
 
                 {isAdminOrMod ? (
                   <>
-                    <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Admin Dashboard</Link>
+                    {userRole !== "MODERATOR" && (
+                      <>
+                        <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Admin Dashboard</Link>
+                        <Link href="/admin/projects" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Projects</Link>
+                      </>
+                    )}
                     {userRole === "MODERATOR" && (
                       <Link href="/member" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Freelancer Dashboard</Link>
                     )}
-                    <Link href="/admin/projects" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Projects</Link>
                     <Link href="/member/profile" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">My Profile</Link>
                   </>
                 ) : (

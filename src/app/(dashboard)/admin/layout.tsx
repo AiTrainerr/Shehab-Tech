@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, isApproved: true }
+    select: { role: true, isApproved: true, canReviewQC: true, canApproveApplications: true }
   })
 
   if (!currentUser || !["ADMIN", "SUPER_ADMIN", "MODERATOR"].includes(currentUser.role)) {
@@ -28,7 +28,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex bg-background min-h-screen">
-      <AdminSidebar pendingVerifications={pendingVerifications} />
+      <AdminSidebar 
+        pendingVerifications={pendingVerifications} 
+        userRole={currentUser.role}
+        canReviewQC={currentUser.canReviewQC}
+        canApproveApplications={currentUser.canApproveApplications}
+      />
       <div className="flex-1 w-full lg:pl-64 overflow-x-hidden">
         {children}
       </div>
