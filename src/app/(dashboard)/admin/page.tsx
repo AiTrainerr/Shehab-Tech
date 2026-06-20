@@ -1,7 +1,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
-import { Users, FileText, Activity, AlertCircle, Plus, BookOpen, Briefcase, DollarSign, MessageSquare } from "lucide-react"
+import { Users, FileText, Activity, AlertCircle, Plus, BookOpen, Briefcase, DollarSign, MessageSquare, Shield } from "lucide-react"
 import { GrantPermissionsForm } from "@/components/grant-permissions-form"
 
 import { cookies } from "next/headers"
@@ -29,6 +29,7 @@ export default async function AdminDashboard() {
   let recentVerifications: any[] = []
   let recentProjects: any[] = []
   let activeProjectsList: { id: string; title: string }[] = []
+  let currentModeratorsList: any[] = []
 
   if (isModerator) {
     const [modProjCount, modUsersCount, modProject] = await Promise.all([
@@ -49,13 +50,18 @@ export default async function AdminDashboard() {
     totalUsers = modUsersCount
     recentProjects = modProject ? [modProject] : []
   } else {
-    const [allUsers, allProjects, allPendingVerifs, allOpenProjects, allActiveProjects] = await Promise.all([
+    const [allUsers, allProjects, allPendingVerifs, allOpenProjects, allActiveProjects, currentModeratorsList] = await Promise.all([
       prisma.user.count(),
       prisma.project.count(),
       prisma.user.count({ where: { verificationStatus: "PENDING" } }),
       prisma.project.count({ where: { status: "OPEN" } }),
       prisma.project.findMany({
         select: { id: true, title: true }
+      }),
+      prisma.user.findMany({
+        where: { role: "MODERATOR" },
+        select: { id: true, firstName: true, lastName: true, email: true, isApproved: true, assignedProjectId: true },
+        orderBy: { updatedAt: "desc" }
       })
     ])
 
@@ -64,6 +70,7 @@ export default async function AdminDashboard() {
     pendingVerifications = allPendingVerifs
     openProjects = allOpenProjects
     activeProjectsList = allActiveProjects
+    // We will pass currentModeratorsList to the UI
 
     recentVerifications = await prisma.user.findMany({
       where: { verificationStatus: "PENDING" },
@@ -152,10 +159,52 @@ export default async function AdminDashboard() {
           )}
         </div>
 
-        {/* Grant Supervisor Permissions Form */}
+        {/* Grant Supervisor Permissions Form & Current Supervisors */}
         {!isModerator && (
-          <div className="mb-8">
+          <div className="grid lg:grid-cols-2 gap-8 mb-8">
             <GrantPermissionsForm projects={activeProjectsList} />
+            
+            {/* Current Supervisors List */}
+            <div className="glass p-6 rounded-2xl border border-border h-full max-h-[500px] overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold">Current Supervisors</h2>
+                <Link href="/admin/users" className="text-sm font-semibold text-primary hover:underline">Manage All</Link>
+              </div>
+              
+              <div className="space-y-4">
+                {currentModeratorsList.length === 0 ? (
+                  <div className="text-center py-8 text-foreground/40">
+                    <Shield className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                    <p className="font-semibold">No supervisors found</p>
+                  </div>
+                ) : (
+                  currentModeratorsList.map((mod) => {
+                    const assignedProject = activeProjectsList.find(p => p.id === mod.assignedProjectId)
+                    return (
+                      <div key={mod.id} className="p-4 bg-background rounded-xl border border-border flex flex-col gap-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-semibold text-sm">{mod.firstName} {mod.lastName}</h4>
+                            <p className="text-xs text-foreground/60">{mod.email}</p>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                            mod.isApproved ? "bg-green-500/10 text-green-500" : "bg-yellow-500/10 text-yellow-500"
+                          }`}>
+                            {mod.isApproved ? "Active" : "Pending"}
+                          </span>
+                        </div>
+                        <div className="mt-2 pt-2 border-t border-border/50 flex justify-between items-center">
+                          <span className="text-xs font-semibold text-foreground/50">Assigned Project:</span>
+                          <span className="text-xs font-bold text-primary max-w-[150px] truncate" title={assignedProject?.title || "None"}>
+                            {assignedProject?.title || "None"}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
           </div>
         )}
 

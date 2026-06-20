@@ -18,6 +18,9 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
   const [searchTerm, setSearchTerm] = React.useState("")
   const [loading, setLoading] = React.useState<string | null>(null)
 
+  const [rejectId, setRejectId] = React.useState<string | null>(null)
+  const [rejectReason, setRejectReason] = React.useState("")
+
   const handleApprove = async (id: string) => {
     if (!confirm("Approve this application?")) return
     setLoading(id)
@@ -27,11 +30,16 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
   }
 
   const handleReject = async (id: string) => {
-    if (!confirm("Reject this application?")) return
+    if (!rejectReason.trim()) {
+      alert("Please provide a reason for rejection.")
+      return
+    }
     setLoading(id)
-    const res = await rejectApplication(id)
+    const res = await rejectApplication(id, rejectReason)
     if (!res.success) alert(res.error)
     setLoading(null)
+    setRejectId(null)
+    setRejectReason("")
   }
 
   const filtered = applications.filter(a => 
@@ -117,7 +125,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                 {(app.status === 'PENDING' || app.status === 'FINAL_REVIEW') && (
                   <>
                     <button 
-                      onClick={() => handleReject(app.id)}
+                      onClick={() => setRejectId(app.id)}
                       disabled={loading === app.id}
                       className="p-2 bg-red-500/10 text-red-500 font-bold rounded-xl hover:bg-red-500/20 transition-colors disabled:opacity-50"
                       title={app.status === 'FINAL_REVIEW' ? "Reject Project Review" : "Reject Application"}>
@@ -157,6 +165,39 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
           </div>
         )}
       </div>
+
+      {rejectId && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card w-full max-w-md rounded-3xl border border-border shadow-2xl p-6">
+            <h3 className="text-xl font-bold mb-2">Reject Application</h3>
+            <p className="text-sm text-foreground/60 mb-6">Please provide a reason for rejecting this application. This will be sent to the user as a notification.</p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Your accent does not match the project requirements."
+              className="w-full bg-background border border-border rounded-xl p-3 min-h-[100px] mb-6 focus:border-red-500 outline-none"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setRejectId(null)
+                  setRejectReason("")
+                }}
+                className="flex-1 px-4 py-2 rounded-xl font-bold bg-background border border-border hover:bg-foreground/5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleReject(rejectId)}
+                disabled={loading === rejectId || !rejectReason.trim()}
+                className="flex-1 px-4 py-2 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {loading === rejectId ? "Rejecting..." : "Confirm Rejection"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

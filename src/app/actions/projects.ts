@@ -268,7 +268,7 @@ export async function approveApplication(applicationId: string) {
   }
 }
 
-export async function rejectApplication(applicationId: string) {
+export async function rejectApplication(applicationId: string, reason?: string) {
   try {
     const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
     const { data: { user } } = await supabase.auth.getUser()
@@ -280,11 +280,15 @@ export async function rejectApplication(applicationId: string) {
       include: { project: true }
     })
     
+    const content = reason 
+      ? `Your application for "${application.project.title}" was not selected. Reason: ${reason}`
+      : `Your application for "${application.project.title}" was not selected.`
+
     await prisma.notification.create({
       data: {
         userId: application.userId,
         title: "Application Status Update",
-        content: `Your application for "${application.project.title}" was not selected.`
+        content
       }
     })
     
