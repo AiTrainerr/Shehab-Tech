@@ -44,14 +44,21 @@ export async function GET(request: NextRequest) {
     // Fetch logged in user to check role
     const loggedInUser = await prisma.user.findUnique({
       where: { id: userIdFromCookie },
-      select: { role: true }
+      select: { role: true, canReviewQC: true }
     })
     if (!loggedInUser) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
     const targetUserId = request.nextUrl.searchParams.get("userId") || userIdFromCookie
 
     // Authorization check
-    if (targetUserId !== userIdFromCookie && loggedInUser.role !== "ADMIN" && loggedInUser.role !== "SUPER_ADMIN") {
+    const isAllowed = 
+      targetUserId === userIdFromCookie || 
+      loggedInUser.role === "ADMIN" || 
+      loggedInUser.role === "SUPER_ADMIN" || 
+      loggedInUser.role === "QC_REVIEWER" || 
+      (loggedInUser.role === "MODERATOR" && loggedInUser.canReviewQC);
+
+    if (!isAllowed) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
     }
 
