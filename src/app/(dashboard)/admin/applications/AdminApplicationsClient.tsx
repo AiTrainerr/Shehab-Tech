@@ -9,7 +9,8 @@ interface Application {
   id: string
   status: string
   createdAt: Date
-  project: { id: string; title: string }
+  recordedCount?: number
+  project: { id: string; title: string; pricingModel: string }
   user: { id: string; firstName: string; lastName: string; email: string; ranking: string; verificationStatus: string }
 }
 
@@ -75,6 +76,11 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
               <p className="text-xs text-foreground/50 flex items-center gap-1 mt-2">
                 <FileText className="w-3 h-3" /> Project ID: {app.project.id.slice(0, 8)}...
               </p>
+              {app.project.pricingModel === "PER_SENTENCE" && app.status !== "PENDING" && (
+                <p className="text-xs font-bold text-primary flex items-center gap-1 mt-1">
+                  <Check className="w-3 h-3" /> Recorded: {app.recordedCount || 0} sentences
+                </p>
+              )}
             </div>
 
             <div className="bg-background rounded-xl p-4 border border-border flex-1 mb-6">

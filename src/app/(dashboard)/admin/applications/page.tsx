@@ -25,14 +25,29 @@ export default async function AdminApplicationsPage() {
     ? { projectId: currentUser.assignedProjectId || "none" }
     : {}
 
-  const applications = await prisma.application.findMany({
+  const applicationsData = await prisma.application.findMany({
     where: whereClause,
     include: {
-      project: { select: { id: true, title: true } },
+      project: { select: { id: true, title: true, pricingModel: true } },
       user: { select: { id: true, firstName: true, lastName: true, email: true, ranking: true, verificationStatus: true } }
     },
     orderBy: { createdAt: "desc" }
   })
+
+  const applications = await Promise.all(
+    applicationsData.map(async (app) => {
+      if (app.project.pricingModel === "PER_SENTENCE") {
+        const recordedCount = await prisma.voiceRecording.count({
+          where: {
+            userId: app.userId,
+            sentence: { projectId: app.projectId }
+          }
+        })
+        return { ...app, recordedCount }
+      }
+      return { ...app, recordedCount: 0 }
+    })
+  )
 
   return (
     <div className="space-y-8">

@@ -232,17 +232,28 @@ export async function approveApplication(applicationId: string) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Not logged in" }
     
+    const currentApp = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: { status: true }
+    })
+
+    if (!currentApp) return { success: false, error: "Application not found" }
+
+    const newStatus = currentApp.status === "FINAL_REVIEW" ? "APPROVED" : "ACCEPTED"
+
     const application = await prisma.application.update({
       where: { id: applicationId },
-      data: { status: "APPROVED" },
+      data: { status: newStatus },
       include: { project: true }
     })
     
     await prisma.notification.create({
       data: {
         userId: application.userId,
-        title: "Application Approved!",
-        content: `Your application for "${application.project.title}" has been approved.`
+        title: newStatus === "APPROVED" ? "Project Approved!" : "Application Accepted!",
+        content: newStatus === "APPROVED" 
+          ? `Your work for "${application.project.title}" has been finally approved. Earnings added to your balance.`
+          : `Your application for "${application.project.title}" has been accepted. You can now start working.`
       }
     })
     
