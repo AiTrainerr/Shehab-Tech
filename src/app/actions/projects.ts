@@ -191,7 +191,7 @@ export async function applyToProject(projectId: string) {
     const project = await prisma.project.findUnique({ where: { id: projectId }, select: { title: true, autoApprove: true } })
     if (!project) return { success: false, error: "Project not found" }
 
-    const status = project.autoApprove ? "APPROVED" : "PENDING"
+    const status = project.autoApprove ? "ACCEPTED" : "PENDING"
 
     await prisma.application.create({
       data: { projectId, userId: user.id, status }
