@@ -6,8 +6,8 @@ export function Footer() {
     <footer className="bg-card border-t border-border mt-auto relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand Column */}
           <div className="space-y-6">
             <Link href="/" className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export function Footer() {
           </div>
         </div>
         
-        <div className="mt-20 pt-10 border-t border-border flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="mt-10 pt-6 border-t border-border flex flex-col md:flex-row items-center justify-between gap-6">
           <p className="text-xs font-bold text-foreground/30 uppercase tracking-widest">
             &copy; {new Date().getFullYear()} SHEHAB TECH GLOBAL INC. ALL RIGHTS RESERVED.
           </p>
