@@ -34,65 +34,93 @@ export default async function AdminApplicationsPage() {
     orderBy: { createdAt: "desc" }
   })
 
-  const applications = await Promise.all(
-    applicationsData.map(async (app) => {
-      const recordings = await prisma.voiceRecording.groupBy({
-        by: ['status'],
-        where: {
-          userId: app.userId,
-          sentence: { projectId: app.projectId }
-        },
-        _count: { _all: true }
-      })
-      
-      let recordedCount = 0;
-      let pendingCount = 0;
-      let reRecordCount = 0;
-      let acceptedCount = 0;
+  if (applicationsData.length === 0) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-black text-foreground">Applications</h1>
+        <AdminApplicationsClient applications={[]} />
+      </div>
+    );
+  }
 
-      recordings.forEach(r => {
-        recordedCount += r._count._all;
-        if (r.status === 'PENDING') pendingCount = r._count._all;
-        if (r.status === 'NEED_RE_RECORD') reRecordCount = r._count._all;
-        if (r.status === 'ACCEPTED') acceptedCount = r._count._all;
-      })
+  const projectIds = Array.from(new Set(applicationsData.map(a => a.projectId)));
+  const userIds = Array.from(new Set(applicationsData.map(a => a.userId)));
 
-      const totalSentences = await prisma.projectSentence.count({
-        where: { projectId: app.projectId }
-      })
-      
-      let reviewCategory = "WORKING";
+  const sentencesCount = await prisma.projectSentence.groupBy({
+    by: ['projectId'],
+    where: { projectId: { in: projectIds } },
+    _count: { _all: true }
+  });
+  
+  const sentencesMap = Object.fromEntries(sentencesCount.map(s => [s.projectId, s._count._all]));
 
-      if (app.status === 'FINAL_REVIEW' || app.status === 'APPROVED' || app.status === 'PAID') {
-        reviewCategory = "COMPLETED";
-      } else if (reRecordCount > 0) {
-        reviewCategory = "NEEDS_FIX";
-      } else if (pendingCount > 0 && recordedCount >= totalSentences) {
-        if (acceptedCount > 0) {
-          reviewCategory = "READY_FIXED";
-        } else {
-          reviewCategory = "READY_FIRST";
-        }
-      } else if (pendingCount === 0 && recordedCount >= totalSentences && acceptedCount === totalSentences) {
-        reviewCategory = "COMPLETED";
+  const recordingsData = await prisma.voiceRecording.findMany({
+    where: {
+      userId: { in: userIds },
+      sentence: { projectId: { in: projectIds } }
+    },
+    select: {
+      userId: true,
+      status: true,
+      sentence: { select: { projectId: true } }
+    }
+  });
+
+  const recordingsMap = new Map();
+  recordingsData.forEach(r => {
+    const key = `${r.userId}_${r.sentence.projectId}`;
+    if (!recordingsMap.has(key)) {
+      recordingsMap.set(key, { recordedCount: 0, pendingCount: 0, reRecordCount: 0, acceptedCount: 0 });
+    }
+    const counts = recordingsMap.get(key);
+    counts.recordedCount++;
+    if (r.status === 'PENDING') counts.pendingCount++;
+    if (r.status === 'NEED_RE_RECORD') counts.reRecordCount++;
+    if (r.status === 'ACCEPTED') counts.acceptedCount++;
+  });
+
+  const applications = applicationsData.map((app) => {
+    const key = `${app.userId}_${app.projectId}`;
+    const counts = recordingsMap.get(key) || { recordedCount: 0, pendingCount: 0, reRecordCount: 0, acceptedCount: 0 };
+    
+    const recordedCount = counts.recordedCount;
+    const pendingCount = counts.pendingCount;
+    const reRecordCount = counts.reRecordCount;
+    const acceptedCount = counts.acceptedCount;
+
+    const totalSentences = sentencesMap[app.projectId] || 0;
+    
+    let reviewCategory = "WORKING";
+
+    if (app.status === 'FINAL_REVIEW' || app.status === 'APPROVED' || app.status === 'PAID') {
+      reviewCategory = "COMPLETED";
+    } else if (reRecordCount > 0) {
+      reviewCategory = "NEEDS_FIX";
+    } else if (pendingCount > 0 && recordedCount >= totalSentences) {
+      if (acceptedCount > 0) {
+        reviewCategory = "READY_FIXED";
       } else {
-        reviewCategory = "WORKING";
+        reviewCategory = "READY_FIRST";
       }
+    } else if (pendingCount === 0 && recordedCount >= totalSentences && acceptedCount === totalSentences && totalSentences > 0) {
+      reviewCategory = "COMPLETED";
+    } else {
+      reviewCategory = "WORKING";
+    }
 
-      const isCompleted = totalSentences > 0 && recordedCount >= totalSentences
+    const isCompleted = totalSentences > 0 && recordedCount >= totalSentences;
 
-      return { 
-        ...app, 
-        recordedCount, 
-        totalSentences, 
-        isCompleted, 
-        reviewCategory,
-        pendingCount,
-        reRecordCount,
-        acceptedCount
-      }
-    })
-  )
+    return { 
+      ...app, 
+      recordedCount, 
+      totalSentences, 
+      isCompleted, 
+      reviewCategory,
+      pendingCount,
+      reRecordCount,
+      acceptedCount
+    }
+  })
 
   // Sort them so they appear in order of priority when viewing "All"
   applications.sort((a, b) => {
