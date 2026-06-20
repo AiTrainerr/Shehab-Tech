@@ -5,7 +5,7 @@ import { AdminUsersClient } from "./AdminUsersClient"
 export const dynamic = 'force-dynamic'
 
 export default async function UsersPage() {
-  const [users, projects] = await Promise.all([
+  const [users, projects, reviewedCounts] = await Promise.all([
     prisma.user.findMany({
       select: {
         id: true,
@@ -24,6 +24,8 @@ export default async function UsersPage() {
         role: true,
         isApproved: true,
         assignedProjectId: true,
+        canReviewQC: true,
+        canApproveApplications: true,
         createdAt: true,
         _count: { select: { applications: true, portfolios: true } }
       },
@@ -31,8 +33,24 @@ export default async function UsersPage() {
     }),
     prisma.project.findMany({
       select: { id: true, title: true }
+    }),
+    prisma.voiceRecording.groupBy({
+      by: ['reviewedBy'],
+      where: { reviewedBy: { not: null } },
+      _count: { _all: true }
     })
   ])
+
+  const reviewedMap = Object.fromEntries(
+    reviewedCounts
+      .filter((item): item is typeof item & { reviewedBy: string } => !!item.reviewedBy)
+      .map(item => [item.reviewedBy, item._count._all])
+  )
+
+  const usersWithCounts = users.map(user => ({
+    ...user,
+    reviewedCount: reviewedMap[user.id] || 0
+  }))
 
   const statusConfig = {
     VERIFIED:  { label: "Verified",  icon: <BadgeCheck className="w-4 h-4 text-white fill-green-500" />, cls: "text-blue-500 bg-blue-500/10 border-blue-500/20" },
@@ -56,7 +74,7 @@ export default async function UsersPage() {
           </div>
         </div>
 
-        <AdminUsersClient initialUsers={users} statusConfig={statusConfig} projects={projects} />
+        <AdminUsersClient initialUsers={usersWithCounts} statusConfig={statusConfig} projects={projects} />
       </div>
     </main>
   )

@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { Users, Mail, Phone, MapPin, CheckCircle, Clock, XCircle, Search, Filter } from "lucide-react"
 import { AdminRatingForm } from "@/components/admin-rating-form"
-import { toggleModeratorApproval, assignModeratorProject } from "@/app/actions/users"
+import { toggleModeratorApproval, assignModeratorProject, updateModeratorPermissions } from "@/app/actions/users"
 import { useRouter } from "next/navigation"
 
 interface Project {
@@ -129,6 +129,12 @@ export function AdminUsersClient({ initialUsers, statusConfig, projects }: { ini
                       <p className="text-xs text-foreground/50 uppercase font-semibold">Applications</p>
                       <p className="font-black text-xl">{user._count.applications}</p>
                     </div>
+                    {user.role === "MODERATOR" && (
+                      <div>
+                        <p className="text-xs text-foreground/50 uppercase font-semibold">QC Reviewed</p>
+                        <p className="font-black text-xl text-purple-500">{user.reviewedCount || 0}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 {/* Moderator Controls */}
@@ -181,6 +187,71 @@ export function AdminUsersClient({ initialUsers, statusConfig, projects }: { ini
                           </option>
                         ))}
                       </select>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-foreground/50">QC Review:</span>
+                      <button
+                        onClick={async () => {
+                          const res = await updateModeratorPermissions(user.id, { canReviewQC: !user.canReviewQC })
+                          if (res.success) {
+                            router.refresh()
+                          } else {
+                            alert(res.error)
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                          user.canReviewQC
+                            ? "bg-purple-500/15 text-purple-500 border border-purple-500/20 hover:bg-purple-500/25"
+                            : "bg-foreground/5 text-foreground/50 border border-border hover:bg-foreground/10"
+                        }`}
+                      >
+                        {user.canReviewQC ? "Enabled" : "Disabled"}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-foreground/50">Approve Applicants:</span>
+                      <button
+                        onClick={async () => {
+                          const res = await updateModeratorPermissions(user.id, { canApproveApplications: !user.canApproveApplications })
+                          if (res.success) {
+                            router.refresh()
+                          } else {
+                            alert(res.error)
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                          user.canApproveApplications
+                            ? "bg-purple-500/15 text-purple-500 border border-purple-500/20 hover:bg-purple-500/25"
+                            : "bg-foreground/5 text-foreground/50 border border-border hover:bg-foreground/10"
+                        }`}
+                      >
+                        {user.canApproveApplications ? "Enabled" : "Disabled"}
+                      </button>
+                    </div>
+
+                    <div className="ml-auto">
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Are you sure you want to completely remove supervisor permissions for this user and return them to standard Member status?")) return
+                          const res = await updateModeratorPermissions(user.id, {
+                            role: "MEMBER",
+                            assignedProjectId: null,
+                            canReviewQC: false,
+                            canApproveApplications: false,
+                            isApproved: false
+                          })
+                          if (res.success) {
+                            router.refresh()
+                          } else {
+                            alert(res.error)
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-red-500/10 text-red-500 hover:bg-red-500/20 border border-red-500/20 rounded-lg text-xs font-bold transition-colors"
+                      >
+                        Revoke Supervisor Role
+                      </button>
                     </div>
                   </div>
                 )}

@@ -105,3 +105,46 @@ export async function assignModeratorProject(userId: string, projectId: string |
     return { success: false, error: "Failed to assign project" }
   }
 }
+
+export async function updateModeratorPermissions(
+  userId: string,
+  data: {
+    canReviewQC?: boolean
+    canApproveApplications?: boolean
+    role?: string
+    assignedProjectId?: string | null
+    isApproved?: boolean
+  }
+) {
+  try {
+    const supabase = await createClientServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    })
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data
+    })
+
+    await createAuditLog(
+      "UPDATE_SUPERVISOR_PERMISSIONS",
+      `Admin ${dbUser.firstName} updated supervisor ${targetUser?.email || userId} permissions: ${JSON.stringify(data)}`
+    )
+
+    revalidatePath("/admin/users")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Update moderator permissions error:", error)
+    return { success: false, error: "Failed to update permissions" }
+  }
+}
