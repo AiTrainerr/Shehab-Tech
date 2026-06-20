@@ -34,29 +34,79 @@ export default async function AdminApplicationsPage() {
     orderBy: { createdAt: "desc" }
   })
 
-  let applications = await Promise.all(
+  const applications = await Promise.all(
     applicationsData.map(async (app) => {
-      const recordedCount = await prisma.voiceRecording.count({
+      const recordings = await prisma.voiceRecording.groupBy({
+        by: ['status'],
         where: {
           userId: app.userId,
           sentence: { projectId: app.projectId }
-        }
+        },
+        _count: { _all: true }
       })
+      
+      let recordedCount = 0;
+      let pendingCount = 0;
+      let reRecordCount = 0;
+      let acceptedCount = 0;
+
+      recordings.forEach(r => {
+        recordedCount += r._count._all;
+        if (r.status === 'PENDING') pendingCount = r._count._all;
+        if (r.status === 'NEED_RE_RECORD') reRecordCount = r._count._all;
+        if (r.status === 'ACCEPTED') acceptedCount = r._count._all;
+      })
+
       const totalSentences = await prisma.projectSentence.count({
         where: { projectId: app.projectId }
       })
       
+      let reviewCategory = "WORKING";
+
+      if (app.status === 'FINAL_REVIEW' || app.status === 'APPROVED' || app.status === 'PAID') {
+        reviewCategory = "COMPLETED";
+      } else if (reRecordCount > 0) {
+        reviewCategory = "NEEDS_FIX";
+      } else if (pendingCount > 0 && recordedCount >= totalSentences) {
+        if (acceptedCount > 0) {
+          reviewCategory = "READY_FIXED";
+        } else {
+          reviewCategory = "READY_FIRST";
+        }
+      } else if (pendingCount === 0 && recordedCount >= totalSentences && acceptedCount === totalSentences) {
+        reviewCategory = "COMPLETED";
+      } else {
+        reviewCategory = "WORKING";
+      }
+
       const isCompleted = totalSentences > 0 && recordedCount >= totalSentences
 
-      return { ...app, recordedCount, totalSentences, isCompleted }
+      return { 
+        ...app, 
+        recordedCount, 
+        totalSentences, 
+        isCompleted, 
+        reviewCategory,
+        pendingCount,
+        reRecordCount,
+        acceptedCount
+      }
     })
   )
 
-  // Sort: Completed first, then by date (which is already sorted by DB)
+  // Sort them so they appear in order of priority when viewing "All"
   applications.sort((a, b) => {
-    if (a.isCompleted && !b.isCompleted) return -1;
-    if (!a.isCompleted && b.isCompleted) return 1;
-    return 0; // maintain original date sorting
+    const priority = {
+      "READY_FIXED": 1,
+      "READY_FIRST": 2,
+      "NEEDS_FIX": 3,
+      "WORKING": 4,
+      "COMPLETED": 5
+    }
+    const pA = priority[a.reviewCategory as keyof typeof priority] || 99
+    const pB = priority[b.reviewCategory as keyof typeof priority] || 99
+    if (pA !== pB) return pA - pB;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   return (

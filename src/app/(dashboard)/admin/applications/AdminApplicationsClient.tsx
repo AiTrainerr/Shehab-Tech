@@ -12,12 +12,19 @@ interface Application {
   recordedCount?: number
   totalSentences?: number
   isCompleted?: boolean
+  reviewCategory?: string
+  pendingCount?: number
+  reRecordCount?: number
+  acceptedCount?: number
   project: { id: string; title: string; pricingModel: string }
   user: { id: string; firstName: string; lastName: string; email: string; ranking: string; verificationStatus: string }
 }
 
+type TabType = "ALL" | "READY_FIRST" | "READY_FIXED" | "NEEDS_FIX" | "WORKING" | "COMPLETED";
+
 export function AdminApplicationsClient({ applications }: { applications: Application[] }) {
   const [searchTerm, setSearchTerm] = React.useState("")
+  const [activeTab, setActiveTab] = React.useState<TabType>("ALL")
   const [loading, setLoading] = React.useState<string | null>(null)
 
   const [rejectId, setRejectId] = React.useState<string | null>(null)
@@ -44,11 +51,17 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     setRejectReason("")
   }
 
-  const filtered = applications.filter(a => 
-    a.project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    a.user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filtered = applications.filter(a => {
+    const matchesSearch = 
+      a.project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    if (!matchesSearch) return false;
+    
+    if (activeTab === "ALL") return true;
+    return a.reviewCategory === activeTab;
+  })
 
   return (
     <div className="space-y-6">
@@ -63,6 +76,29 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:border-primary outline-none"
           />
         </div>
+      </div>
+
+      <div className="flex overflow-x-auto pb-2 gap-2 hide-scrollbar">
+        {[
+          { id: "ALL", label: "All" },
+          { id: "READY_FIRST", label: "Needs Review (First Time)" },
+          { id: "READY_FIXED", label: "Needs Review (Fixed)" },
+          { id: "WORKING", label: "Recording" },
+          { id: "NEEDS_FIX", label: "Needs Re-record" },
+          { id: "COMPLETED", label: "Completed" }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as TabType)}
+            className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
+              activeTab === tab.id 
+                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' 
+                : 'bg-card text-foreground/60 border border-border hover:bg-background'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -86,13 +122,35 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
               <p className="text-xs text-foreground/50 flex items-center gap-1 mt-2">
                 <FileText className="w-3 h-3" /> Project ID: {app.project.id.slice(0, 8)}...
               </p>
+              
               {app.totalSentences !== undefined && app.totalSentences > 0 && (
-                <div className={`mt-3 p-2 rounded-lg border flex items-center justify-between text-xs font-bold ${app.isCompleted ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'bg-primary/5 border-primary/10 text-primary'}`}>
-                  <span className="flex items-center gap-1.5">
-                    {app.isCompleted ? <Check className="w-3.5 h-3.5" /> : <Mic2 className="w-3.5 h-3.5" />}
-                    Recorded: {app.recordedCount || 0} / {app.totalSentences}
-                  </span>
-                  {app.isCompleted && <span className="uppercase tracking-wider">Completed</span>}
+                <div className={`mt-3 p-2.5 rounded-lg border flex flex-col gap-1.5 text-xs font-bold ${
+                  app.reviewCategory === 'COMPLETED' ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.2)]' :
+                  app.reviewCategory === 'READY_FIRST' ? 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.2)]' :
+                  app.reviewCategory === 'READY_FIXED' ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.2)]' :
+                  app.reviewCategory === 'NEEDS_FIX' ? 'bg-orange-500/10 border-orange-500/20 text-orange-600 dark:text-orange-400' :
+                  'bg-primary/5 border-primary/10 text-primary'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      {app.reviewCategory === 'COMPLETED' ? <Check className="w-3.5 h-3.5" /> : <Mic2 className="w-3.5 h-3.5" />}
+                      Recorded: {app.recordedCount || 0} / {app.totalSentences}
+                    </span>
+                    <span className="uppercase tracking-wider">
+                      {app.reviewCategory === 'COMPLETED' ? 'Completed' :
+                       app.reviewCategory === 'READY_FIRST' ? 'Needs Review' :
+                       app.reviewCategory === 'READY_FIXED' ? 'Fixes Submitted' :
+                       app.reviewCategory === 'NEEDS_FIX' ? 'Needs Fix' : 'Working'}
+                    </span>
+                  </div>
+                  {/* Detail counts */}
+                  {(app.reviewCategory !== 'WORKING' && app.reviewCategory !== 'COMPLETED') && (
+                    <div className="flex gap-3 mt-1 pt-1 border-t border-current/10 text-[10px] font-semibold opacity-80">
+                      <span>Accepted: {app.acceptedCount}</span>
+                      <span>Pending: {app.pendingCount}</span>
+                      <span>Rejected: {app.reRecordCount}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
