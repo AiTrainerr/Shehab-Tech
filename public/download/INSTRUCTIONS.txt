@@ -1,0 +1,4 @@
+Please place the generated Android application (APK) in this directory.
+It MUST be named exactly: app.apk
+
+This will allow users to download it when they click the "Download App" button on the homepage.

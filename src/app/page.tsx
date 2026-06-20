@@ -29,13 +29,16 @@ export default function Home() {
               SHEHAB TECH connects global talent with world-class AI companies. Join our workforce and earn by contributing to high-quality data collection projects.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-6">
+            <div className="flex flex-wrap items-center justify-center gap-5 pt-6">
               <Link href="/register" className="w-full sm:w-auto px-10 py-5 bg-primary text-primary-foreground text-xl font-bold rounded-2xl hover:bg-primary/90 transition-all shadow-2xl shadow-primary/30 hover:-translate-y-1 active:scale-95">
                 Join Now Free
               </Link>
               <Link href="/projects" className="w-full sm:w-auto px-10 py-5 glass text-foreground text-xl font-bold rounded-2xl hover:bg-card/50 transition-all flex items-center justify-center gap-3 border border-border group">
                 Browse Projects <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
               </Link>
+              <a href="/download/app.apk" download="ShehabTech.apk" className="w-full sm:w-auto px-10 py-5 bg-foreground text-background text-xl font-bold rounded-2xl hover:bg-foreground/90 transition-all flex items-center justify-center gap-3 shadow-2xl hover:-translate-y-1 active:scale-95 group">
+                <Smartphone className="w-6 h-6" /> Download App
+              </a>
             </div>
           </div>
         </div>
@@ -155,13 +158,16 @@ export default function Home() {
             <p className="text-xl text-foreground/70 max-w-2xl mx-auto">
               Join the elite circle of AI contributors and start your journey with SHEHAB TECH today. Global opportunities await.
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-5">
+            <div className="flex flex-wrap justify-center gap-5">
               <Link href="/register" className="px-10 py-5 bg-primary text-primary-foreground text-xl font-bold rounded-2xl hover:bg-primary/90 transition-all shadow-xl shadow-primary/30">
                 Register Now
               </Link>
               <Link href="/#about" className="px-10 py-5 glass text-foreground text-xl font-bold rounded-2xl hover:bg-background transition-all border border-border">
                 Learn More
               </Link>
+              <a href="/download/app.apk" download="ShehabTech.apk" className="px-10 py-5 bg-foreground text-background text-xl font-bold rounded-2xl hover:bg-foreground/90 transition-all flex items-center gap-3">
+                <Smartphone className="w-6 h-6" /> Get the App
+              </a>
             </div>
           </div>
         </div>
