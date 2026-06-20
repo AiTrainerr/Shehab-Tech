@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { Users, Filter } from "lucide-react"
 import { AdminApplicationsClient } from "./AdminApplicationsClient"
 
@@ -54,29 +55,28 @@ export default async function AdminApplicationsPage() {
   
   const sentencesMap = Object.fromEntries(sentencesCount.map(s => [s.projectId, s._count._all]));
 
-  const recordingsData = await prisma.voiceRecording.findMany({
-    where: {
-      userId: { in: userIds },
-      sentence: { projectId: { in: projectIds } }
-    },
-    select: {
-      userId: true,
-      status: true,
-      sentence: { select: { projectId: true } }
-    }
-  });
+  const recordingsCounts = await prisma.$queryRaw<any[]>`
+    SELECT r."userId", s."projectId", r.status, COUNT(r.id)::int as count
+    FROM "VoiceRecording" r
+    JOIN "ProjectSentence" s ON r."sentenceId" = s.id
+    WHERE r."userId" IN (${Prisma.join(userIds)}) AND s."projectId" IN (${Prisma.join(projectIds)})
+    GROUP BY r."userId", s."projectId", r.status
+  `;
 
   const recordingsMap = new Map();
-  recordingsData.forEach(r => {
-    const key = `${r.userId}_${r.sentence.projectId}`;
+  recordingsCounts.forEach(r => {
+    const key = `${r.userId}_${r.projectId}`;
     if (!recordingsMap.has(key)) {
       recordingsMap.set(key, { recordedCount: 0, pendingCount: 0, reRecordCount: 0, acceptedCount: 0 });
     }
     const counts = recordingsMap.get(key);
-    counts.recordedCount++;
-    if (r.status === 'PENDING') counts.pendingCount++;
-    if (r.status === 'NEED_RE_RECORD') counts.reRecordCount++;
-    if (r.status === 'ACCEPTED') counts.acceptedCount++;
+    
+    // Prisma raw count returns a BigInt or Number depending on driver, so we parse it safely
+    const amount = Number(r.count);
+    counts.recordedCount += amount;
+    if (r.status === 'PENDING') counts.pendingCount += amount;
+    if (r.status === 'NEED_RE_RECORD') counts.reRecordCount += amount;
+    if (r.status === 'ACCEPTED') counts.acceptedCount += amount;
   });
 
   const applications = applicationsData.map((app) => {
