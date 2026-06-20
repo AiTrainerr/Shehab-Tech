@@ -94,7 +94,7 @@ export function Navbar({ user }: { user?: any }) {
 
                 {/* Avatar — always visible */}
                 <Link
-                  href={isAdminOrMod ? "/admin" : "/member/profile"}
+                  href="/member/profile"
                   className="relative flex items-center p-0.5 rounded-full border border-transparent hover:border-primary/50 transition-all group"
                   title="My Profile"
                 >
@@ -175,6 +175,7 @@ export function Navbar({ user }: { user?: any }) {
                       <Link href="/member" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Freelancer Dashboard</Link>
                     )}
                     <Link href="/admin/projects" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Projects</Link>
+                    <Link href="/member/profile" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">My Profile</Link>
                   </>
                 ) : (
                   <>

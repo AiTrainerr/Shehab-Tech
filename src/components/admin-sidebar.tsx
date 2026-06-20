@@ -30,12 +30,13 @@ export function AdminSidebar({ pendingVerifications }: { pendingVerifications: n
   const showQC = !isModerator || canReviewQC
 
   const navItems = [
-    { name: "Dashboard", href: "/admin", icon: Activity, exact: true },
-    ...(showUsers ? [{ name: "Users", href: "/admin/users", icon: Users }] : []),
-    { name: "Projects", href: "/admin/projects", icon: FolderOpen },
+    ...(!isModerator ? [{ name: "Dashboard", href: "/admin", icon: Activity, exact: true }] : []),
+    ...(!isModerator ? [{ name: "Users", href: "/admin/users", icon: Users }] : []),
+    ...(!isModerator ? [{ name: "Projects", href: "/admin/projects", icon: FolderOpen }] : []),
     ...(showApplications ? [{ name: "Applications", href: "/admin/applications", icon: FileText }] : []),
     ...(showQC ? [{ name: "QC Panel", href: "/admin/qc", icon: ShieldCheck }] : []),
     { name: "Comments", href: "/admin/comments", icon: MessageSquare },
+    { name: "My Profile", href: "/member/profile", icon: BookOpen },
   ]
 
   const managementItems = isModerator ? [] : [
