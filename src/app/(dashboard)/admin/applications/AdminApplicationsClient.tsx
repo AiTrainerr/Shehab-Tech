@@ -16,6 +16,7 @@ interface Application {
   pendingCount?: number
   reRecordCount?: number
   acceptedCount?: number
+  speakerCode?: string | null
   project: { id: string; title: string; pricingModel: string }
   user: { id: string; firstName: string; lastName: string; email: string; ranking: string; verificationStatus: string }
 }
@@ -55,7 +56,8 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     const matchesSearch = 
       a.project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       a.user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      a.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (a.speakerCode && a.speakerCode.toLowerCase().includes(searchTerm.toLowerCase()));
       
     if (!matchesSearch) return false;
     
@@ -70,7 +72,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
           <input
             type="text"
-            placeholder="Search by name or project..."
+            placeholder="Search by code, name or project..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:border-primary outline-none"
@@ -103,20 +105,37 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((app) => (
-          <div key={app.id} className="glass p-6 rounded-2xl border border-border hover:border-primary/30 transition-colors flex flex-col h-full">
-            <div className="mb-4">
-              <span className={`inline-block px-2.5 py-1 text-xs font-bold rounded-full border mb-3
-                ${app.status === 'PENDING' ? 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20' : 
-                  app.status === 'UNDER_REVIEW' ? 'text-orange-500 bg-orange-500/10 border-orange-500/20' :
-                  app.status === 'WORKING' ? 'text-blue-500 bg-blue-500/10 border-blue-500/20' :
-                  app.status === 'ACCEPTED' ? 'text-teal-500 bg-teal-500/10 border-teal-500/20' :
-                  app.status === 'FINAL_REVIEW' ? 'text-purple-500 bg-purple-500/10 border-purple-500/20' :
-                  app.status === 'APPROVED' ? 'text-green-500 bg-green-500/10 border-green-500/20' : 
-                  app.status === 'PAID' ? 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' :
-                  'text-red-500 bg-red-500/10 border-red-500/20'}`}>
-                {app.status === 'FINAL_REVIEW' ? 'FINAL CLIENT REVIEW' : app.status}
-              </span>
-              <h3 className="text-lg font-bold text-foreground line-clamp-2" title={app.project.title}>
+          <div key={app.id} className="glass p-6 rounded-2xl border border-border hover:border-primary/30 transition-colors flex flex-col h-full relative">
+            
+            {/* Action Overlay */}
+            {loading === app.id && (
+              <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                  app.status === 'APPROVED' ? 'bg-green-500/10 text-green-500' :
+                  app.status === 'WORKING' ? 'bg-blue-500/10 text-blue-500' :
+                  app.status === 'UNDER_REVIEW' ? 'bg-yellow-500/10 text-yellow-500' :
+                  app.status === 'FINAL_REVIEW' ? 'bg-purple-500/10 text-purple-500' :
+                  app.status === 'REJECTED' ? 'bg-red-500/10 text-red-500' :
+                  'bg-primary/10 text-primary'
+                }`}>
+                  {app.status.replace("_", " ")}
+                </span>
+              </div>
+              {app.speakerCode && (
+                <span className="text-xs font-black text-primary bg-primary/10 px-2 py-1 rounded-md">
+                  {app.speakerCode}
+                </span>
+              )}
+            </div>
+
+            <div className="flex-1">
+              <h3 className="text-xl font-black text-foreground mb-1">
                 {app.project.title}
               </h3>
               <p className="text-xs text-foreground/50 flex items-center gap-1 mt-2">

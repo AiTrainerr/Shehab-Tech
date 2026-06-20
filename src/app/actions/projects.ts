@@ -238,16 +238,37 @@ export async function approveApplication(applicationId: string) {
     
     const currentApp = await prisma.application.findUnique({
       where: { id: applicationId },
-      select: { status: true }
+      select: { status: true, projectId: true, speakerCode: true }
     })
 
     if (!currentApp) return { success: false, error: "Application not found" }
 
     const newStatus = currentApp.status === "FINAL_REVIEW" ? "APPROVED" : "ACCEPTED"
+    let speakerCode = currentApp.speakerCode;
+
+    if (newStatus === "APPROVED" && !speakerCode) {
+      const lastApp = await prisma.application.findFirst({
+        where: {
+          projectId: currentApp.projectId,
+          speakerCode: { not: null }
+        },
+        orderBy: { speakerCode: 'desc' }
+      });
+      
+      let nextNumber = 1;
+      if (lastApp && lastApp.speakerCode) {
+        const match = lastApp.speakerCode.match(/G(\d+)/);
+        if (match) {
+          nextNumber = parseInt(match[1]) + 1;
+        }
+      }
+      
+      speakerCode = `G${nextNumber.toString().padStart(4, '0')}`;
+    }
 
     const application = await prisma.application.update({
       where: { id: applicationId },
-      data: { status: newStatus },
+      data: { status: newStatus, speakerCode: speakerCode },
       include: { project: true }
     })
     
@@ -256,7 +277,7 @@ export async function approveApplication(applicationId: string) {
         userId: application.userId,
         title: newStatus === "APPROVED" ? "Project Approved!" : "Application Accepted!",
         content: newStatus === "APPROVED" 
-          ? `Your work for "${application.project.title}" has been finally approved. Earnings added to your balance.`
+          ? `Your work for "${application.project.title}" has been finally approved. Your unique speaker code is ${speakerCode}.`
           : `Your application for "${application.project.title}" has been accepted. You can now start working.`
       }
     })

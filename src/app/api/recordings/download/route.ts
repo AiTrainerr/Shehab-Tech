@@ -122,34 +122,18 @@ export async function GET(request: NextRequest) {
     }
     const ageFolderStr = candidate.age ? String(candidate.age) : "N-A"
 
-    // Get sequence number for GXXXX ID based on order of completion (UNDER_REVIEW, APPROVED, PAID)
-    const completedApps = await prisma.application.findMany({
+    // Fetch the application's assigned speakerCode
+    const appRecord = await prisma.application.findUnique({
       where: {
-        projectId,
-        status: { in: ["UNDER_REVIEW", "APPROVED", "PAID"] }
+        projectId_userId: {
+          projectId,
+          userId: targetUserId
+        }
       },
-      orderBy: {
-        updatedAt: "asc"
-      },
-      select: {
-        userId: true
-      }
+      select: { speakerCode: true }
     })
 
-    let appIndex = completedApps.findIndex(app => app.userId === targetUserId)
-    let sequenceNumber = 1
-    if (appIndex !== -1) {
-      sequenceNumber = appIndex + 1
-    } else {
-      const allApps = await prisma.application.findMany({
-        where: { projectId },
-        orderBy: { createdAt: "asc" },
-        select: { userId: true }
-      })
-      const fallbackIndex = allApps.findIndex(app => app.userId === targetUserId)
-      sequenceNumber = completedApps.length + (fallbackIndex !== -1 ? fallbackIndex + 1 : 1)
-    }
-    const sequentialId = `G${String(sequenceNumber).padStart(4, "0")}`
+    const sequentialId = appRecord?.speakerCode || "G_PENDING"
 
     const outerFolderName = `${sequentialId}_${candidate.firstName}_${candidate.lastName}_${ageFolderStr}_${genderForFolder}`
 
