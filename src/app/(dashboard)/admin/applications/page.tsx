@@ -34,20 +34,30 @@ export default async function AdminApplicationsPage() {
     orderBy: { createdAt: "desc" }
   })
 
-  const applications = await Promise.all(
+  let applications = await Promise.all(
     applicationsData.map(async (app) => {
-      if (app.project.pricingModel === "PER_SENTENCE") {
-        const recordedCount = await prisma.voiceRecording.count({
-          where: {
-            userId: app.userId,
-            sentence: { projectId: app.projectId }
-          }
-        })
-        return { ...app, recordedCount }
-      }
-      return { ...app, recordedCount: 0 }
+      const recordedCount = await prisma.voiceRecording.count({
+        where: {
+          userId: app.userId,
+          sentence: { projectId: app.projectId }
+        }
+      })
+      const totalSentences = await prisma.projectSentence.count({
+        where: { projectId: app.projectId }
+      })
+      
+      const isCompleted = totalSentences > 0 && recordedCount >= totalSentences
+
+      return { ...app, recordedCount, totalSentences, isCompleted }
     })
   )
+
+  // Sort: Completed first, then by date (which is already sorted by DB)
+  applications.sort((a, b) => {
+    if (a.isCompleted && !b.isCompleted) return -1;
+    if (!a.isCompleted && b.isCompleted) return 1;
+    return 0; // maintain original date sorting
+  });
 
   return (
     <div className="space-y-8">

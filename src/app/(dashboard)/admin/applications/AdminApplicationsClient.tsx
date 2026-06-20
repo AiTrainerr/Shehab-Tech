@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Check, X, Search, FileText, User, BadgeCheck } from "lucide-react"
+import { Check, X, Search, FileText, User, BadgeCheck, Mic2 } from "lucide-react"
 import { approveApplication, rejectApplication } from "@/app/actions/projects"
 
 interface Application {
@@ -10,6 +10,8 @@ interface Application {
   status: string
   createdAt: Date
   recordedCount?: number
+  totalSentences?: number
+  isCompleted?: boolean
   project: { id: string; title: string; pricingModel: string }
   user: { id: string; firstName: string; lastName: string; email: string; ranking: string; verificationStatus: string }
 }
@@ -84,10 +86,14 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
               <p className="text-xs text-foreground/50 flex items-center gap-1 mt-2">
                 <FileText className="w-3 h-3" /> Project ID: {app.project.id.slice(0, 8)}...
               </p>
-              {app.project.pricingModel === "PER_SENTENCE" && app.status !== "PENDING" && (
-                <p className="text-xs font-bold text-primary flex items-center gap-1 mt-1">
-                  <Check className="w-3 h-3" /> Recorded: {app.recordedCount || 0} sentences
-                </p>
+              {app.totalSentences !== undefined && app.totalSentences > 0 && (
+                <div className={`mt-3 p-2 rounded-lg border flex items-center justify-between text-xs font-bold ${app.isCompleted ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.2)]' : 'bg-primary/5 border-primary/10 text-primary'}`}>
+                  <span className="flex items-center gap-1.5">
+                    {app.isCompleted ? <Check className="w-3.5 h-3.5" /> : <Mic2 className="w-3.5 h-3.5" />}
+                    Recorded: {app.recordedCount || 0} / {app.totalSentences}
+                  </span>
+                  {app.isCompleted && <span className="uppercase tracking-wider">Completed</span>}
+                </div>
               )}
             </div>
 
