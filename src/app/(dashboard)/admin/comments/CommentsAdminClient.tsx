@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Trash2, ChevronDown, ChevronUp, MessageSquare, Search, ExternalLink, Reply, AlertTriangle } from "lucide-react"
-import { deleteComment } from "@/app/actions/comments"
+import { deleteComment, addComment } from "@/app/actions/comments"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
@@ -62,6 +62,9 @@ export function CommentsAdminClient({ comments }: { comments: Comment[] }) {
   const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set())
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = React.useState<{ id: string; projectId: string } | null>(null)
+  const [replyingTo, setReplyingTo] = React.useState<{ id: string; projectId: string } | null>(null)
+  const [replyContent, setReplyContent] = React.useState("")
+  const [isReplying, setIsReplying] = React.useState(false)
 
   const toggleExpand = (id: string) => {
     setExpandedIds(prev => {
@@ -78,6 +81,22 @@ export function CommentsAdminClient({ comments }: { comments: Comment[] }) {
     setDeletingId(null)
     setConfirmDelete(null)
     router.refresh()
+  }
+
+  const submitReply = async () => {
+    if (!replyingTo || !replyContent.trim()) return
+    setIsReplying(true)
+    const res = await addComment(replyingTo.projectId, replyContent, replyingTo.id)
+    setIsReplying(false)
+    if (res.success) {
+      setReplyContent("")
+      setReplyingTo(null)
+      // Automatically expand replies to see the new one
+      setExpandedIds(prev => new Set(prev).add(replyingTo.id))
+      router.refresh()
+    } else {
+      alert(res.error)
+    }
   }
 
   const filtered = comments.filter(c => {
@@ -209,15 +228,53 @@ export function CommentsAdminClient({ comments }: { comments: Comment[] }) {
                         )}
                       </div>
 
-                      {/* Delete Button */}
-                      <button
-                        onClick={() => setConfirmDelete({ id: comment.id, projectId: comment.project.id })}
-                        className="p-2 rounded-lg text-foreground/30 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0"
-                        title="Delete comment"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex gap-2">
+                        {/* Reply Button */}
+                        <button
+                          onClick={() => {
+                            if (replyingTo?.id === comment.id) {
+                              setReplyingTo(null)
+                              setReplyContent("")
+                            } else {
+                              setReplyingTo({ id: comment.id, projectId: comment.project.id })
+                              setReplyContent("")
+                            }
+                          }}
+                          className={`p-2 rounded-lg transition-all shrink-0 ${replyingTo?.id === comment.id ? 'bg-primary/20 text-primary' : 'text-foreground/50 hover:text-primary hover:bg-primary/10'}`}
+                          title="Reply to comment"
+                        >
+                          <Reply className="w-4 h-4" />
+                        </button>
+
+                        {/* Delete Button */}
+                        <button
+                          onClick={() => setConfirmDelete({ id: comment.id, projectId: comment.project.id })}
+                          className="p-2 rounded-lg text-foreground/30 hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0"
+                          title="Delete comment"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
+
+                    {/* Reply Input Box */}
+                    {replyingTo?.id === comment.id && (
+                      <div className="mt-4 ml-11 flex gap-3">
+                        <textarea
+                          placeholder="Write a reply..."
+                          value={replyContent}
+                          onChange={e => setReplyContent(e.target.value)}
+                          className="flex-1 min-h-[80px] p-3 text-sm rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none transition-all"
+                        />
+                        <button
+                          onClick={submitReply}
+                          disabled={!replyContent.trim() || isReplying}
+                          className="px-6 py-2 bg-primary text-primary-foreground font-bold text-sm rounded-xl hover:bg-primary/90 transition-all disabled:opacity-50 h-fit"
+                        >
+                          {isReplying ? "Sending..." : "Reply"}
+                        </button>
+                      </div>
+                    )}
 
                     {/* Replies */}
                     {isExpanded && comment.replies.length > 0 && (
