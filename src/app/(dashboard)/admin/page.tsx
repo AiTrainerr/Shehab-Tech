@@ -87,10 +87,13 @@ export default async function AdminDashboard() {
         .map(item => [item.reviewedBy, item._count._all])
     )
 
-    currentModeratorsList = modsList.map(mod => ({
-      ...mod,
-      reviewedCount: reviewedMap[mod.id] || 0
-    }))
+    currentModeratorsList = modsList.map(mod => {
+      const modName = `${mod.firstName} ${mod.lastName}`
+      return {
+        ...mod,
+        reviewedCount: reviewedMap[modName] || 0
+      }
+    })
 
     totalUsers = allUsers
     totalProjects = allProjects
