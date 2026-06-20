@@ -36,9 +36,6 @@ export default function Home() {
               <Link href="/projects" className="w-full sm:w-auto px-10 py-5 glass text-foreground text-xl font-bold rounded-2xl hover:bg-card/50 transition-all flex items-center justify-center gap-3 border border-border group">
                 Browse Projects <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link href="/download" className="w-full sm:w-auto px-10 py-5 bg-foreground text-background text-xl font-bold rounded-2xl hover:bg-foreground/90 transition-all flex items-center justify-center gap-3 shadow-2xl hover:-translate-y-1 active:scale-95 group">
-                <Smartphone className="w-6 h-6" /> Download App
-              </Link>
             </div>
           </div>
         </div>
@@ -164,9 +161,6 @@ export default function Home() {
               </Link>
               <Link href="/#about" className="px-10 py-5 glass text-foreground text-xl font-bold rounded-2xl hover:bg-background transition-all border border-border">
                 Learn More
-              </Link>
-              <Link href="/download" className="px-10 py-5 bg-foreground text-background text-xl font-bold rounded-2xl hover:bg-foreground/90 transition-all flex items-center gap-3">
-                <Smartphone className="w-6 h-6" /> Get the App
               </Link>
             </div>
           </div>
