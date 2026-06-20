@@ -65,7 +65,9 @@ export async function createProjectAction(formData: FormData) {
     const maxDuration = formData.get("maxDuration") ? parseInt(formData.get("maxDuration") as string) : null
     const hasScript = formData.get("hasScript") === "true"
     const scriptType = formData.get("scriptType") as string || "STATIC"
-    const requiredParticipants = parseInt(formData.get("requiredParticipants") as string) || 1
+    const targetMales = parseInt(formData.get("targetMales") as string) || 0
+    const targetFemales = parseInt(formData.get("targetFemales") as string) || 0
+    const requiredParticipants = targetMales + targetFemales
     const durationUnit = formData.get("durationUnit") as string || "HOUR"
     const pricingModel = formData.get("pricingModel") as string || "FIXED_PROJECT"
     const namingRule = formData.get("namingRule") as string || "SEQUENCE"
@@ -96,6 +98,8 @@ export async function createProjectAction(formData: FormData) {
           scriptType,
           namingRule,
           requiredParticipants,
+          targetMales,
+          targetFemales,
           languages: { create: languages },
           images: { create: images }
         }
@@ -357,7 +361,9 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     const channels = formData.get("channels") as string || "MONO"
     const minDuration = formData.get("minDuration") ? parseInt(formData.get("minDuration") as string) : null
     const maxDuration = formData.get("maxDuration") ? parseInt(formData.get("maxDuration") as string) : null
-    const requiredParticipants = parseInt(formData.get("requiredParticipants") as string) || 1
+    const targetMales = parseInt(formData.get("targetMales") as string) || 0
+    const targetFemales = parseInt(formData.get("targetFemales") as string) || 0
+    const requiredParticipants = targetMales + targetFemales
     const hasScript = formData.get("hasScript") === "true"
     const scriptType = formData.get("scriptType") as string || "STATIC"
     const namingRule = formData.get("namingRule") as string || "SEQUENCE"
@@ -403,7 +409,9 @@ export async function updateProjectAction(projectId: string, formData: FormData)
           hasScript,
           scriptType,
           namingRule,
-          requiredParticipants
+          requiredParticipants,
+          targetMales,
+          targetFemales
         }
       })
 

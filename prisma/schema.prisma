@@ -126,6 +126,8 @@ model Project {
   scriptType           String   @default("STATIC") // STATIC, RANDOM, CATEGORY
   namingRule           String   @default("SEQUENCE") // TEXT, SEQUENCE
   requiredParticipants Int      @default(1)
+  targetMales          Int      @default(0)
+  targetFemales        Int      @default(0)
 
   skills          ProjectSkill[]
   applications    Application[]

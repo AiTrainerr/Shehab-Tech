@@ -220,8 +220,13 @@ export default function CreateProjectPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Required Participants</label>
-                <input name="requiredParticipants" type="number" min="1" defaultValue="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" />
+                <label className="text-sm font-semibold">Target Males</label>
+                <input name="targetMales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 50" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Target Females</label>
+                <input name="targetFemales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 50" />
               </div>
 
               <div className="space-y-2">

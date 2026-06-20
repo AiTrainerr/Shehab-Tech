@@ -159,8 +159,13 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Required Participants</label>
-                <input name="requiredParticipants" type="number" min="1" defaultValue={project.requiredParticipants || 1} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
+                <label className="text-sm font-semibold">Target Males</label>
+                <input name="targetMales" type="number" min="0" defaultValue={project.targetMales || 0} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Target Females</label>
+                <input name="targetFemales" type="number" min="0" defaultValue={project.targetFemales || 0} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
               </div>
 
               <div className="space-y-2">
