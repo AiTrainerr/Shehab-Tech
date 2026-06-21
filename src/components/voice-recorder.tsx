@@ -119,12 +119,24 @@ export function VoiceRecorder({
         }
       }
       const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      
+      if (typeof window.MediaRecorder === 'undefined') {
+        throw new Error("Your browser/device does not support audio recording (MediaRecorder missing). Please update your iOS or use a different browser.")
+      }
+
       const recorder = new MediaRecorder(stream)
       mediaRecorderRef.current = recorder
 
       // Live volume visualization
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-      const audioCtx = new AudioCtx({ sampleRate: sampleRate })
+      let audioCtx;
+      try {
+        // Some older Safari versions crash when passing options to webkitAudioContext
+        audioCtx = new AudioCtx({ sampleRate: sampleRate })
+      } catch (err) {
+        audioCtx = new AudioCtx()
+      }
+
       const source = audioCtx.createMediaStreamSource(stream)
       const analyser = audioCtx.createAnalyser()
       analyser.fftSize = 256
@@ -171,7 +183,7 @@ export function VoiceRecorder({
         setVolumeLevel(0)
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
 
-        const rawBlob = new Blob(chunksRef.current, { type: "audio/webm" })
+        const rawBlob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/mp4" })
         const url = URL.createObjectURL(rawBlob)
         setLocalAudioBlob(rawBlob)
         setLocalAudioUrl(url)
@@ -179,8 +191,9 @@ export function VoiceRecorder({
 
       recorder.start()
       setRecordingId(sentenceId)
-    } catch (e) {
-      alert("Could not access microphone. Please check permissions.")
+    } catch (e: any) {
+      alert("Microphone Error: " + (e.message || "Could not access microphone or feature is not supported on this device."))
+      console.error("Recording error:", e)
     }
   }
 
