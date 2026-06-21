@@ -64,7 +64,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-32 bg-background">
+      <section id="about" className="py-32 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
             <h2 className="text-4xl md:text-6xl font-black text-foreground tracking-tight">Your Journey to <span className="text-primary">Success</span></h2>
