@@ -98,6 +98,23 @@ export function VoiceRecorder({
     }
   }, [])
 
+  // Clear local recording state if user changes sentence without saving
+  React.useEffect(() => {
+    if (localAudioUrl) {
+      URL.revokeObjectURL(localAudioUrl)
+    }
+    setLocalAudioBlob(null)
+    setLocalAudioUrl(null)
+    setRecordingTime(0)
+    setVolumeLevel(0)
+    chunksRef.current = []
+    if (playingUrl) setPlayingUrl(null)
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current = null
+    }
+  }, [currentIndex])
+
   const startRecording = async (sentenceId: string) => {
     // Clear any previous unsaved local recordings
     if (localAudioUrl) {
@@ -373,7 +390,7 @@ export function VoiceRecorder({
           <div className="max-w-md mx-auto p-6 bg-background/50 border border-border/80 rounded-2xl">
             {recordingId ? (
               // ───────── Active Recording Mode ─────────
-              <div className="space-y-4">
+              <div key="mode-recording" className="space-y-4">
                 <div className="flex items-center justify-center gap-2 text-red-500 font-bold animate-pulse">
                   <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
                   Recording... ({recordingTime.toFixed(1)}s)
@@ -402,7 +419,7 @@ export function VoiceRecorder({
               </div>
             ) : localAudioUrl ? (
               // ───────── Local Review & Submit Mode ─────────
-              <div className="space-y-4">
+              <div key="mode-review" className="space-y-4">
                 <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs font-semibold text-yellow-600">
                   Listen to the recording before uploading.
                 </div>
@@ -448,7 +465,7 @@ export function VoiceRecorder({
               </div>
             ) : savedRecord ? (
               // ───────── Already Saved & Uploaded Mode ─────────
-              <div className="space-y-4">
+              <div key="mode-saved" className="space-y-4">
                 <div className={`flex flex-col items-center justify-center gap-2 text-sm font-bold p-4 rounded-xl border ${
                   savedRecord.status === 'ACCEPTED' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
                   savedRecord.status === 'NEED_RE_RECORD' ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' :
@@ -506,7 +523,7 @@ export function VoiceRecorder({
               </div>
             ) : (
               // ───────── Idle / Ready Mode ─────────
-              <div className="space-y-4">
+              <div key="mode-idle" className="space-y-4">
                 <p className="text-xs text-foreground/50">Ready to record. Click button below.</p>
                 <button
                   onClick={() => startRecording(activeSentence.id)}
