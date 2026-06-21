@@ -125,14 +125,17 @@ export function QcReviewPanel({ initialRecordings }: { initialRecordings: Record
 
                 {/* Review Play/Approve/Reject actions */}
                 <div className="flex items-center gap-3 self-end lg:self-center shrink-0">
-                  <button
-                    onClick={() => playAudio(rec.fileUrl)}
-                    className={`flex items-center gap-1.5 px-4 py-2.5 font-bold rounded-xl transition-all text-sm
-                      ${isPlaying ? "bg-primary text-white" : "bg-card border border-border hover:bg-primary/10 hover:text-primary"}`}
-                  >
-                    {isPlaying ? <Square className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                    {isPlaying ? "Stop" : "Listen"}
-                  </button>
+                  <audio
+                    src={rec.fileUrl}
+                    controls
+                    className="h-10 w-[200px] outline-none"
+                    onPlay={() => {
+                      if (audioRef.current && audioRef.current !== document.querySelector(`audio[src="${rec.fileUrl}"]`)) {
+                        audioRef.current.pause();
+                      }
+                      audioRef.current = document.querySelector(`audio[src="${rec.fileUrl}"]`) as HTMLAudioElement;
+                    }}
+                  />
 
                   <button
                     onClick={() => handleAction(rec.id, "ACCEPTED")}

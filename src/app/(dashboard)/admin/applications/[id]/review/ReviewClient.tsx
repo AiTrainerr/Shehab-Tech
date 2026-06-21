@@ -198,15 +198,11 @@ export function ReviewClient({ application, sentences }: { application: any; sen
                 {/* Sentence Text + Play */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground mb-2 leading-relaxed">{s.text}</p>
-                  <button
-                    onClick={() => setPlayingUrl(playingUrl === recording.fileUrl ? null : recording.fileUrl)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-background border border-border rounded-lg hover:border-primary transition-colors text-xs font-bold"
-                  >
-                    {playingUrl === recording.fileUrl
-                      ? <><Square className="w-3 h-3 text-primary" /> Stop</>
-                      : <><Play className="w-3 h-3 text-primary" /> Play</>
-                    }
-                  </button>
+                  <audio
+                    src={recording.fileUrl}
+                    controls
+                    className="w-full mt-2 h-10 outline-none"
+                  />
                 </div>
 
                 {/* Decision Buttons */}
@@ -281,13 +277,7 @@ export function ReviewClient({ application, sentences }: { application: any; sen
                   />
                 </div>
               )}
-
-              {/* Audio player */}
-              {playingUrl === recording.fileUrl && (
-                <audio src={recording.fileUrl} autoPlay onEnded={() => setPlayingUrl(null)} className="hidden" />
-              )}
             </div>
-          )
         })}
       </div>
 
