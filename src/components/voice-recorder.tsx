@@ -110,15 +110,8 @@ export function VoiceRecorder({
     chunksRef.current = []
 
     try {
-      const constraints: MediaStreamConstraints = {
-        audio: {
-          sampleRate: sampleRate,
-          channelCount: channels === "MONO" ? 1 : 2,
-          echoCancellation: false,
-          noiseSuppression: false,
-        }
-      }
-      const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      // Simplify constraints for max iOS compatibility. We handle resampling later anyway.
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       
       if (typeof window.MediaRecorder === 'undefined') {
         throw new Error("Your browser/device does not support audio recording (MediaRecorder missing). Please update your iOS or use a different browser.")
