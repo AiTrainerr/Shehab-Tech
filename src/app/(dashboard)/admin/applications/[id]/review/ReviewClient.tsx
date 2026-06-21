@@ -278,6 +278,7 @@ export function ReviewClient({ application, sentences }: { application: any; sen
                 </div>
               )}
             </div>
+          )
         })}
       </div>
 
