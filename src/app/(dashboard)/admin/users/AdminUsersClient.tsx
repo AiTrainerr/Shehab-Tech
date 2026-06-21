@@ -73,23 +73,41 @@ export function AdminUsersClient({ initialUsers, statusConfig, projects }: { ini
                       {user.firstName[0]}
                     </div>
                     <div className="flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <Link href={`/profile/${user.id}`}>
-                          <h3 className="text-lg font-bold hover:text-primary transition-colors hover:underline">
-                            {user.firstName} {user.lastName}
-                          </h3>
-                        </Link>
-                        <span className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${status.cls}`}>
-                          {status.icon} {status.label}
-                        </span>
-                        <span className="text-xs font-bold px-2 py-0.5 bg-card rounded-full border border-border text-foreground/60">
-                          {user.ranking}
-                        </span>
-                        {user.role === "MODERATOR" && (
-                          <span className="text-xs font-bold px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full">
-                            Supervisor
+                      <div className="flex flex-wrap items-center justify-between mb-1 gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link href={`/profile/${user.id}`}>
+                            <h3 className="text-lg font-bold hover:text-primary transition-colors hover:underline">
+                              {user.firstName} {user.lastName}
+                            </h3>
+                          </Link>
+                          <span className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border ${status.cls}`}>
+                            {status.icon} {status.label}
                           </span>
-                        )}
+                          <span className="text-xs font-bold px-2 py-0.5 bg-card rounded-full border border-border text-foreground/60">
+                            {user.ranking}
+                          </span>
+                          {user.role === "MODERATOR" && (
+                            <span className="text-xs font-bold px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-full">
+                              Supervisor
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (!confirm("Are you SURE you want to completely delete this user? This will delete their applications, recordings, and ALL data permanently!")) return
+                            const { deleteUserAdmin } = await import("@/app/actions/user")
+                            const res = await deleteUserAdmin(user.id)
+                            if (res.success) {
+                              window.location.reload()
+                            } else {
+                              alert(res.error)
+                            }
+                          }}
+                          className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold"
+                          title="Delete User Permanently"
+                        >
+                          <XCircle className="w-4 h-4" /> Delete User
+                        </button>
                       </div>
 
                       {/* Sensitive Info — Admin Only */}

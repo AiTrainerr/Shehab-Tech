@@ -23,6 +23,30 @@ export async function registerUser(formData: FormData) {
       return { success: false, error: "Missing required fields" }
     }
 
+    const formatPhone = (p: string | null) => {
+      if (!p) return null;
+      let cleaned = p.replace(/[\s\-\(\)\+]/g, ''); // remove spaces, dashes, parentheses, and +
+      cleaned = cleaned.replace(/^0+/, ''); // remove all leading zeros
+      // Remove common country codes if present (Egypt, KSA, UAE, Morocco, Algeria, etc.)
+      cleaned = cleaned.replace(/^(20|966|971|212|213|962|965|968|973|974)/, '');
+      // If after removing country code it still starts with 0 (e.g. they typed +20 010), remove it again
+      cleaned = cleaned.replace(/^0+/, '');
+      return cleaned;
+    }
+
+    const cleanPhone = formatPhone(phone) as string;
+    const cleanWhatsapp = formatPhone(whatsapp) as string;
+
+    // Check for duplicate phone
+    if (cleanPhone) {
+      const existingPhone = await prisma.user.findFirst({
+        where: { phone: cleanPhone }
+      });
+      if (existingPhone) {
+        return { success: false, error: "هذا الرقم مسجل مسبقاً. الرجاء استخدام رقم آخر." }
+      }
+    }
+
     const supabase = await createClientServer()
 
     // 1. Sign up in Supabase Auth
@@ -56,8 +80,8 @@ export async function registerUser(formData: FormData) {
         gender,
         country,
         age,
-        phone,
-        whatsapp,
+        phone: cleanPhone,
+        whatsapp: cleanWhatsapp,
         verificationStatus: "NOT_VERIFIED",
       }
     })

@@ -37,13 +37,37 @@ export async function updateProfile(formData: FormData) {
       return { success: false, error: "Required fields missing" }
     }
 
+    const formatPhone = (p: string | null) => {
+      if (!p) return null;
+      let cleaned = p.replace(/[\s\-\(\)\+]/g, '');
+      cleaned = cleaned.replace(/^0+/, '');
+      cleaned = cleaned.replace(/^(20|966|971|212|213|962|965|968|973|974)/, '');
+      cleaned = cleaned.replace(/^0+/, '');
+      return cleaned;
+    }
+
+    const cleanPhone = formatPhone(phone) as string;
+    const cleanWhatsapp = formatPhone(whatsapp) as string;
+
+    if (cleanPhone) {
+      const existingPhone = await prisma.user.findFirst({
+        where: { 
+          phone: cleanPhone,
+          id: { not: user.id } 
+        }
+      });
+      if (existingPhone) {
+        return { success: false, error: "هذا الرقم مسجل مسبقاً لحساب آخر. الرجاء استخدام رقم آخر." }
+      }
+    }
+
     const updateData: any = {
       firstName,
       middleName,
       lastName,
       email,
-      phone,
-      whatsapp,
+      phone: cleanPhone,
+      whatsapp: cleanWhatsapp,
       bio,
       projectTypes,
       paymentMethod: paymentMethod || null,
@@ -196,5 +220,50 @@ export async function removeUserLanguage(id: string) {
   } catch (error: any) {
     console.error("Remove language error:", error)
     return { success: false, error: "Failed to remove language" }
+  }
+}
+
+export async function deleteUserAdmin(targetUserId: string) {
+  try {
+    const supabase = await createClientServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not authenticated" }
+
+    const adminCheck = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    })
+    if (adminCheck?.role !== "ADMIN" && adminCheck?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    // Since many relations are not onDelete: Cascade in prisma schema, we should delete them first manually,
+    // or rely on Prisma cascade if configured. 
+    // Usually auth admin API is needed to delete from Supabase Auth as well.
+    const { error: authError } = await supabase.auth.admin.deleteUser(targetUserId)
+    if (authError && !authError.message.includes("User not found")) {
+       console.error("Supabase Auth Delete Error:", authError)
+       // We'll continue to delete from DB even if auth fails, to ensure DB is clean.
+    }
+
+    // Delete VoiceRecordings first
+    await prisma.voiceRecording.deleteMany({ where: { userId: targetUserId } })
+    // Delete Applications
+    await prisma.application.deleteMany({ where: { userId: targetUserId } })
+    // Delete other related records
+    await prisma.portfolio.deleteMany({ where: { userId: targetUserId } })
+    await prisma.comment.deleteMany({ where: { authorId: targetUserId } })
+    await prisma.notification.deleteMany({ where: { userId: targetUserId } })
+    await prisma.userSkill.deleteMany({ where: { userId: targetUserId } })
+    await prisma.userLanguage.deleteMany({ where: { userId: targetUserId } })
+    
+    // Finally delete the user
+    await prisma.user.delete({ where: { id: targetUserId } })
+
+    revalidatePath("/admin/users")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Delete user error:", error)
+    return { success: false, error: "Failed to completely delete user: " + error.message }
   }
 }

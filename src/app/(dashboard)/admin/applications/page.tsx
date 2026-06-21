@@ -22,9 +22,12 @@ export default async function AdminApplicationsPage() {
     redirect("/admin")
   }
 
-  const whereClause = currentUser?.role === "MODERATOR"
-    ? { projectId: currentUser.assignedProjectId || "none" }
-    : {}
+  const whereClause: any = {
+    project: { status: { in: ["OPEN", "IN_PROGRESS"] } }
+  }
+  if (currentUser?.role === "MODERATOR") {
+    whereClause.projectId = currentUser.assignedProjectId || "none"
+  }
 
   const applicationsData = await prisma.application.findMany({
     where: whereClause,
