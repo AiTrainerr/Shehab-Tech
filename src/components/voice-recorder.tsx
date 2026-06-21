@@ -178,6 +178,7 @@ export function VoiceRecorder({
         const url = URL.createObjectURL(rawBlob)
         setLocalAudioBlob(rawBlob)
         setLocalAudioUrl(url)
+        setRecordingId(null) // State transitions directly from Recording -> Review
       }
 
       recorder.start()
@@ -190,7 +191,7 @@ export function VoiceRecorder({
 
   const stopRecording = () => {
     mediaRecorderRef.current?.stop()
-    setRecordingId(null)
+    // Do NOT setRecordingId(null) here! Let onstop handle the transition to prevent React DOM insertBefore crashes.
   }
 
   const handleUpload = async () => {
