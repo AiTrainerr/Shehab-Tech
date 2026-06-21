@@ -118,7 +118,7 @@ export async function updateAvatar(formData: FormData) {
     if (!imageFile || imageFile.size === 0) return { success: false, error: "No image provided" }
 
     const avatarUrl = await uploadToSupabase(imageFile, 'avatars')
-    let fullAvatarUrl = null;
+    let fullAvatarUrl = avatarUrl; // Fallback to avatarUrl if fullImageFile is not sent (to save payload size)
     
     if (fullImageFile && fullImageFile.size > 0) {
       fullAvatarUrl = await uploadToSupabase(fullImageFile, 'avatars')
@@ -126,7 +126,7 @@ export async function updateAvatar(formData: FormData) {
 
     await prisma.user.update({
       where: { id: currentUserId },
-      data: { avatarUrl, ...(fullAvatarUrl ? { fullAvatarUrl } : {}) }
+      data: { avatarUrl, fullAvatarUrl }
     })
 
     revalidatePath("/member/profile")
