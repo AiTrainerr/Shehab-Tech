@@ -9,7 +9,12 @@ export async function updateProfile(formData: FormData) {
   try {
     const supabase = await createClientServer()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: "Not authenticated" }
+    
+    const cookieStore = await (await import("next/headers")).cookies()
+    const fallbackUserId = cookieStore.get("userId")?.value
+    
+    const currentUserId = user?.id || fallbackUserId
+    if (!currentUserId) return { success: false, error: "Not authenticated" }
 
     const firstName = formData.get("firstName") as string
     const middleName = formData.get("middleName") as string | null
@@ -53,7 +58,7 @@ export async function updateProfile(formData: FormData) {
       const existingPhone = await prisma.user.findFirst({
         where: { 
           phone: cleanPhone,
-          id: { not: user.id } 
+          id: { not: currentUserId } 
         }
       });
       if (existingPhone) {
@@ -78,14 +83,14 @@ export async function updateProfile(formData: FormData) {
     // Use a transaction to update user and replace languages
     await prisma.$transaction([
       prisma.user.update({
-        where: { id: user.id },
+        where: { id: currentUserId },
         data: updateData
       }),
       prisma.userLanguage.deleteMany({
-        where: { userId: user.id }
+        where: { userId: currentUserId }
       }),
       prisma.userLanguage.createMany({
-        data: languages.map(l => ({ ...l, userId: user.id }))
+        data: languages.map(l => ({ ...l, userId: currentUserId }))
       })
     ])
 
@@ -101,7 +106,12 @@ export async function updateAvatar(formData: FormData) {
   try {
     const supabase = await createClientServer()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: "Not authenticated" }
+    
+    const cookieStore = await (await import("next/headers")).cookies()
+    const fallbackUserId = cookieStore.get("userId")?.value
+    
+    const currentUserId = user?.id || fallbackUserId
+    if (!currentUserId) return { success: false, error: "Not authenticated" }
 
     const imageFile = formData.get("avatar") as File
     const fullImageFile = formData.get("fullAvatar") as File | null
@@ -115,7 +125,7 @@ export async function updateAvatar(formData: FormData) {
     }
 
     await prisma.user.update({
-      where: { id: user.id },
+      where: { id: currentUserId },
       data: { avatarUrl, ...(fullAvatarUrl ? { fullAvatarUrl } : {}) }
     })
 
@@ -228,9 +238,12 @@ export async function deleteUserAdmin(targetUserId: string) {
     const supabase = await createClientServer()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Not authenticated" }
+    
+    const cookieStore = await (await import("next/headers")).cookies()
+    const currentUserId = user?.id || cookieStore.get("userId")?.value
 
     const adminCheck = await prisma.user.findUnique({
-      where: { id: user.id },
+      where: { id: currentUserId },
       select: { role: true }
     })
     if (adminCheck?.role !== "ADMIN" && adminCheck?.role !== "SUPER_ADMIN") {
