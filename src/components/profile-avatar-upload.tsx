@@ -54,7 +54,15 @@ export function ProfileAvatarUpload({ initialAvatar, fullAvatar }: { initialAvat
       formData.append("fullAvatar", compressedFullAvatar)
       
       // If cropping succeeded, use it as avatar. Otherwise, use the compressed full image.
-      formData.append("avatar", croppedImageFile || compressedFullAvatar)
+      const finalFile = croppedImageFile || compressedFullAvatar;
+      
+      if (finalFile.size > 4.5 * 1024 * 1024) {
+        alert("The image is too large (over 4.5MB). Please select a smaller photo.");
+        setIsUploading(false);
+        return;
+      }
+      
+      formData.append("avatar", finalFile)
 
       const result = await updateAvatar(formData)
       if (result.success && result.avatarUrl) {
@@ -107,7 +115,7 @@ export function ProfileAvatarUpload({ initialAvatar, fullAvatar }: { initialAvat
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept="image/*"
+          accept="image/jpeg, image/png, image/webp, image/jpg"
           className="hidden"
         />
       </div>
