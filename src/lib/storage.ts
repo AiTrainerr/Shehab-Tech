@@ -1,12 +1,12 @@
 import { createClientServer } from "./supabase"
 
-export async function uploadToSupabase(file: File, bucket: string = 'uploads'): Promise<string> {
+export async function uploadToSupabase(file: File, folder: string = 'general'): Promise<string> {
   const supabase = await createClientServer()
   
   // Create a unique file path
   const fileExt = file.name.split('.').pop()
   const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
-  const filePath = `${fileName}`
+  const filePath = `${folder}/${fileName}`
 
   // In Next.js Server Actions, it's safer to upload as ArrayBuffer
   const arrayBuffer = await file.arrayBuffer()
@@ -14,7 +14,7 @@ export async function uploadToSupabase(file: File, bucket: string = 'uploads'): 
 
   // Upload the file
   const { data, error } = await supabase.storage
-    .from(bucket)
+    .from('uploads')
     .upload(filePath, buffer, {
       contentType: file.type || 'image/jpeg',
       upsert: true
@@ -27,7 +27,7 @@ export async function uploadToSupabase(file: File, bucket: string = 'uploads'): 
 
   // Get public URL
   const { data: { publicUrl } } = supabase.storage
-    .from(bucket)
+    .from('uploads')
     .getPublicUrl(filePath)
 
   return publicUrl

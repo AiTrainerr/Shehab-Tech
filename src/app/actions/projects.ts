@@ -243,7 +243,12 @@ export async function approveApplication(applicationId: string) {
 
     if (!currentApp) return { success: false, error: "Application not found" }
 
-    const newStatus = currentApp.status === "FINAL_REVIEW" ? "APPROVED" : "ACCEPTED"
+    let newStatus = "ACCEPTED";
+    if (currentApp.status === "FINAL_REVIEW") {
+      newStatus = "APPROVED";
+    } else if (currentApp.status === "UNDER_REVIEW") {
+      newStatus = "FINAL_REVIEW";
+    }
     let speakerCode = currentApp.speakerCode;
 
     if (newStatus === "APPROVED" && !speakerCode) {
@@ -299,10 +304,29 @@ export async function rejectApplication(applicationId: string, reason?: string) 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Not logged in" }
     
-    const application = await prisma.application.update({
+    const application = await prisma.application.findUnique({
       where: { id: applicationId },
-      data: { status: "REJECTED" },
       include: { project: true }
+    })
+    
+    if (!application) return { success: false, error: "Application not found" }
+
+    // Delete their recordings for this project so they can start fresh
+    const projectSentences = await prisma.projectSentence.findMany({
+      where: { projectId: application.projectId },
+      select: { id: true }
+    })
+    
+    await prisma.voiceRecording.deleteMany({
+      where: {
+        userId: application.userId,
+        sentenceId: { in: projectSentences.map(s => s.id) }
+      }
+    })
+
+    // Delete the application completely
+    await prisma.application.delete({
+      where: { id: applicationId }
     })
     
     const content = reason 
@@ -559,5 +583,29 @@ export async function markApplicationPaid(applicationId: string) {
   } catch (error: any) {
     console.error("Mark application paid error:", error)
     return { success: false, error: "Failed to mark application as paid" }
+  }
+}
+
+export async function submitApplicationProof(applicationId: string, proofUrl: string) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    await prisma.application.update({
+      where: { id: applicationId },
+      data: { 
+        proofUrl, 
+        status: "UNDER_REVIEW"
+      }
+    })
+    
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath("/member/projects")
+    revalidatePath("/admin/applications")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Proof submission error:", error)
+    return { success: false, error: "Failed to submit proof" }
   }
 }

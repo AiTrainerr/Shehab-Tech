@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function VerificationPage() {
   const pendingUsers = await prisma.user.findMany({
+    where: { verificationStatus: "PENDING" },
     select: { id: true, firstName: true, lastName: true, email: true, idCardUrl: true, selfieUrl: true, verificationStatus: true },
     orderBy: { createdAt: "desc" }
   })

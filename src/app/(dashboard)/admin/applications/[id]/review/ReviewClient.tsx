@@ -94,6 +94,7 @@ export function ReviewClient({ application, sentences }: { application: any; sen
       alert("Error saving reviews: " + res.error)
     } else {
       router.refresh()
+      router.push("/admin/applications")
     }
   }
 

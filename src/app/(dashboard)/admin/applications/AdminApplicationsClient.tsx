@@ -17,6 +17,7 @@ interface Application {
   reRecordCount?: number
   acceptedCount?: number
   speakerCode?: string | null
+  proofUrl?: string | null
   project: { id: string; title: string; pricingModel: string }
   user: { id: string; firstName: string; lastName: string; email: string; ranking: string; verificationStatus: string }
 }
@@ -224,19 +225,41 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                   </>
                 )}
               </div>
-              
+              {app.proofUrl && (
+                <div className="mb-4 bg-background/50 border border-border p-3 rounded-xl flex items-center justify-between">
+                  <span className="text-sm font-bold text-foreground/70 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary" /> Task Proof
+                  </span>
+                  <a href={app.proofUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-primary hover:underline">
+                    View Screenshot
+                  </a>
+                </div>
+              )}
+
               {app.status !== 'PENDING' && (
-                <Link
-                  href={`/admin/applications/${app.id}/review`}
-                  className={`w-full px-4 py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
-                    app.status === 'UNDER_REVIEW' 
-                      ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/20' 
-                      : 'bg-card border border-border hover:border-primary/50'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" /> 
-                  {app.status === 'UNDER_REVIEW' ? 'Review Recordings' : 'View Recordings'}
-                </Link>
+                (app.totalSentences || 0) > 0 ? (
+                  <Link
+                    href={`/admin/applications/${app.id}/review`}
+                    className={`w-full px-4 py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
+                      app.status === 'UNDER_REVIEW' 
+                        ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/20' 
+                        : 'bg-card border border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" /> 
+                    {app.status === 'UNDER_REVIEW' ? 'Review Recordings' : 'View Recordings'}
+                  </Link>
+                ) : (
+                  app.status === 'UNDER_REVIEW' && (
+                    <button
+                      onClick={() => handleApprove(app.id)}
+                      disabled={loading === app.id}
+                      className="w-full px-4 py-2 bg-yellow-500 text-white hover:bg-yellow-600 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 disabled:opacity-50"
+                    >
+                      <Check className="w-4 h-4" /> Approve Proof
+                    </button>
+                  )
+                )
               )}
             </div>
           </div>
@@ -254,10 +277,15 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
           <div className="bg-card w-full max-w-md rounded-3xl border border-border shadow-2xl p-6">
             <h3 className="text-xl font-bold mb-2">Reject Application</h3>
             <p className="text-sm text-foreground/60 mb-6">Please provide a reason for rejecting this application. This will be sent to the user as a notification.</p>
+            <div className="flex flex-col gap-2 mb-4">
+              <button onClick={() => setRejectReason("الشخص المتقدم غير نيتف (Not a Native Speaker)")} className="text-left text-sm px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-lg transition-colors border border-border">الشخص المتقدم غير نيتف</button>
+              <button onClick={() => setRejectReason("لم يتم تحديث الصفحة الشخصية والبورتفوليو (Profile/Portfolio not updated)")} className="text-left text-sm px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-lg transition-colors border border-border">لم يتم تحديث الصفحة الشخصية والبورتفوليو</button>
+              <button onClick={() => setRejectReason("هذا المشروع يحتاج توثيق حساب (Account verification required)")} className="text-left text-sm px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-lg transition-colors border border-border">هذا المشروع يحتاج توثيق حساب (Verification)</button>
+            </div>
             <textarea
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="e.g. Your accent does not match the project requirements."
+              placeholder="Or type a custom reason..."
               className="w-full bg-background border border-border rounded-xl p-3 min-h-[100px] mb-6 focus:border-red-500 outline-none"
             />
             <div className="flex gap-3">
