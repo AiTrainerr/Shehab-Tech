@@ -1,29 +1,26 @@
-import { createClient } from '@supabase/supabase-js'
-import dotenv from 'dotenv'
+import { createClient } from '@supabase/supabase-js';
+import * as fs from 'fs';
 
-dotenv.config({ path: '.env.local' })
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY // User actually used service role key here!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:3000';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-anon-key';
 
 async function testUpload() {
-  const dummyFile = new Blob(['hello world'], { type: 'text/plain' })
-  console.log("Uploading test file to avatars...")
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const buffer = Buffer.from("Hello world!");
+  
+  console.log("Attempting to upload to 'uploads' bucket...");
   const { data, error } = await supabase.storage
-    .from('avatars')
-    .upload('test.txt', dummyFile, { upsert: true })
-
-  if (error) {
-    console.error("Upload failed:", error.message)
-  } else {
-    console.log("Upload successful:", data)
+    .from('uploads')
+    .upload('test/test.txt', buffer, {
+      contentType: 'text/plain',
+      upsert: true
+    });
     
-    // Now get public URL
-    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl('test.txt')
-    console.log("Public URL:", publicUrl)
+  if (error) {
+    console.error("Upload failed:", error.message);
+  } else {
+    console.log("Upload success:", data);
   }
 }
 
-testUpload()
+testUpload();

@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Shield, Upload, Camera, CheckCircle, AlertCircle, Loader2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { compressImage } from "@/lib/image-compress"
 import { submitVerification } from "@/app/actions/verification"
 
 export default function MemberVerificationPage() {
@@ -27,13 +28,34 @@ export default function MemberVerificationPage() {
     setIsSubmitting(true)
     setError("")
     
-    const formData = new FormData(e.currentTarget)
-    const result = await submitVerification(formData)
+    try {
+      const form = e.currentTarget
+      const formData = new FormData()
+      formData.append("email", (form.elements.namedItem('email') as HTMLInputElement).value)
+      
+      const idCardFile = (form.elements.namedItem('idCard') as HTMLInputElement).files?.[0]
+      const selfieFile = (form.elements.namedItem('selfie') as HTMLInputElement).files?.[0]
+      
+      if (!idCardFile || !selfieFile) {
+        throw new Error("Please select both ID and Selfie images.")
+      }
+
+      // Compress images before upload to prevent server limits and speed up upload
+      const compressedIdCard = await compressImage(idCardFile)
+      const compressedSelfie = await compressImage(selfieFile)
+      
+      formData.append("idCard", compressedIdCard)
+      formData.append("selfie", compressedSelfie)
+
+      const result = await submitVerification(formData)
     
-    if (result.success) {
-      setSuccess(true)
-    } else {
-      setError(result.error || "An error occurred")
+      if (result.success) {
+        setSuccess(true)
+      } else {
+        setError(result.error || "An error occurred")
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to compress or upload images")
     }
     
     setIsSubmitting(false)

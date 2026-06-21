@@ -5,6 +5,7 @@ import { User, Camera, Loader2, Check, X } from "lucide-react"
 import Cropper from "react-easy-crop"
 import getCroppedImg from "@/lib/cropImage"
 import { updateAvatar } from "@/app/actions/user"
+import { compressImage } from "@/lib/image-compress"
 
 export function ProfileAvatarUpload({ initialAvatar, fullAvatar }: { initialAvatar: string | null, fullAvatar?: string | null }) {
   const [avatar, setAvatar] = React.useState(initialAvatar)
@@ -45,7 +46,9 @@ export function ProfileAvatarUpload({ initialAvatar, fullAvatar }: { initialAvat
 
       const formData = new FormData()
       formData.append("avatar", croppedImageFile)
-      formData.append("fullAvatar", rawFile)
+      
+      const compressedFullAvatar = await compressImage(rawFile)
+      formData.append("fullAvatar", compressedFullAvatar)
 
       const result = await updateAvatar(formData)
       if (result.success && result.avatarUrl) {
