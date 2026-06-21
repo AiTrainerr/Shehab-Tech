@@ -287,7 +287,7 @@ export function VoiceRecorder({
   const isLocked = applicationStatus === "UNDER_REVIEW" || applicationStatus === "APPROVED" || applicationStatus === "ACCEPTED" || (savedRecord && savedRecord.status === "ACCEPTED")
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" translate="no">
       {/* Constraints Indicator */}
       <div className="p-4 bg-primary/5 rounded-2xl border border-primary/20 flex flex-wrap gap-3 text-xs font-semibold">
         <span className="px-2.5 py-1 bg-primary/10 rounded-lg text-primary">Format: {audioFormat}</span>
