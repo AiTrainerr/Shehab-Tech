@@ -184,7 +184,16 @@ export function VoiceRecorder({
       const arrayBuffer = await localAudioBlob.arrayBuffer()
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
       const audioCtx = new AudioCtx()
-      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+      
+      // Safari / iOS compatibility for decodeAudioData
+      const audioBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
+        const p = audioCtx.decodeAudioData(
+          arrayBuffer,
+          (decoded) => resolve(decoded),
+          (err) => reject(err)
+        );
+        if (p) p.catch(reject);
+      });
 
       const durationSec = audioBuffer.duration
 
@@ -210,7 +219,12 @@ export function VoiceRecorder({
       source.connect(offlineCtx.destination)
       source.start()
 
-      const renderedBuffer = await offlineCtx.startRendering()
+      // Safari / iOS compatibility for startRendering
+      const renderedBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
+        offlineCtx.oncomplete = (e) => resolve(e.renderedBuffer);
+        const p = offlineCtx.startRendering();
+        if (p) p.catch(reject);
+      });
 
       // Convert the rendered buffer to a standard WAV Blob matching project requirements
       const wavArrayBuffer = audioBufferToWav(renderedBuffer, bitDepth)
