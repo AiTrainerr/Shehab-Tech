@@ -65,8 +65,8 @@ export function ProfileAvatarUpload({ initialAvatar, fullAvatar }: { initialAvat
         }
       }
 
-      if (finalFile.size > 3.8 * 1024 * 1024) {
-        alert("The image is too large (over 4MB). Please select a smaller photo or crop it closer.");
+      if (finalFile.size > 8 * 1024 * 1024) {
+        alert("The image is too large (over 8MB). Please select a smaller photo or crop it closer.");
         setIsUploading(false);
         return;
       }
