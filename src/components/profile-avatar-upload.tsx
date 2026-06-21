@@ -67,6 +67,7 @@ export function ProfileAvatarUpload({ initialAvatar, fullAvatar }: { initialAvat
   return (
     <>
       <div 
+        translate="no"
         className="relative shrink-0 group z-10"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -106,7 +107,7 @@ export function ProfileAvatarUpload({ initialAvatar, fullAvatar }: { initialAvat
       </div>
 
       {imageSrc && (
-        <div className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div translate="no" className="fixed inset-0 z-[100] bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between">
               <h3 className="font-bold text-lg">Crop Profile Picture</h3>
