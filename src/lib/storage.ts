@@ -13,12 +13,29 @@ export async function uploadToSupabase(file: File, folder: string = 'general'): 
   const buffer = Buffer.from(arrayBuffer)
 
   // Upload the file
-  const { data, error } = await supabase.storage
+  let { data, error } = await supabase.storage
     .from('uploads')
     .upload(filePath, buffer, {
       contentType: file.type || 'image/jpeg',
       upsert: true
     })
+
+  // If the bucket does not exist, try to create it and retry upload
+  if (error && error.message.includes("Bucket not found")) {
+    console.log("Bucket 'uploads' not found. Creating it automatically...")
+    await supabase.storage.createBucket('uploads', { public: true })
+    
+    // Retry upload
+    const retryRes = await supabase.storage
+      .from('uploads')
+      .upload(filePath, buffer, {
+        contentType: file.type || 'image/jpeg',
+        upsert: true
+      })
+    
+    data = retryRes.data
+    error = retryRes.error
+  }
 
   if (error) {
     console.error("Supabase Storage Error:", error)
