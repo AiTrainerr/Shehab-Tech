@@ -171,13 +171,24 @@ export function Navbar({ user }: { user?: any }) {
                 {isAdminOrMod ? (
                   <>
                     {userRole !== "MODERATOR" && (
-                      <>
-                        <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Admin Dashboard</Link>
-                        <Link href="/admin/projects" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Projects</Link>
-                      </>
+                      <div className="grid grid-cols-2 gap-1 mb-2 border-b border-border pb-2">
+                        <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">Admin Dashboard</Link>
+                        <Link href="/admin/users" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">Users</Link>
+                        <Link href="/admin/projects" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">Projects</Link>
+                        <Link href="/admin/applications" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">Applications</Link>
+                        <Link href="/admin/qc" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">QC Panel</Link>
+                        <Link href="/admin/comments" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">Comments</Link>
+                        <Link href="/admin/verification" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">Verifications</Link>
+                        <Link href="/admin/payments" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">Payments</Link>
+                      </div>
                     )}
                     {userRole === "MODERATOR" && (
-                      <Link href="/member" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Freelancer Dashboard</Link>
+                      <div className="grid grid-cols-2 gap-1 mb-2 border-b border-border pb-2">
+                        <Link href="/member" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">Freelancer Panel</Link>
+                        <Link href="/admin/applications" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">Applications</Link>
+                        <Link href="/admin/qc" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">QC Panel</Link>
+                        <Link href="/admin/comments" onClick={() => setIsMenuOpen(false)} className="hover:bg-card hover:text-primary px-2 py-2 rounded-lg text-sm font-medium transition-colors">Comments</Link>
+                      </div>
                     )}
                     <Link href="/member/profile" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">My Profile</Link>
                   </>
