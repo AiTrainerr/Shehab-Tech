@@ -181,21 +181,8 @@ export function VoiceRecorder({
 
     setUploading(activeSentence.id)
     try {
-      const arrayBuffer = await localAudioBlob.arrayBuffer()
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext
-      const audioCtx = new AudioCtx()
-      
-      // Safari / iOS compatibility for decodeAudioData
-      const audioBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
-        const p = audioCtx.decodeAudioData(
-          arrayBuffer,
-          (decoded) => resolve(decoded),
-          (err) => reject(err)
-        );
-        if (p) p.catch(reject);
-      });
-
-      const durationSec = audioBuffer.duration
+      // Completely bypass Web Audio API on iOS/Chrome to prevent WKWebView crashes
+      const durationSec = recordingTime;
 
       // Enforce Minimum/Maximum Duration
       if (minDuration !== null && durationSec < minDuration) {
@@ -205,36 +192,16 @@ export function VoiceRecorder({
         throw new Error(`Recording is too long (${durationSec.toFixed(1)}s). Maximum allowed is ${maxDuration}s.`)
       }
 
-      // Automatically downmix/upmix and resample using OfflineAudioContext
-      const targetChannelsCount = channels === "MONO" ? 1 : 2
-      const OfflineCtx = window.OfflineAudioContext || (window as any).webkitOfflineAudioContext
-      const offlineCtx = new OfflineCtx(
-        targetChannelsCount,
-        Math.floor(durationSec * sampleRate),
-        sampleRate
-      )
-
-      const source = offlineCtx.createBufferSource()
-      source.buffer = audioBuffer
-      source.connect(offlineCtx.destination)
-      source.start()
-
-      // Safari / iOS compatibility for startRendering
-      const renderedBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
-        offlineCtx.oncomplete = (e) => resolve(e.renderedBuffer);
-        const p = offlineCtx.startRendering();
-        if (p) p.catch(reject);
-      });
-
-      // Convert the rendered buffer to a standard WAV Blob matching project requirements
-      const wavArrayBuffer = audioBufferToWav(renderedBuffer, bitDepth)
-      const finalWavBlob = new Blob([wavArrayBuffer], { type: "audio/wav" })
+      // Instead of client-side resampling (which causes memory crashes on iOS), 
+      // we upload the raw format directly. 
+      const finalBlob = localAudioBlob;
+      const fileExt = finalBlob.type.includes("mp4") || finalBlob.type.includes("m4a") ? "mp4" : "webm";
 
       const formData = new FormData()
-      formData.append("audio", finalWavBlob, `recording_${activeSentence.id}.wav`)
-      formData.append("fileSize", finalWavBlob.size.toString())
+      formData.append("audio", finalBlob, `recording_${activeSentence.id}.${fileExt}`)
+      formData.append("fileSize", finalBlob.size.toString())
       formData.append("duration", durationSec.toString())
-      formData.append("audioFormat", "WAV")
+      formData.append("audioFormat", fileExt.toUpperCase())
       formData.append("sampleRate", sampleRate.toString())
       formData.append("bitDepth", bitDepth.toString())
       formData.append("channels", channels)
