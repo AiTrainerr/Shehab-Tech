@@ -41,14 +41,20 @@ export function ProfileAvatarUpload({ initialAvatar, fullAvatar }: { initialAvat
 
     setIsUploading(true)
     try {
-      const croppedImageFile = await getCroppedImg(imageSrc, croppedAreaPixels)
-      if (!croppedImageFile) throw new Error("Failed to crop image")
+      let croppedImageFile: File | null = null;
+      try {
+        croppedImageFile = await getCroppedImg(imageSrc, croppedAreaPixels)
+      } catch (cropErr) {
+        console.warn("Cropping failed (likely HEIC format on iOS). Falling back to original image.", cropErr)
+      }
 
       const formData = new FormData()
-      formData.append("avatar", croppedImageFile)
       
       const compressedFullAvatar = await compressImage(rawFile)
       formData.append("fullAvatar", compressedFullAvatar)
+      
+      // If cropping succeeded, use it as avatar. Otherwise, use the compressed full image.
+      formData.append("avatar", croppedImageFile || compressedFullAvatar)
 
       const result = await updateAvatar(formData)
       if (result.success && result.avatarUrl) {
@@ -59,7 +65,7 @@ export function ProfileAvatarUpload({ initialAvatar, fullAvatar }: { initialAvat
       }
     } catch (e) {
       console.error(e)
-      alert("Error cropping image")
+      alert("Error uploading image. Please try a different photo.")
     }
     setIsUploading(false)
   }
