@@ -28,7 +28,7 @@ export default async function MemberDashboard() {
       },
       applications: {
         where: {
-          status: { in: ["ACCEPTED", "WORKING", "UNDER_REVIEW", "FINAL_REVIEW", "APPROVED", "PAID"] },
+          status: { in: ["PENDING", "ACCEPTED", "WORKING", "UNDER_REVIEW", "FINAL_REVIEW", "APPROVED", "PAID"] },
           project: { status: { not: "CANCELLED" } }
         },
         include: {
@@ -194,20 +194,28 @@ export default async function MemberDashboard() {
                         app.status === "APPROVED" || app.status === "PAID" ? "bg-green-500/10 text-green-500" :
                         app.status === "WORKING" || app.status === "ACCEPTED" ? "bg-yellow-500/10 text-yellow-500" :
                         app.status === "FINAL_REVIEW" ? "bg-purple-500/10 text-purple-500" :
+                        app.status === "PENDING" ? "bg-blue-500/10 text-blue-500" :
                         "bg-orange-500/10 text-orange-500"
                       }`}>
                         {app.status === "APPROVED" ? "Approved" : 
                          app.status === "PAID" ? "Paid (تم الدفع)" : 
-                         app.status === "FINAL_REVIEW" ? "Final Client Review (تحت مراجعة العميل النهائي)" : 
+                         app.status === "FINAL_REVIEW" ? "Final Client Review (مراجعة نهائية)" : 
                          app.status === "WORKING" ? "In Progress" : 
-                         app.status === "ACCEPTED" ? "Accepted" : "Under Review"}
+                         app.status === "ACCEPTED" ? "Accepted (تمت الموافقة)" : 
+                         app.status === "PENDING" ? "Pending (قيد الانتظار)" : "Under Review"}
                       </div>
                     </div>
                   </div>
                   <div className="mt-4 pt-4 border-t border-border flex justify-end">
-                    <Link href={`/member/projects/${app.project.id}`} className="flex items-center gap-2 text-sm font-bold text-primary hover:underline">
-                      View Project <ArrowRight className="w-4 h-4" />
-                    </Link>
+                    {app.status === "ACCEPTED" || app.status === "WORKING" ? (
+                      <Link href={`/member/projects/${app.project.id}`} className="flex items-center gap-2 text-sm font-bold bg-primary text-primary-foreground px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20 animate-in zoom-in duration-300">
+                        ابدأ التسجيل الآن <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    ) : (
+                      <Link href={`/member/projects/${app.project.id}`} className="flex items-center gap-2 text-sm font-bold text-primary hover:underline">
+                        View Details <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    )}
                   </div>
                 </div>
               ))

@@ -171,12 +171,12 @@ export function MemberProjectsClient({ initialProjects, isPast }: { initialProje
                       {!isPast && (
                         appStatus ? (
                           <div className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border
-                            ${appStatus === "APPROVED" || appStatus === "ACCEPTED" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                            ${appStatus === "APPROVED" || appStatus === "ACCEPTED" || appStatus === "WORKING" || appStatus === "FINAL_REVIEW" || appStatus === "PAID" ? "bg-green-500/10 text-green-500 border-green-500/20" :
                               appStatus === "REJECTED" ? "bg-red-500/10 text-red-500 border-red-500/20" :
                               "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
                             }`}
                           >
-                            {appStatus === "APPROVED" || appStatus === "ACCEPTED" ? (
+                            {appStatus === "APPROVED" || appStatus === "ACCEPTED" || appStatus === "WORKING" || appStatus === "FINAL_REVIEW" || appStatus === "PAID" ? (
                               <><CheckCircle className="w-4 h-4" /> Approved</>
                             ) : appStatus === "REJECTED" ? (
                               <>✗ Rejected</>

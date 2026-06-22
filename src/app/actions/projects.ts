@@ -280,10 +280,11 @@ export async function approveApplication(applicationId: string) {
     await prisma.notification.create({
       data: {
         userId: application.userId,
-        title: newStatus === "APPROVED" ? "Project Approved!" : "Application Accepted!",
+        title: newStatus === "APPROVED" ? "Project Approved!" : "Application Accepted! (Start Now)",
         content: newStatus === "APPROVED" 
           ? `Your work for "${application.project.title}" has been finally approved. Your unique speaker code is ${speakerCode}.`
-          : `Your application for "${application.project.title}" has been accepted. You can now start working.`
+          : `Your application for "${application.project.title}" has been accepted. Click here to start working!`,
+        link: `/member/projects/${application.projectId}`
       }
     })
     
