@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { createClientServer } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
 
@@ -19,6 +20,7 @@ export const metadata: Metadata = {
     template: "%s | SHEHAB TECH"
   },
   description: "Join SHEHAB TECH, the leading platform for AI data collection, voice recording, and annotation. Earn money as a freelancer by contributing to the future of AI.",
+  manifest: "/manifest", // Points to the manifest.ts route
   keywords: ["AI data collection", "freelance arabic", "voice recording tasks", "data annotation", "work from home egypt", "shehab tech"],
   authors: [{ name: "SHEHAB TECH Team" }],
   creator: "SHEHAB TECH",
@@ -73,6 +75,7 @@ export default async function RootLayout({
             {children}
           </main>
           <Footer />
+          <PWAInstallPrompt />
         </ThemeProvider>
       </body>
     </html>
