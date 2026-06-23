@@ -57,6 +57,7 @@ model User {
   portfolios    Portfolio[]
   comments      Comment[]
   voiceRecordings VoiceRecording[]
+  pushSubscriptions PushSubscription[]
 
   // Moderator fields
   isApproved         Boolean  @default(false)
@@ -289,4 +290,14 @@ model AuditLog {
   details     String
   ipAddress   String?
   createdAt   DateTime @default(now())
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }

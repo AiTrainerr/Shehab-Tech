@@ -13,6 +13,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { PushNotificationManager } from "@/components/push-notification-manager";
 import { createClientServer } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
 
@@ -84,6 +85,7 @@ export default async function RootLayout({
           </main>
           <Footer />
           <PWAInstallPrompt />
+          <PushNotificationManager />
         </ThemeProvider>
       </body>
     </html>

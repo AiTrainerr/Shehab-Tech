@@ -288,6 +288,19 @@ export async function approveApplication(applicationId: string) {
       }
     })
     
+    // Send Push Notification asynchronously (fire and forget)
+    import("@/app/actions/push").then(m => {
+      m.sendPushNotification(
+        application.userId,
+        newStatus === "APPROVED" ? "تم قبول عملك!" : "تم قبول طلبك!",
+        newStatus === "APPROVED" 
+          ? `تم قبول عملك في "${application.project.title}". كودك هو ${speakerCode}.`
+          : `تم قبول طلبك لـ "${application.project.title}". اضغط للبدء!`,
+        `/member/projects/${application.projectId}`
+      )
+    }).catch(console.error)
+    
+    
     const { revalidatePath } = await import("next/cache")
     revalidatePath("/admin/applications")
     revalidatePath(`/member/projects/${application.projectId}`)
