@@ -14,6 +14,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationManager } from "@/components/push-notification-manager";
+import { SplashScreen } from "@/components/splash-screen";
 import { createClientServer } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
 
@@ -79,6 +80,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <SplashScreen />
           <Navbar user={currentUser} />
           <main className="flex-grow pt-16">
             {children}
