@@ -35,12 +35,29 @@ export function MemberDashboardClient({ notifications, unreadCount }: Props) {
       </button>
       {showNotifs && (
         <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-xl shadow-xl z-50 overflow-hidden">
-          <div className="p-4 border-b border-border bg-background/50 flex items-center justify-between">
-            <h3 className="font-bold">Notifications</h3>
-            {unreadCount > 0 && (
-              <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                {unreadCount} new
-              </span>
+          <div className="p-4 border-b border-border bg-background/50 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold">Notifications</h3>
+              {unreadCount > 0 && (
+                <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  {unreadCount} new
+                </span>
+              )}
+            </div>
+            {typeof window !== "undefined" && "Notification" in window && Notification.permission !== "granted" && (
+              <button 
+                onClick={async () => {
+                  if (Notification.permission === "default") {
+                    const p = await Notification.requestPermission()
+                    if (p === "granted") window.location.reload()
+                  } else {
+                    alert("Please enable notifications in your browser settings or PWA app settings.")
+                  }
+                }}
+                className="text-xs bg-primary text-primary-foreground font-bold py-1.5 px-3 rounded-lg mt-1"
+              >
+                Enable Push Notifications 🔔
+              </button>
             )}
           </div>
           <div className="max-h-64 overflow-y-auto">

@@ -14,13 +14,9 @@ export function PushNotificationManager() {
     setPermission(Notification.permission)
 
     if (Notification.permission === "default") {
-      // Delay prompt so it's not aggressive
-      const timer = setTimeout(() => {
-        if (!localStorage.getItem("push-prompt-dismissed")) {
-          setShowPrompt(true)
-        }
-      }, 5000)
-      return () => clearTimeout(timer)
+      if (!localStorage.getItem("push-prompt-dismissed")) {
+        setShowPrompt(true)
+      }
     }
 
     if (Notification.permission === "granted") {
