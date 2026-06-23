@@ -18,5 +18,5 @@ export async function logoutUser() {
     console.error("Logout error (ignored):", e)
   }
   
-  redirect("/login")
+  return { success: true }
 }

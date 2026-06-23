@@ -113,15 +113,13 @@ export function Navbar({ user }: { user?: any }) {
                 </Link>
 
                 {/* Logout — desktop only */}
-                <form action={logoutUser} className="hidden md:block">
-                  <button
-                    type="submit"
-                    className="p-2 text-foreground/50 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
-                    title="Log Out"
-                  >
-                    <LogOut className="w-5 h-5" />
-                  </button>
-                </form>
+                <button
+                  onClick={async () => { await logoutUser(); window.location.href = "/login"; }}
+                  className="hidden md:block p-2 text-foreground/50 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
+                  title="Log Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
 
                 {/* Hamburger — mobile only */}
                 <button
@@ -203,11 +201,12 @@ export function Navbar({ user }: { user?: any }) {
 
                 {/* Logout in mobile menu */}
                 <div className="pt-2 border-t border-border">
-                  <form action={logoutUser}>
-                    <button type="submit" className="w-full flex items-center gap-2 px-3 py-2.5 text-red-500 hover:bg-red-500/10 rounded-xl text-base font-medium transition-colors">
-                      <LogOut className="w-4 h-4" /> Log Out
-                    </button>
-                  </form>
+                  <button 
+                    onClick={async () => { await logoutUser(); window.location.href = "/login"; }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 text-red-500 hover:bg-red-500/10 rounded-xl text-base font-medium transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" /> Log Out
+                  </button>
                 </div>
               </>
             )}
