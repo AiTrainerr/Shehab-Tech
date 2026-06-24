@@ -3,7 +3,8 @@ import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { TranscriptionEditor, Segment } from "@/components/transcription-editor"
-import { Headphones, ArrowRight } from "lucide-react"
+import { ArrowLeft, Clock, FileAudio, LayoutList, CheckCircle2, AlertCircle, Headphones, ArrowRight } from "lucide-react"
+import { TranscriptionClientWrapper } from "./TranscriptionClientWrapper"
 import Link from "next/link"
 
 export const dynamic = "force-dynamic"
@@ -91,42 +92,3 @@ export default async function FreelancerTranscriptionPage({ params }: { params: 
   )
 }
 
-// ── Client Wrapper for Save Action ───────────────────────────────────────────
-"use client"
-import { useRouter } from "next/navigation"
-
-function TranscriptionClientWrapper({ taskId, audioUrl, initialSegments, speakerCount, isReadOnly }: any) {
-  const router = useRouter()
-
-  const handleSave = async (segments: Segment[]) => {
-    try {
-      const res = await fetch(`/api/transcription/${taskId}/save`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ segments })
-      })
-
-      if (!res.ok) throw new Error("Failed to save")
-      
-      // Optional: show toast notification
-      alert("Saved successfully!")
-      router.refresh()
-    } catch (e) {
-      console.error(e)
-      alert("An error occurred while saving.")
-    }
-  }
-
-  return (
-    <div className="animate-slide-up stagger-1">
-      <TranscriptionEditor
-        taskId={taskId}
-        audioUrl={audioUrl}
-        initialSegments={initialSegments}
-        speakerCount={speakerCount}
-        isReviewMode={isReadOnly}
-        onSave={isReadOnly ? undefined : handleSave}
-      />
-    </div>
-  )
-}
