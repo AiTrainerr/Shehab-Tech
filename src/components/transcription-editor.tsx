@@ -215,13 +215,37 @@ export function TranscriptionEditor({
   // Unsaved changes prompt
   React.useEffect(() => {
     if (!hasUnsavedChanges) return
+
+    // Intercept native browser refresh/close
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
       e.returnValue = "You have unsaved changes. Are you sure you want to leave?"
       return "You have unsaved changes. Are you sure you want to leave?"
     }
     window.addEventListener("beforeunload", onBeforeUnload)
-    return () => window.removeEventListener("beforeunload", onBeforeUnload)
+
+    // Intercept Next.js <Link> clicks
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a');
+      
+      if (anchor && anchor.href && !anchor.target) {
+        // If it's an internal link, ask for confirmation
+        const isInternal = anchor.href.startsWith(window.location.origin) || anchor.href.startsWith('/');
+        if (isInternal && !window.confirm("يوجد تعديلات لم يتم حفظها. هل أنت متأكد أنك تريد المغادرة بدون حفظ؟ (Unsaved changes)")) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }
+    };
+    
+    // Use capture phase to intercept before Next.js routing handles it
+    document.addEventListener("click", handleClick, { capture: true });
+
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload)
+      document.removeEventListener("click", handleClick, { capture: true })
+    }
   }, [hasUnsavedChanges])
 
   const handlePlayPause = () => {
