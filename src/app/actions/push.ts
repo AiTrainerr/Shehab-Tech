@@ -4,11 +4,17 @@ import { prisma } from "@/lib/prisma"
 import { createClientServer } from "@/lib/supabase"
 import webpush from "web-push"
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || 'mailto:abdallah.shehabtech@gmail.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || ''
-)
+try {
+  if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT || 'mailto:abdallah.shehabtech@gmail.com',
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    )
+  }
+} catch (e) {
+  console.warn("VAPID keys not configured properly, push notifications will be disabled.")
+}
 
 export async function subscribeToPush(subscription: any) {
   try {
