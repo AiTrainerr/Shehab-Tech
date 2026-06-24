@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, FileAudio } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { createProjectAction } from "@/app/actions/projects"
 
 const COUNTRIES = [

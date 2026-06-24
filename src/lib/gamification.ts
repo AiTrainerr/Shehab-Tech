@@ -3,7 +3,7 @@
  * Centralised logic for user levels, badges, and progress.
  */
 
-export type UserLevel = "مبتدئ" | "محترف" | "خبير" | "نجم"
+export type UserLevel = "Beginner" | "Pro" | "Expert" | "Star"
 export type LevelClass = "level-beginner" | "level-pro" | "level-expert" | "level-star"
 
 export interface LevelInfo {
