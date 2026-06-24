@@ -18,7 +18,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { teamRole: true }
+      select: { teamRole: true, teamLeaderId: true }
     })
 
     const isQC = user?.teamRole === "QC"
@@ -46,7 +46,58 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
       })
     }
 
-    return NextResponse.json({ success: true })
+    // --- AUTO-CLAIM NEXT TASK LOGIC ---
+    let nextTask = null
+    const teamIdToSet = user?.teamLeaderId || null
+
+    if (isQC) {
+      // Find next task for QC
+      nextTask = await prisma.transcriptionTask.findFirst({
+        where: {
+          projectId: task.projectId,
+          status: "SUBMITTED_TO_QC",
+          teamId: teamIdToSet,
+          qcAssignedToId: null
+        },
+        orderBy: { createdAt: "asc" }
+      })
+      if (nextTask) {
+        await prisma.transcriptionTask.updateMany({
+          where: { id: nextTask.id, qcAssignedToId: null, status: "SUBMITTED_TO_QC" },
+          data: { qcAssignedToId: userId, status: "UNDER_QC_REVIEW" }
+        })
+      }
+    } else {
+      // Find next task for Transcriber
+      nextTask = await prisma.transcriptionTask.findFirst({
+        where: {
+          projectId: task.projectId,
+          status: { in: ["AVAILABLE", "REJECTED"] },
+          assignedToId: null
+        },
+        orderBy: { createdAt: "asc" }
+      })
+      if (nextTask) {
+        await prisma.transcriptionTask.updateMany({
+          where: { id: nextTask.id, assignedToId: null, status: nextTask.status },
+          data: { assignedToId: userId, status: "ASSIGNED", teamId: teamIdToSet }
+        })
+      }
+    }
+
+    // Verify claim succeeded (in case of race conditions)
+    let finalNextTaskId = null
+    if (nextTask) {
+      const verifyClaim = await prisma.transcriptionTask.findUnique({ where: { id: nextTask.id } })
+      if (isQC && verifyClaim?.qcAssignedToId === userId) finalNextTaskId = nextTask.id
+      if (!isQC && verifyClaim?.assignedToId === userId) finalNextTaskId = nextTask.id
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      nextTaskId: finalNextTaskId,
+      projectId: task.projectId 
+    })
   } catch (error) {
     console.error("Submit transcription error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

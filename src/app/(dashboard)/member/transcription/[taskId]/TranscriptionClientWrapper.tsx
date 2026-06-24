@@ -29,9 +29,14 @@ export function TranscriptionClientWrapper({ taskId, audioUrl, initialSegments, 
     if (!confirm(isQC ? "Submit to Admin QA?" : "Submit this task?")) return;
     try {
       const res = await fetch(`/api/transcription/${taskId}/submit`, { method: "POST" })
-      if (!res.ok) throw new Error("Failed to submit")
-      alert("Submitted successfully!")
-      router.push("/member")
+      const data = await res.json()
+      if (data.nextTaskId) {
+        alert("Submitted successfully! Redirecting to the next task...")
+        router.push(`/member/transcription/${data.nextTaskId}`)
+      } else {
+        alert("Submitted successfully! No more tasks available.")
+        router.push(`/member/projects/${data.projectId || ''}`)
+      }
     } catch (e) {
       console.error(e)
       alert("An error occurred while submitting.")
