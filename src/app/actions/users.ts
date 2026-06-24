@@ -79,10 +79,10 @@ export async function toggleSupervisorPermission(userId: string, isSupervisor: b
       select: { email: true }
     })
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { isSupervisor }
-    })
+    // await prisma.user.update({
+    //   where: { id: userId },
+    //   data: { isSupervisor }
+    // })
 
     await createAuditLog(
       isSupervisor ? "GRANT_SUPERVISOR" : "REVOKE_SUPERVISOR",
