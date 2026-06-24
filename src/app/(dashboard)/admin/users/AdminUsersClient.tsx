@@ -110,6 +110,22 @@ export function AdminUsersClient({ initialUsers, statusConfig, projects }: { ini
                         </button>
                       </div>
 
+                      {user.role === "MEMBER" && (
+                        <div className="mb-2">
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Grant Supervisor permissions to ${user.firstName}?`)) return
+                              const res = await updateModeratorPermissions(user.id, { role: "MODERATOR", isApproved: true })
+                              if (res.success) router.refresh()
+                              else alert(res.error)
+                            }}
+                            className="px-3 py-1.5 bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 border border-purple-500/20 rounded-lg text-xs font-bold transition-colors"
+                          >
+                            Grant Supervisor Permissions
+                          </button>
+                        </div>
+                      )}
+
                       {/* Sensitive Info — Admin Only */}
                       <div className="flex flex-wrap gap-3 text-sm text-foreground/70 mt-2">
                         <span className="flex items-center gap-1.5 bg-yellow-500/5 border border-yellow-500/10 px-2 py-1 rounded-lg">

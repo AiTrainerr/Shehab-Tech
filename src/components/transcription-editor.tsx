@@ -61,6 +61,7 @@ export function TranscriptionEditor({
   const [isReady, setIsReady] = React.useState(false)
   const [activeSegmentId, setActiveSegmentId] = React.useState<string | null>(null)
   const [isLooping, setIsLooping] = React.useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false)
   const segmentRefs = React.useRef<Record<string, HTMLDivElement | null>>({})
 
   // Initialize WaveSurfer
@@ -136,6 +137,7 @@ export function TranscriptionEditor({
           isValid: true,
         }
         setActiveSegmentId(region.id)
+        setHasUnsavedChanges(true)
         return [...prev, newSegment].sort((a, b) => a.startTime - b.startTime)
       })
     })
@@ -153,6 +155,7 @@ export function TranscriptionEditor({
           }
         }
 
+        setHasUnsavedChanges(true)
         return prev.map((s) =>
           s.id === region.id
             ? { ...s, startTime: region.start, endTime: region.end }
@@ -189,7 +192,7 @@ export function TranscriptionEditor({
 
   // Load initial segments into regions
   React.useEffect(() => {
-    if (!regionsRef.current) return
+    if (!regionsRef.current || !isReady) return
     const wsRegions = regionsRef.current
     wsRegions.clearRegions()
     
@@ -203,7 +206,18 @@ export function TranscriptionEditor({
         resize: !isReviewMode,
       })
     })
-  }, [isReviewMode]) // Run when isReviewMode changes or once at start. We don't want to re-render regions on every text change.
+  }, [isReviewMode, isReady]) // Run when isReviewMode or isReady changes.
+
+  // Unsaved changes prompt
+  React.useEffect(() => {
+    if (!hasUnsavedChanges) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ""
+    }
+    window.addEventListener("beforeunload", onBeforeUnload)
+    return () => window.removeEventListener("beforeunload", onBeforeUnload)
+  }, [hasUnsavedChanges])
 
   const handlePlayPause = () => {
     if (wsRef.current) {
@@ -245,18 +259,22 @@ export function TranscriptionEditor({
 
   const handleSegmentTextChange = (id: string, text: string) => {
     setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, transcriptText: text } : s)))
+    setHasUnsavedChanges(true)
   }
 
   const handleSegmentSpeakerChange = (id: string, speaker: string) => {
     setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, speakerLabel: speaker } : s)))
+    setHasUnsavedChanges(true)
   }
 
   const handleSegmentValidToggle = (id: string) => {
     setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, isValid: s.isValid === false ? true : false } : s)))
+    setHasUnsavedChanges(true)
   }
 
   const handleDeleteSegment = (id: string) => {
     setSegments((prev) => prev.filter((s) => s.id !== id))
+    setHasUnsavedChanges(true)
     if (regionsRef.current) {
       const regions = regionsRef.current.getRegions()
       const region = regions.find((r: any) => r.id === id)
@@ -269,6 +287,7 @@ export function TranscriptionEditor({
     setIsSaving(true)
     try {
       await onSave(segments)
+      setHasUnsavedChanges(false)
     } finally {
       setIsSaving(false)
     }

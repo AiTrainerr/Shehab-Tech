@@ -63,6 +63,40 @@ export async function toggleModeratorApproval(userId: string, isApproved: boolea
   }
 }
 
+export async function toggleSupervisorPermission(userId: string, isSupervisor: boolean) {
+  try {
+    const supabase = await createClientServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    })
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isSupervisor }
+    })
+
+    await createAuditLog(
+      isSupervisor ? "GRANT_SUPERVISOR" : "REVOKE_SUPERVISOR",
+      `${isSupervisor ? "Granted" : "Revoked"} supervisor permissions for ${targetUser?.email || userId}`
+    )
+
+    revalidatePath("/admin/users")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Toggle supervisor permission error:", error)
+    return { success: false, error: "Failed to toggle supervisor permission" }
+  }
+}
+
 export async function assignModeratorProject(userId: string, projectId: string | null) {
   try {
     const supabase = await createClientServer()

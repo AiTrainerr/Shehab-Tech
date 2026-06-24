@@ -51,6 +51,7 @@ export default async function FreelancerTranscriptionPage({ params }: { params: 
     endTime: s.endTime,
     speakerLabel: s.speakerLabel,
     transcriptText: s.transcriptText,
+    isValid: s.isValid,
   }))
 
   return (

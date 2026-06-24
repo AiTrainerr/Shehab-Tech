@@ -17,6 +17,8 @@ export default async function MemberDashboard() {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      id: true,
+      role: true,
       firstName: true,
       lastName: true,
       completedCount: true,
@@ -166,6 +168,27 @@ export default async function MemberDashboard() {
           )
         })}
       </div>
+
+      {/* Supervisor Link Card */}
+      {user.role === "MODERATOR" && (
+        <div className="mb-8 glass p-6 rounded-2xl border border-purple-500/20 bg-purple-500/5 animate-slide-up stagger-1">
+          <div className="flex items-center gap-3 mb-3">
+            <Shield className="w-6 h-6 text-purple-500" />
+            <h2 className="text-xl font-bold text-foreground">Supervisor Affiliate Link</h2>
+          </div>
+          <p className="text-sm text-foreground/70 mb-4">
+            Share this link with your team. Anyone who registers through this link will automatically be assigned to your team permanently.
+          </p>
+          <div className="flex items-center gap-2">
+            <input 
+              type="text" 
+              readOnly 
+              value={`https://shehab-tech.com/register?team=${user.id}`}
+              className="flex-1 bg-background border border-border rounded-xl px-4 py-2 text-sm text-foreground outline-none font-mono"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Left: Active Projects + Level */}
