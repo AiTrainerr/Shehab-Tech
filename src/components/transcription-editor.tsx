@@ -324,7 +324,18 @@ export function TranscriptionEditor({
             )}
             {!isReviewMode && onSubmit && (
               <button
-                onClick={onSubmit}
+                onClick={() => {
+                  const emptyValid = segments.find(s => s.isValid !== false && !s.transcriptText.trim());
+                  if (emptyValid) {
+                    alert("لا يمكن تسليم التاسك. يوجد مقاطع صحيحة (Valid Segment) فارغة، يرجى كتابة النص فيها أو إلغاء تحديدها.");
+                    return;
+                  }
+                  if (hasUnsavedChanges) {
+                    alert("يوجد تعديلات لم يتم حفظها. يرجى الضغط على Save Changes أولاً قبل التسليم.");
+                    return;
+                  }
+                  onSubmit();
+                }}
                 className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-bold text-sm"
               >
                 <Check className="w-4 h-4" />
