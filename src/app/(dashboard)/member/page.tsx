@@ -44,7 +44,7 @@ export default async function MemberDashboard() {
     }
   })
 
-  if (!user) redirect("/api/auth/logout")
+  if (!user) redirect("/api/auth/logout?reason=deleted")
 
   const unreadCount = user.notifications.filter(n => !n.isRead).length
   const activeProjects = user.applications.length

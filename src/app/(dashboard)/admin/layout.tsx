@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   })
 
   if (!currentUser) {
-    redirect("/api/auth/logout")
+    redirect("/api/auth/logout?reason=deleted")
   }
 
   if (!["ADMIN", "SUPER_ADMIN", "MODERATOR"].includes(currentUser.role)) {
@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   if (currentUser.role === "MODERATOR" && !currentUser.isApproved) {
-    redirect("/api/auth/logout")
+    redirect("/api/auth/logout?reason=deleted")
   }
 
   const pendingVerifications = await prisma.user.count({ where: { verificationStatus: "PENDING" } })
@@ -38,7 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         canReviewQC={currentUser.canReviewQC}
         canApproveApplications={currentUser.canApproveApplications}
       />
-      <div className="flex-1 w-full lg:pl-64 overflow-x-hidden">
+      <div className="flex-1 w-full lg:pl-64 overflow-x-hidden pb-20 lg:pb-0">
         {children}
       </div>
     </div>

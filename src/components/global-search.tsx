@@ -104,7 +104,7 @@ export function GlobalSearch({ isAdmin = false }: GlobalSearchProps) {
                   type="text"
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="ابحث عن مشاريع أو مستخدمين..."
+                  placeholder="Search for projects or users..."
                   className="flex-1 bg-transparent outline-none text-foreground placeholder:text-foreground/40 text-sm"
                   id="global-search-input"
                 />
@@ -122,13 +122,13 @@ export function GlobalSearch({ isAdmin = false }: GlobalSearchProps) {
               <div className="max-h-80 overflow-y-auto">
                 {!query.trim() && (
                   <div className="px-4 py-8 text-center text-sm text-foreground/40">
-                    اكتب للبحث عن مشاريع أو مستخدمين
+                    Type to search for projects or users
                   </div>
                 )}
 
                 {query.trim() && !loading && results.length === 0 && (
                   <div className="px-4 py-8 text-center text-sm text-foreground/40">
-                    لا توجد نتائج لـ &quot;{query}&quot;
+                    No results found for &quot;{query}&quot;
                   </div>
                 )}
 
@@ -159,9 +159,9 @@ export function GlobalSearch({ isAdmin = false }: GlobalSearchProps) {
 
               {/* Footer hint */}
               <div className="px-4 py-2.5 border-t border-border flex items-center gap-4 text-[10px] text-foreground/30">
-                <span>↑↓ للتنقل</span>
-                <span>Enter للفتح</span>
-                <span>Esc للإغلاق</span>
+                <span>↑↓ Navigate</span>
+                <span>Enter to open</span>
+                <span>Esc to close</span>
               </div>
             </div>
           </div>

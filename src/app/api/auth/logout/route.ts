@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@supabase/ssr"
 
 export async function GET(req: NextRequest) {
-  const response = NextResponse.redirect(new URL("/login?error=account_deleted", req.url))
+  const deleted = req.nextUrl.searchParams.get("reason") === "deleted"
+  const redirectUrl = deleted
+    ? new URL("/login?error=account_deleted", req.url)
+    : new URL("/login", req.url)
+
+  const response = NextResponse.redirect(redirectUrl)
   
-  // Clear Supabase session and legacy cookies
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
