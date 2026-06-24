@@ -46,53 +46,36 @@ export function TranscriptionTasksList({ tasks, currentUserId, teamRole, teamLea
         {isQC ? "Tasks Ready for Quality Control" : "Available Transcription Tasks"}
       </h3>
       
-      {myActiveTask && (
+      {myActiveTask ? (
         <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
           <p className="font-bold text-green-600 dark:text-green-400 mb-2">You currently have an active task!</p>
           <button 
             onClick={() => router.push(`/member/transcription/${myActiveTask.id}`)}
-            className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-bold text-sm"
+            className="w-full sm:w-auto px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-bold text-lg flex items-center justify-center gap-2"
           >
-            {isQC ? `Review Task #${myActiveTask.id.slice(-6)}` : `Complete Transcription (Task #${myActiveTask.id.slice(-6)})`}
+            <CheckCircle className="w-5 h-5" />
+            {isQC ? `Review Active Task` : `Resume Transcription`}
           </button>
         </div>
+      ) : availableTasks.length > 0 ? (
+        <div className="text-center p-8 bg-background border border-border rounded-xl">
+          <p className="text-foreground/70 mb-6 font-bold text-lg">
+            {isQC ? "There are tasks waiting for Quality Control." : "There are new transcription tasks available."}
+          </p>
+          <button
+            onClick={() => handleClaim(availableTasks[0].id)}
+            disabled={claimingId !== null}
+            className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground hover:bg-primary/90 rounded-xl font-black text-xl transition-all shadow-lg hover:shadow-primary/50 disabled:opacity-50 disabled:cursor-not-allowed mx-auto block"
+          >
+            {claimingId !== null ? "Claiming..." : "سحب تسك (Claim Task)"}
+          </button>
+        </div>
+      ) : (
+        <div className="text-center p-8 text-foreground/50 border border-dashed border-border rounded-xl bg-background/50">
+          <p className="font-bold text-lg mb-2">No tasks available</p>
+          <p>All tasks have been claimed or none are ready yet.</p>
+        </div>
       )}
-
-      <div className="grid gap-3">
-        {availableTasks.map(task => {
-          const isMine = task.assignedToId === currentUserId || task.qcAssignedToId === currentUserId
-          return (
-            <div key={task.id} className="flex items-center justify-between p-4 bg-background border border-border rounded-xl">
-              <div>
-                <div className="font-bold text-foreground flex items-center gap-2">
-                  Task #{task.id.slice(-6)}
-                  {isMine && <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">Mine</span>}
-                </div>
-                <div className="text-xs text-foreground/50 mt-1 flex items-center gap-2">
-                  <Clock className="w-3 h-3" /> {task.duration ? `${Math.round(task.duration / 60)} minutes` : "Unknown"}
-                  <span className="ml-2 font-bold opacity-70">Status: {task.status.replace(/_/g, " ")}</span>
-                </div>
-              </div>
-              
-              {!isMine && !myActiveTask && (
-                <button
-                  onClick={() => handleClaim(task.id)}
-                  disabled={claimingId === task.id}
-                  className="px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
-                >
-                  {claimingId === task.id ? "Claiming..." : "Claim Task"}
-                </button>
-              )}
-            </div>
-          )
-        })}
-
-        {tasks.filter(t => t.status === "AVAILABLE").length === 0 && !myActiveTask && (
-          <div className="text-center p-6 text-foreground/50 border border-dashed border-border rounded-xl">
-            No tasks are currently available. All tasks have been claimed.
-          </div>
-        )}
-      </div>
     </div>
   )
 }
