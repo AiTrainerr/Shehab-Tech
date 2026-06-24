@@ -18,6 +18,8 @@ import { SplashScreen } from "@/components/splash-screen";
 import { SessionTimeout } from "@/components/session-timeout";
 import { createClientServer } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 const tajawal = Tajawal({
   subsets: ["latin", "arabic"],
@@ -75,9 +77,22 @@ export default async function RootLayout({
           canApproveApplications: true
         }
       });
+
+      // ⚠️ If Supabase has a session but user was deleted from DB → force logout
+      if (!dbUser) {
+        const headersList = await headers();
+        const pathname = headersList.get("x-pathname") || headersList.get("next-url") || "/";
+        // Only redirect if not already on an auth page to avoid loops
+        if (!pathname.startsWith("/login") && !pathname.startsWith("/register") && !pathname.startsWith("/api/auth")) {
+          redirect("/api/auth/logout?reason=deleted");
+        }
+      }
+
       currentUser = dbUser;
     }
-  } catch (e) {
+  } catch (e: any) {
+    // Redirect errors are expected and should be re-thrown
+    if (e?.digest?.startsWith("NEXT_REDIRECT")) throw e;
     console.error("Layout auth error:", e);
   }
 

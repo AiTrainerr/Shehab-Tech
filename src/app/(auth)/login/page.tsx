@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ArrowRight, Mail, Lock, Eye, EyeOff } from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { ArrowRight, Mail, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react"
 import { loginUser } from "@/app/actions/auth"
 import { useRouter } from "next/navigation"
 
@@ -11,6 +12,15 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = React.useState(false)
   const [showPassword, setShowPassword] = React.useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Show error from URL params (e.g. after forced logout for deleted account)
+  React.useEffect(() => {
+    const urlError = searchParams.get("error")
+    if (urlError === "account_deleted") {
+      setError("This account has been deleted. Please register a new account to continue.")
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -47,7 +57,12 @@ export default function LoginPage() {
         </div>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
-          {error && <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm">{error}</div>}
+          {error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/30 text-red-500 rounded-xl text-sm flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
           
           <div className="space-y-2">
             <label className="text-sm font-semibold">Email Address</label>
