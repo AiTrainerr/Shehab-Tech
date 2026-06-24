@@ -7,6 +7,14 @@ export function SplashScreen() {
   const [show, setShow] = React.useState(true)
 
   React.useEffect(() => {
+    // Check if we already showed it this session
+    if (sessionStorage.getItem("splash_shown")) {
+      setShow(false)
+      return
+    }
+
+    sessionStorage.setItem("splash_shown", "true")
+
     // Show splash screen for 2.5 seconds on initial load
     const timer = setTimeout(() => {
       setShow(false)

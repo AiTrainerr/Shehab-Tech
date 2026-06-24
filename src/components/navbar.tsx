@@ -114,7 +114,11 @@ export function Navbar({ user }: { user?: any }) {
 
                 {/* Logout — desktop only */}
                 <button
-                  onClick={async () => { await logoutUser(); window.location.href = "/login"; }}
+                  onClick={async (e) => { 
+                    e.preventDefault(); 
+                    try { await logoutUser(); } catch(err) {} 
+                    window.location.href = "/login"; 
+                  }}
                   className="hidden md:block p-2 text-foreground/50 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
                   title="Log Out"
                 >
@@ -202,7 +206,11 @@ export function Navbar({ user }: { user?: any }) {
                 {/* Logout in mobile menu */}
                 <div className="pt-2 border-t border-border">
                   <button 
-                    onClick={async () => { await logoutUser(); window.location.href = "/login"; }}
+                    onClick={async (e) => { 
+                      e.preventDefault(); 
+                      try { await logoutUser(); } catch(err) {} 
+                      window.location.href = "/login"; 
+                    }}
                     className="w-full flex items-center gap-2 px-3 py-2.5 text-red-500 hover:bg-red-500/10 rounded-xl text-base font-medium transition-colors"
                   >
                     <LogOut className="w-4 h-4" /> Log Out
