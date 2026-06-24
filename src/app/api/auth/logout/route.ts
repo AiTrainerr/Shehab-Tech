@@ -22,7 +22,23 @@ export async function GET(req: NextRequest) {
     }
   )
 
-  await supabase.auth.signOut()
+  try {
+    await supabase.auth.signOut()
+  } catch (e) {
+    console.error("SignOut error:", e)
+  }
+
+  // Force delete Supabase cookies just in case
+  const projectId = process.env.NEXT_PUBLIC_SUPABASE_URL?.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+  if (projectId) {
+    const baseName = `sb-${projectId}-auth-token`
+    response.cookies.delete(baseName)
+    response.cookies.delete(`${baseName}-code-verifier`)
+    // Handle chunked cookies
+    for (let i = 0; i < 5; i++) {
+      response.cookies.delete(`${baseName}.${i}`)
+    }
+  }
   
   response.cookies.delete("userId")
   response.cookies.delete("userRole")
