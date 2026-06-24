@@ -27,6 +27,7 @@ type TabType = "ALL" | "READY_FIRST" | "READY_FIXED" | "NEEDS_FIX" | "WORKING" |
 export function AdminApplicationsClient({ applications }: { applications: Application[] }) {
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL")
   const [projectFilter, setProjectFilter] = React.useState<string>("ALL")
+  const [searchTerm, setSearchTerm] = React.useState<string>("")
   const [loading, setLoading] = React.useState<string | null>(null)
 
   const uniqueProjects = React.useMemo(() => {
