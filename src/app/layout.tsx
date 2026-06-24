@@ -64,7 +64,16 @@ export default async function RootLayout({
     if (user) {
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { id: true, role: true, avatarUrl: true, verificationStatus: true, firstName: true, lastName: true }
+        select: { 
+          id: true, 
+          role: true, 
+          avatarUrl: true, 
+          verificationStatus: true, 
+          firstName: true, 
+          lastName: true,
+          canReviewQC: true,
+          canApproveApplications: true
+        }
       });
       currentUser = dbUser;
     }
