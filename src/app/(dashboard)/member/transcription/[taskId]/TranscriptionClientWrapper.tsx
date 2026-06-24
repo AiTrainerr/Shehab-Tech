@@ -19,7 +19,6 @@ export function TranscriptionClientWrapper({ taskId, audioUrl, initialSegments, 
       
       // Optional: show toast notification
       alert("Saved successfully!")
-      router.refresh()
     } catch (e) {
       console.error(e)
       alert("An error occurred while saving.")

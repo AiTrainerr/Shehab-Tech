@@ -29,6 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
       endTime: number
       speakerLabel: string
       transcriptText: string
+      isValid: boolean
     }>
 
     // Transaction to replace all segments
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
             endTime: s.endTime,
             speakerLabel: s.speakerLabel,
             transcriptText: s.transcriptText,
+            isValid: s.isValid ?? true,
           }))
         })
       }

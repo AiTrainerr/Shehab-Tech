@@ -12,6 +12,7 @@ export interface Segment {
   endTime: number
   speakerLabel: string
   transcriptText: string
+  isValid?: boolean
 }
 
 interface TranscriptionEditorProps {
@@ -59,6 +60,8 @@ export function TranscriptionEditor({
   const [showRejectBox, setShowRejectBox] = React.useState(false)
   const [isReady, setIsReady] = React.useState(false)
   const [activeSegmentId, setActiveSegmentId] = React.useState<string | null>(null)
+  const [isLooping, setIsLooping] = React.useState(false)
+  const segmentRefs = React.useRef<Record<string, HTMLDivElement | null>>({})
 
   // Initialize WaveSurfer
   React.useEffect(() => {
@@ -99,7 +102,14 @@ export function TranscriptionEditor({
     wsRegions.on("region-clicked", (region: any, e: any) => {
       e.stopPropagation()
       setActiveSegmentId(region.id)
-      region.play()
+      
+      // Auto-scroll to the active segment
+      setTimeout(() => {
+        const el = segmentRefs.current[region.id]
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" })
+        }
+      }, 50)
     })
 
     ws.on("click", () => {
@@ -107,15 +117,23 @@ export function TranscriptionEditor({
     })
 
     wsRegions.on("region-created", (region: any) => {
-      // Check if it already exists in our state (to prevent duplicates during initial load)
       setSegments((prev) => {
         if (prev.find((s) => s.id === region.id)) return prev
+        
+        // Prevent overlap on create
+        const overlap = prev.find(s => region.start < s.endTime && region.end > s.startTime)
+        if (overlap) {
+          region.remove()
+          return prev
+        }
+
         const newSegment: Segment = {
           id: region.id,
           startTime: region.start,
           endTime: region.end,
           speakerLabel: `Speaker 1`,
           transcriptText: "",
+          isValid: true,
         }
         setActiveSegmentId(region.id)
         return [...prev, newSegment].sort((a, b) => a.startTime - b.startTime)
@@ -123,18 +141,37 @@ export function TranscriptionEditor({
     })
 
     wsRegions.on("region-updated", (region: any) => {
-      setSegments((prev) =>
-        prev.map((s) =>
+      setSegments((prev) => {
+        // Overlap Prevention
+        const overlap = prev.find(s => s.id !== region.id && region.start < s.endTime && region.end > s.startTime)
+        if (overlap) {
+          // Revert to original
+          const original = prev.find(s => s.id === region.id)
+          if (original) {
+            region.setOptions({ start: original.startTime, end: original.endTime })
+            return prev
+          }
+        }
+
+        return prev.map((s) =>
           s.id === region.id
             ? { ...s, startTime: region.start, endTime: region.end }
             : s
         ).sort((a, b) => a.startTime - b.startTime)
-      )
+      })
     })
 
     wsRef.current = ws
 
+    // Loop logic
+    const onTimeUpdate = (currentTime: number) => {
+      // Cannot use state values directly inside this closure unless we use a ref or re-bind.
+      // But WaveSurfer timeupdate runs frequently. 
+    }
+    ws.on("timeupdate", onTimeUpdate)
+
     return () => {
+      ws.un("timeupdate", onTimeUpdate)
       ws.destroy()
     }
   }, [audioUrl])
@@ -177,12 +214,45 @@ export function TranscriptionEditor({
   const handleZoomIn = () => setZoom((z) => Math.min(z + 20, 200))
   const handleZoomOut = () => setZoom((z) => Math.max(z - 20, 10))
 
+  const handlePlayActiveSegment = () => {
+    if (!wsRef.current || !activeSegmentId) return
+    const wsRegions = regionsRef.current
+    if (wsRegions) {
+      const regions = wsRegions.getRegions()
+      const region = regions.find((r: any) => r.id === activeSegmentId)
+      if (region) region.play()
+    }
+  }
+
+  // Loop effect
+  React.useEffect(() => {
+    if (!wsRef.current) return
+    const ws = wsRef.current
+
+    const onTimeUpdate = (currentTime: number) => {
+      if (!isLooping || !activeSegmentId) return
+      const activeSeg = segments.find(s => s.id === activeSegmentId)
+      if (activeSeg && currentTime >= activeSeg.endTime) {
+        ws.play(activeSeg.startTime)
+      }
+    }
+
+    ws.on("timeupdate", onTimeUpdate)
+    return () => {
+      ws.un("timeupdate", onTimeUpdate)
+    }
+  }, [isLooping, activeSegmentId, segments])
+
   const handleSegmentTextChange = (id: string, text: string) => {
     setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, transcriptText: text } : s)))
   }
 
   const handleSegmentSpeakerChange = (id: string, speaker: string) => {
     setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, speakerLabel: speaker } : s)))
+  }
+
+  const handleSegmentValidToggle = (id: string) => {
+    setSegments((prev) => prev.map((s) => (s.id === id ? { ...s, isValid: s.isValid === false ? true : false } : s)))
   }
 
   const handleDeleteSegment = (id: string) => {
@@ -258,10 +328,15 @@ export function TranscriptionEditor({
 
       {/* Segments Section */}
       <div className="space-y-4">
-        <h3 className="text-lg font-bold flex items-center justify-between">
-          <span>Segments</span>
-          <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full">{segments.length} segments</span>
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold flex items-center gap-3">
+            <span>Segments</span>
+            <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full">{segments.length} segments</span>
+          </h3>
+          <div className="text-sm font-bold bg-card border border-border px-4 py-2 rounded-xl">
+            Valid Duration: <span className="text-green-500">{formatTime(segments.filter(s => s.isValid !== false).reduce((acc, s) => acc + (s.endTime - s.startTime), 0))}</span>
+          </div>
+        </div>
 
         {segments.length === 0 && (
           <div className="p-12 text-center border-2 border-dashed border-border rounded-2xl text-foreground/50">
@@ -275,7 +350,10 @@ export function TranscriptionEditor({
             const effectiveSpeakerCount = Math.max(speakerCount || 1, 8); // Ensure at least 8 speakers
 
             return (
-            <div key={seg.id} className={`glass p-4 rounded-xl border flex flex-col md:flex-row gap-4 animate-slide-up transition-all ${isActive ? 'border-primary ring-1 ring-primary shadow-lg' : 'border-border opacity-70 hover:opacity-100'}`} style={{ animationDelay: `${idx * 50}ms` }} onClick={() => setActiveSegmentId(seg.id)}>
+            <div 
+              key={seg.id} 
+              ref={(el) => { segmentRefs.current[seg.id] = el }}
+              className={`glass p-4 rounded-xl border flex flex-col md:flex-row gap-4 animate-slide-up transition-all ${isActive ? 'border-primary ring-1 ring-primary shadow-lg' : 'border-border opacity-70 hover:opacity-100'}`} style={{ animationDelay: `${idx * 50}ms` }} onClick={() => setActiveSegmentId(seg.id)}>
               {/* Timing & Speaker Info */}
               <div className="md:w-48 shrink-0 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-mono bg-background/50 px-2 py-1 rounded-md border border-border">
@@ -283,6 +361,23 @@ export function TranscriptionEditor({
                   <span className="text-foreground/40">→</span>
                   <span className="text-primary">{formatTime(seg.endTime)}</span>
                 </div>
+
+                {isActive && (
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handlePlayActiveSegment(); }}
+                      className="flex-1 flex items-center justify-center gap-1 text-xs bg-primary/10 text-primary hover:bg-primary/20 py-1.5 rounded-md transition-colors"
+                    >
+                      <Play className="w-3 h-3" /> Play
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setIsLooping(!isLooping); }}
+                      className={`flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-md transition-colors ${isLooping ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-background/50 border border-border hover:bg-border'}`}
+                    >
+                      Loop {isLooping ? "ON" : "OFF"}
+                    </button>
+                  </div>
+                )}
                 
                 {isActive && (
                   <>
@@ -298,6 +393,17 @@ export function TranscriptionEditor({
                         </option>
                       ))}
                     </select>
+
+                    <label className="flex items-center gap-2 text-sm bg-background/50 border border-border px-2 py-1.5 rounded-md cursor-pointer hover:bg-background/80 transition-colors">
+                      <input 
+                        type="checkbox" 
+                        checked={seg.isValid !== false} 
+                        onChange={(e) => { e.stopPropagation(); handleSegmentValidToggle(seg.id); }}
+                        disabled={isReviewMode}
+                        className="rounded border-border text-primary focus:ring-primary"
+                      />
+                      Valid Segment
+                    </label>
 
                     {!isReviewMode && (
                       <button
@@ -327,8 +433,9 @@ export function TranscriptionEditor({
                     autoFocus
                   />
                 ) : (
-                  <div className="text-sm text-foreground/70 line-clamp-2 bg-background/30 p-3 rounded-xl border border-border cursor-pointer">
-                    {seg.transcriptText || <span className="italic opacity-50">Empty segment...</span>}
+                  <div className="text-sm text-foreground/70 line-clamp-2 bg-background/30 p-3 rounded-xl border border-border cursor-pointer flex justify-between items-start gap-4">
+                    <span>{seg.transcriptText || <span className="italic opacity-50">Empty segment...</span>}</span>
+                    {seg.isValid === false && <span className="text-xs bg-red-500/10 text-red-500 px-2 py-1 rounded-md shrink-0">Invalid</span>}
                   </div>
                 )}
               </div>

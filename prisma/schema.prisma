@@ -356,6 +356,7 @@ model TranscriptionSegment {
   endTime         Float
   speakerLabel    String   @default("Speaker 1")
   transcriptText  String   @default("")
+  isValid         Boolean  @default(true)
 
   task            TranscriptionTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
