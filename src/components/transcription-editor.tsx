@@ -58,6 +58,7 @@ export function TranscriptionEditor({
   const [rejectNotes, setRejectNotes] = React.useState("")
   const [showRejectBox, setShowRejectBox] = React.useState(false)
   const [isReady, setIsReady] = React.useState(false)
+  const [activeSegmentId, setActiveSegmentId] = React.useState<string | null>(null)
 
   // Initialize WaveSurfer
   React.useEffect(() => {
@@ -95,6 +96,16 @@ export function TranscriptionEditor({
       color: "rgba(37, 99, 235, 0.2)",
     })
 
+    wsRegions.on("region-clicked", (region: any, e: any) => {
+      e.stopPropagation()
+      setActiveSegmentId(region.id)
+      region.play()
+    })
+
+    ws.on("click", () => {
+      setActiveSegmentId(null)
+    })
+
     wsRegions.on("region-created", (region: any) => {
       // Check if it already exists in our state (to prevent duplicates during initial load)
       setSegments((prev) => {
@@ -106,6 +117,7 @@ export function TranscriptionEditor({
           speakerLabel: `Speaker 1`,
           transcriptText: "",
         }
+        setActiveSegmentId(region.id)
         return [...prev, newSegment].sort((a, b) => a.startTime - b.startTime)
       })
     })
@@ -258,8 +270,12 @@ export function TranscriptionEditor({
         )}
 
         <div className="grid gap-4">
-          {segments.map((seg, idx) => (
-            <div key={seg.id} className="glass p-4 rounded-xl border border-border flex flex-col md:flex-row gap-4 animate-slide-up" style={{ animationDelay: `${idx * 50}ms` }}>
+          {segments.map((seg, idx) => {
+            const isActive = activeSegmentId === null || activeSegmentId === seg.id;
+            const effectiveSpeakerCount = Math.max(speakerCount || 1, 8); // Ensure at least 8 speakers
+
+            return (
+            <div key={seg.id} className={`glass p-4 rounded-xl border flex flex-col md:flex-row gap-4 animate-slide-up transition-all ${isActive ? 'border-primary ring-1 ring-primary shadow-lg' : 'border-border opacity-70 hover:opacity-100'}`} style={{ animationDelay: `${idx * 50}ms` }} onClick={() => setActiveSegmentId(seg.id)}>
               {/* Timing & Speaker Info */}
               <div className="md:w-48 shrink-0 space-y-3">
                 <div className="flex items-center gap-2 text-xs font-mono bg-background/50 px-2 py-1 rounded-md border border-border">
@@ -268,42 +284,57 @@ export function TranscriptionEditor({
                   <span className="text-primary">{formatTime(seg.endTime)}</span>
                 </div>
                 
-                <select
-                  value={seg.speakerLabel}
-                  onChange={(e) => handleSegmentSpeakerChange(seg.id, e.target.value)}
-                  disabled={isReviewMode}
-                  className="w-full text-sm bg-background/50 border border-border rounded-md px-2 py-1.5 outline-none focus:border-primary transition-colors disabled:opacity-70"
-                >
-                  {Array.from({ length: speakerCount }).map((_, i) => (
-                    <option key={i} value={`Speaker ${i + 1}`}>
-                      Speaker {i + 1}
-                    </option>
-                  ))}
-                </select>
+                {isActive && (
+                  <>
+                    <select
+                      value={seg.speakerLabel}
+                      onChange={(e) => handleSegmentSpeakerChange(seg.id, e.target.value)}
+                      disabled={isReviewMode}
+                      className="w-full text-sm bg-background/50 border border-border rounded-md px-2 py-1.5 outline-none focus:border-primary transition-colors disabled:opacity-70"
+                    >
+                      {Array.from({ length: effectiveSpeakerCount }).map((_, i) => (
+                        <option key={i} value={`Speaker ${i + 1}`}>
+                          Speaker {i + 1}
+                        </option>
+                      ))}
+                    </select>
 
-                {!isReviewMode && (
-                  <button
-                    onClick={() => handleDeleteSegment(seg.id)}
-                    className="w-full flex items-center justify-center gap-1 text-xs text-red-500 hover:bg-red-500/10 py-1.5 rounded-md transition-colors"
-                  >
-                    <Trash2 className="w-3 h-3" /> Delete Segment
-                  </button>
+                    {!isReviewMode && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteSegment(seg.id); }}
+                        className="w-full flex items-center justify-center gap-1 text-xs text-red-500 hover:bg-red-500/10 py-1.5 rounded-md transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" /> Delete
+                      </button>
+                    )}
+                  </>
+                )}
+                {!isActive && (
+                  <div className="text-xs font-bold text-foreground/70">{seg.speakerLabel}</div>
                 )}
               </div>
 
               {/* Text Area */}
               <div className="flex-1">
-                <textarea
-                  value={seg.transcriptText}
-                  onChange={(e) => handleSegmentTextChange(seg.id, e.target.value)}
-                  placeholder="Type transcription here..."
-                  disabled={isReviewMode}
-                  className="w-full h-full min-h-[80px] bg-background/50 border border-border rounded-xl p-3 text-sm outline-none focus:border-primary transition-colors resize-y disabled:opacity-90"
-                  dir="auto"
-                />
+                {isActive ? (
+                  <textarea
+                    value={seg.transcriptText}
+                    onChange={(e) => handleSegmentTextChange(seg.id, e.target.value)}
+                    placeholder="Type transcription here..."
+                    disabled={isReviewMode}
+                    className="w-full h-full min-h-[80px] bg-background/50 border border-border rounded-xl p-3 text-sm outline-none focus:border-primary transition-colors resize-y disabled:opacity-90"
+                    dir="auto"
+                    autoFocus
+                  />
+                ) : (
+                  <div className="text-sm text-foreground/70 line-clamp-2 bg-background/30 p-3 rounded-xl border border-border cursor-pointer">
+                    {seg.transcriptText || <span className="italic opacity-50">Empty segment...</span>}
+                  </div>
+                )}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
