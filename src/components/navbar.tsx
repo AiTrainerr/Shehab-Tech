@@ -116,6 +116,8 @@ export function Navbar({ user }: { user?: any }) {
                 <button
                   onClick={async (e) => { 
                     e.preventDefault(); 
+                    document.cookie = "userId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                    document.cookie = "userRole=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                     try { await logoutUser(); } catch(err) {} 
                     window.location.href = "/login"; 
                   }}
@@ -208,6 +210,8 @@ export function Navbar({ user }: { user?: any }) {
                   <button 
                     onClick={async (e) => { 
                       e.preventDefault(); 
+                      document.cookie = "userId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                      document.cookie = "userRole=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                       try { await logoutUser(); } catch(err) {} 
                       window.location.href = "/login"; 
                     }}

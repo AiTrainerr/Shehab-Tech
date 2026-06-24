@@ -65,6 +65,10 @@ export default function RegisterPage() {
     formData.set("phone", `${dialCode}${finalPhone.replace(/\s+/g, '')}`)
     formData.set("whatsapp", `${dialCode}${finalWhatsapp.replace(/\s+/g, '')}`)
 
+    // Remove heavy files from initial registration formData to prevent slow uploads
+    formData.delete("idCard")
+    formData.delete("selfie")
+
     const result = await registerUser(formData)
     
     if (result.success) {
