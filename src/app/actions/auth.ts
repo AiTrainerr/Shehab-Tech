@@ -132,6 +132,11 @@ export async function loginUser(formData: FormData) {
       select: { role: true, isApproved: true, canReviewQC: true, canApproveApplications: true }
     })
 
+    if (!user) {
+      await supabase.auth.signOut()
+      return { success: false, error: "This account has been deleted and you cannot log in." }
+    }
+
     if (user?.role === "MODERATOR" && !user.isApproved) {
       await supabase.auth.signOut()
       return { success: false, error: "Your Moderator account is pending Admin approval." }

@@ -16,7 +16,7 @@ export default async function AchievementsPage() {
     where: { id: userId },
     select: { firstName: true, completedCount: true, rating: true, verificationStatus: true }
   })
-  if (!user) redirect("/login")
+  if (!user) redirect("/api/auth/logout")
 
   const level    = getUserLevel(user.completedCount)
   const progress = getLevelProgress(user.completedCount)

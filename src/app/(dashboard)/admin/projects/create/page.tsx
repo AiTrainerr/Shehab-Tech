@@ -38,7 +38,6 @@ export default function CreateProjectPage() {
     setSelectedCountries(prev => prev.filter(c => c !== country))
   }
 
-  return (
   if (!projectType) {
     return (
       <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8 items-center justify-center">
@@ -190,7 +189,7 @@ export default function CreateProjectPage() {
           </div>
 
           {/* Execution Option & Audio Specs Section */}
-          {!isTranscriptionProject && (
+          {!isTranscriptionProject ? (
             <div className="space-y-4 border-b border-border pb-8">
               <h3 className="text-lg font-bold text-foreground">Project Execution & Audio Specifications</h3>
             
@@ -277,10 +276,9 @@ export default function CreateProjectPage() {
                 <input name="targetFemales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 50" />
               </div>
 
-              </div>
             </div>
           </div>
-          )}
+          ) : null}
 
           {/* Script Management Section / Audio Upload Section */}
           <div className="space-y-4 border-b border-border pb-8">

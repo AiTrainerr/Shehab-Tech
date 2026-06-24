@@ -84,7 +84,7 @@ export async function GET(req: NextRequest, { params }: { params: { taskId: stri
       })
 
       const buffer = await workbook.xlsx.writeBuffer()
-      return new NextResponse(buffer, {
+      return new NextResponse(buffer as unknown as BodyInit, {
         headers: {
           "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           "Content-Disposition": `attachment; filename="task-${task.id}.xlsx"`
@@ -106,9 +106,9 @@ export async function GET(req: NextRequest, { params }: { params: { taskId: stri
       rows: [
         new TableRow({
           children: [
-            new TableCell({ children: [new Paragraph({ text: "Time", bold: true })] }),
-            new TableCell({ children: [new Paragraph({ text: "Speaker", bold: true })] }),
-            new TableCell({ children: [new Paragraph({ text: "Transcript", bold: true })] }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Time", bold: true })] })] }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Speaker", bold: true })] })] }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Transcript", bold: true })] })] }),
           ],
         }),
         ...task.segments.map(seg => (
@@ -139,7 +139,7 @@ export async function GET(req: NextRequest, { params }: { params: { taskId: stri
     })
 
     const buffer = await Packer.toBuffer(doc)
-    return new NextResponse(buffer, {
+    return new NextResponse(buffer as unknown as BodyInit, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "Content-Disposition": `attachment; filename="task-${task.id}.docx"`

@@ -109,7 +109,7 @@ export async function createProjectAction(formData: FormData) {
         }
       })
 
-      if (hasScript) {
+      if (!isTranscriptionProject && hasScript) {
         let sentences: string[] = []
         const scriptMode = formData.get("scriptMode") as string // "file" or "manual"
 
@@ -164,7 +164,6 @@ export async function createProjectAction(formData: FormData) {
           })
         } else {
           throw new Error("Script configuration enabled, but no sentences could be parsed or found.")
-        }
         }
       } else if (isTranscriptionProject) {
         const files = formData.getAll("transcriptionFiles") as File[]
