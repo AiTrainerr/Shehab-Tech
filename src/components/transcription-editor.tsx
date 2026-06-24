@@ -86,8 +86,6 @@ export function TranscriptionEditor({
     const wsRegions = ws.registerPlugin(RegionsPlugin.create())
     regionsRef.current = wsRegions
 
-    ws.load(audioUrl)
-
     ws.on("play", () => setIsPlaying(true))
     ws.on("pause", () => setIsPlaying(false))
     ws.on("ready", () => {
@@ -129,6 +127,9 @@ export function TranscriptionEditor({
     ws.on("click", () => {
       setActiveSegmentId(null)
     })
+
+    // LOAD AUDIO AFTER ALL LISTENERS ARE ATTACHED
+    ws.load(audioUrl)
 
     wsRegions.on("region-created", (region: any) => {
       setSegments((prev) => {
@@ -210,7 +211,8 @@ export function TranscriptionEditor({
     if (!hasUnsavedChanges) return
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
-      e.returnValue = ""
+      e.returnValue = "You have unsaved changes. Are you sure you want to leave?"
+      return "You have unsaved changes. Are you sure you want to leave?"
     }
     window.addEventListener("beforeunload", onBeforeUnload)
     return () => window.removeEventListener("beforeunload", onBeforeUnload)
@@ -373,8 +375,10 @@ export function TranscriptionEditor({
 
         <div className="flex flex-col gap-4">
           {[...segments].sort((a, b) => {
-            if (a.id === activeSegmentId) return -1;
-            if (b.id === activeSegmentId) return 1;
+            const isAActive = a.id === activeSegmentId;
+            const isBActive = b.id === activeSegmentId;
+            if (isAActive && !isBActive) return -1;
+            if (!isAActive && isBActive) return 1;
             return a.startTime - b.startTime;
           }).map((seg, idx) => {
             const isActive = activeSegmentId === null || activeSegmentId === seg.id;
