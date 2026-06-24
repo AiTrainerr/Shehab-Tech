@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { ArrowRight, UserPlus, Shield } from "lucide-react"
 import { registerUser } from "@/app/actions/auth"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 const countryDialCodes: Record<string, string> = {
   EG: "+20", SA: "+966", AE: "+971", JO: "+962", LB: "+961", DZ: "+213", MA: "+212",
@@ -12,6 +12,13 @@ const countryDialCodes: Record<string, string> = {
   OM: "+968", BH: "+973", US: "+1", UK: "+44", CA: "+1", AU: "+61", DE: "+49", FR: "+33",
   IT: "+39", ES: "+34", TR: "+90", IN: "+91", PK: "+92", ID: "+62", MY: "+60", NG: "+234",
   ZA: "+27", BR: "+55", MX: "+52"
+}
+
+function TeamHiddenInput() {
+  const searchParams = useSearchParams()
+  const teamId = searchParams?.get("team")
+  if (!teamId) return null
+  return <input type="hidden" name="teamLeaderId" value={teamId} />
 }
 
 export default function RegisterPage() {
@@ -128,6 +135,10 @@ export default function RegisterPage() {
           
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm">{error}</div>}
+            
+            <React.Suspense fallback={null}>
+              <TeamHiddenInput />
+            </React.Suspense>
             
             <div className={`space-y-4 animate-in fade-in slide-in-from-right-4 duration-500 ${step === 1 ? 'block' : 'hidden'}`}>
                 <div className="grid grid-cols-2 gap-4">

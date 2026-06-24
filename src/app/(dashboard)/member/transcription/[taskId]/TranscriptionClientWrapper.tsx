@@ -4,7 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { TranscriptionEditor } from "@/components/transcription-editor"
 
-export function TranscriptionClientWrapper({ taskId, audioUrl, initialSegments, speakerCount, isReadOnly }: any) {
+export function TranscriptionClientWrapper({ taskId, audioUrl, initialSegments, speakerCount, isReadOnly, isQC }: any) {
   const router = useRouter()
 
   const handleSave = async (segments: any[]) => {
@@ -26,6 +26,19 @@ export function TranscriptionClientWrapper({ taskId, audioUrl, initialSegments, 
     }
   }
 
+  const handleSubmit = async () => {
+    if (!confirm(isQC ? "Submit to Admin QA?" : "Submit this task?")) return;
+    try {
+      const res = await fetch(`/api/transcription/${taskId}/submit`, { method: "POST" })
+      if (!res.ok) throw new Error("Failed to submit")
+      alert("Submitted successfully!")
+      router.push("/member")
+    } catch (e) {
+      console.error(e)
+      alert("An error occurred while submitting.")
+    }
+  }
+
   return (
     <div className="animate-slide-up stagger-1">
       <TranscriptionEditor
@@ -35,6 +48,8 @@ export function TranscriptionClientWrapper({ taskId, audioUrl, initialSegments, 
         speakerCount={speakerCount}
         isReviewMode={isReadOnly}
         onSave={isReadOnly ? undefined : handleSave}
+        onSubmit={isReadOnly ? undefined : handleSubmit}
+        isQC={isQC}
       />
     </div>
   )

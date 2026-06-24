@@ -19,7 +19,7 @@ export function AchievementBadge({ badge }: { badge: Badge }) {
       <span className="text-xl">{badge.emoji}</span>
       <div>
         <p className="text-xs font-bold" style={badge.earned ? { color: badge.color } : {}}>
-          {badge.name}
+          {badge.nameEn || badge.name}
         </p>
         <p className="text-[10px] text-foreground/50">{badge.description}</p>
       </div>
@@ -49,22 +49,22 @@ export function LevelCard({
         <div className="flex items-center gap-3 mb-3">
           <span className="text-3xl">{level.emoji}</span>
           <div>
-            <p className="text-xs font-bold opacity-80 uppercase tracking-wider">مستواك الحالي</p>
-            <h3 className="text-xl font-black">{level.label} <span className="text-sm opacity-70">({level.labelEn})</span></h3>
+            <p className="text-xs font-bold opacity-80 uppercase tracking-wider">Current Level</p>
+            <h3 className="text-xl font-black">{level.labelEn}</h3>
           </div>
         </div>
 
         <p className="text-sm opacity-80 mb-3">
-          {completedCount} مهمة مكتملة
-          {nextLevel && ` · يتبقى ${nextLevel.minCompleted - completedCount} للمستوى التالي`}
+          {completedCount} tasks completed
+          {nextLevel && ` · ${nextLevel.minCompleted - completedCount} more for next level`}
         </p>
 
         {/* Progress to next level */}
         {nextLevel && (
           <div className="space-y-1">
             <div className="flex justify-between text-[11px] opacity-70 font-semibold">
-              <span>{level.label}</span>
-              <span>{nextLevel.emoji} {nextLevel.label}</span>
+              <span>{level.labelEn}</span>
+              <span>{nextLevel.emoji} {nextLevel.labelEn}</span>
             </div>
             <div className="h-2 bg-white/20 rounded-full overflow-hidden">
               <div
@@ -76,7 +76,7 @@ export function LevelCard({
         )}
 
         {!nextLevel && (
-          <p className="text-sm font-bold opacity-90">🏆 وصلت للمستوى الأعلى!</p>
+          <p className="text-sm font-bold opacity-90">🏆 You reached the highest level!</p>
         )}
       </div>
     </div>
@@ -93,7 +93,7 @@ export function BadgesGrid({ badges }: { badges: Badge[] }) {
       {earned.length > 0 && (
         <>
           <p className="text-xs font-bold text-foreground/50 uppercase tracking-wider">
-            الشارات المكتسبة ({earned.length})
+            Earned Badges ({earned.length})
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {earned.map(b => <AchievementBadge key={b.id} badge={b} />)}
@@ -103,7 +103,7 @@ export function BadgesGrid({ badges }: { badges: Badge[] }) {
       {locked.length > 0 && (
         <>
           <p className="text-xs font-bold text-foreground/30 uppercase tracking-wider mt-4">
-            قادماً ({locked.length})
+            Upcoming ({locked.length})
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {locked.map(b => <AchievementBadge key={b.id} badge={b} />)}

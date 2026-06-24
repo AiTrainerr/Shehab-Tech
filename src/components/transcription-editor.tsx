@@ -20,7 +20,9 @@ interface TranscriptionEditorProps {
   initialSegments: Segment[]
   speakerCount: number
   isReviewMode?: boolean
+  isQC?: boolean
   onSave?: (segments: Segment[]) => Promise<void>
+  onSubmit?: () => Promise<void>
   onApprove?: () => Promise<void>
   onReject?: (notes: string) => Promise<void>
 }
@@ -38,7 +40,9 @@ export function TranscriptionEditor({
   initialSegments,
   speakerCount,
   isReviewMode = false,
+  isQC = false,
   onSave,
+  onSubmit,
   onApprove,
   onReject,
 }: TranscriptionEditorProps) {
@@ -211,8 +215,17 @@ export function TranscriptionEditor({
                 {isSaving ? "Saving..." : "Save Changes"}
               </button>
             )}
+            {!isReviewMode && onSubmit && (
+              <button
+                onClick={onSubmit}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors font-bold text-sm"
+              >
+                <Check className="w-4 h-4" />
+                {isQC ? "Submit to Admin QA" : "Submit Task"}
+              </button>
+            )}
             {!isReviewMode && (
-              <span className="text-xs text-foreground/50">Drag to create a new segment</span>
+              <span className="text-xs text-foreground/50 hidden sm:inline">Drag to create a new segment</span>
             )}
           </div>
         </div>

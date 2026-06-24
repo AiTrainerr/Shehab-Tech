@@ -14,20 +14,25 @@ type AuditLogEntry = {
   createdAt: Date
 }
 
-type StorageStats = {
+type SingleStorageStat = {
   totalBytes: number
   usedBytes: number
   remainingBytes: number
   percentageUsed: number
 }
 
+type DualStorageStats = {
+  recordings: SingleStorageStat
+  transcriptions: SingleStorageStat
+}
+
 interface StorageLogsPanelProps {
-  initialStats: StorageStats
+  initialStats: DualStorageStats
   initialLogs: AuditLogEntry[]
 }
 
 export function StorageLogsPanel({ initialStats, initialLogs }: StorageLogsPanelProps) {
-  const [stats, setStats] = React.useState<StorageStats>(initialStats)
+  const [stats, setStats] = React.useState<DualStorageStats>(initialStats)
   const [logs, setLogs] = React.useState<AuditLogEntry[]>(initialLogs)
   const [loading, setLoading] = React.useState(false)
   const [showCleanupModal, setShowCleanupModal] = React.useState(false)
@@ -64,34 +69,66 @@ export function StorageLogsPanel({ initialStats, initialLogs }: StorageLogsPanel
 
   return (
     <div className="space-y-8">
-      {/* Storage Gauge */}
-      <div className="glass p-6 rounded-2xl border border-border">
-        <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
-          <Database className="w-5 h-5 text-primary" /> Storage Space Usage
-        </h2>
-
-        <div className="space-y-4">
-          <div className="flex justify-between text-sm font-semibold">
-            <span>Used: {toGB(stats.usedBytes)} GB</span>
-            <span>Limit: {toGB(stats.totalBytes)} GB</span>
+      {/* Storage Gauges Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Account 1: Voice Recordings */}
+        <div className="glass p-6 rounded-2xl border border-border">
+          <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
+            <Database className="w-5 h-5 text-primary" /> Voice Recordings Storage
+          </h2>
+          <div className="space-y-4">
+            <div className="flex justify-between text-sm font-semibold">
+              <span>Used: {toGB(stats.recordings.usedBytes)} GB</span>
+              <span>Limit: {toGB(stats.recordings.totalBytes)} GB</span>
+            </div>
+            <div className="w-full bg-border rounded-full h-4 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 rounded-full ${
+                  stats.recordings.percentageUsed > 80 ? "bg-red-500" : stats.recordings.percentageUsed > 50 ? "bg-yellow-500" : "bg-primary"
+                }`}
+                style={{ width: `${Math.min(100, stats.recordings.percentageUsed)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-foreground/50">
+              <span>{stats.recordings.percentageUsed.toFixed(1)}% Used</span>
+              <span>Remaining: {toGB(stats.recordings.remainingBytes)} GB</span>
+            </div>
           </div>
+        </div>
 
-          <div className="w-full bg-border rounded-full h-4 overflow-hidden">
-            <div
-              className={`h-full transition-all duration-500 rounded-full ${
-                stats.percentageUsed > 80 ? "bg-red-500" : stats.percentageUsed > 50 ? "bg-yellow-500" : "bg-primary"
-              }`}
-              style={{ width: `${stats.percentageUsed}%` }}
-            />
+        {/* Account 2: Transcriptions */}
+        <div className="glass p-6 rounded-2xl border border-border">
+          <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
+            <Database className="w-5 h-5 text-blue-500" /> Transcriptions Storage
+          </h2>
+          <div className="space-y-4">
+            <div className="flex justify-between text-sm font-semibold">
+              <span>Used: {toGB(stats.transcriptions.usedBytes)} GB</span>
+              <span>Limit: {toGB(stats.transcriptions.totalBytes)} GB</span>
+            </div>
+            <div className="w-full bg-border rounded-full h-4 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 rounded-full ${
+                  stats.transcriptions.percentageUsed > 80 ? "bg-red-500" : stats.transcriptions.percentageUsed > 50 ? "bg-yellow-500" : "bg-blue-500"
+                }`}
+                style={{ width: `${Math.min(100, stats.transcriptions.percentageUsed)}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-foreground/50">
+              <span>{stats.transcriptions.percentageUsed.toFixed(1)}% Used</span>
+              <span>Remaining: {toGB(stats.transcriptions.remainingBytes)} GB</span>
+            </div>
           </div>
+        </div>
 
-          <div className="flex justify-between text-xs text-foreground/50">
-            <span>{stats.percentageUsed.toFixed(1)}% Used</span>
-            <span>Remaining: {toGB(stats.remainingBytes)} GB</span>
-          </div>
+      </div>
+
+      <div className="glass p-6 rounded-2xl border border-border mt-4">
+        <h3 className="font-bold mb-4">Storage Management Options</h3>
 
           {/* Quick Actions */}
-          <div className="flex flex-wrap gap-4 pt-4 border-t border-border mt-4">
+          <div className="flex flex-wrap gap-4 pt-4 border-t border-border">
             <button
               onClick={handleTriggerWarning}
               disabled={loading}

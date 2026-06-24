@@ -5,32 +5,52 @@ import { createClientServer } from "@/lib/supabase"
 import { deleteFromCloudinary } from "@/lib/cloudinary"
 import { createAuditLog } from "@/app/actions/audit"
 import { revalidatePath } from "next/cache"
+import { v2 as cloudinary } from "cloudinary"
 
 const TOTAL_STORAGE_LIMIT_BYTES = 25 * 1024 * 1024 * 1024 // 25 GB limit
 
 export async function getStorageStats() {
   try {
-    const aggregate = await prisma.voiceRecording.aggregate({
-      where: { movedToCloud: false },
-      _sum: { fileSize: true }
-    })
+    // Account 1: Voice Recordings
+    const recordingsUsage = await cloudinary.api.usage({
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_API_KEY,
+      api_secret: process.env.CLOUDINARY_API_SECRET
+    }).catch(() => null)
 
-    const usedBytes = aggregate._sum.fileSize || 0
-    const remainingBytes = Math.max(0, TOTAL_STORAGE_LIMIT_BYTES - usedBytes)
+    // Account 2: Transcriptions
+    const transcriptionsUsage = await cloudinary.api.usage({
+      cloud_name: process.env.CLOUDINARY_TRANSCRIPTION_CLOUD_NAME,
+      api_key: process.env.CLOUDINARY_TRANSCRIPTION_API_KEY,
+      api_secret: process.env.CLOUDINARY_TRANSCRIPTION_API_SECRET
+    }).catch(() => null)
+
+    const recordingsCreditsUsed = recordingsUsage?.credits?.usage || 0
+    const transcriptionsCreditsUsed = transcriptionsUsage?.credits?.usage || 0
+
+    // 1 Credit = 1 GB (Approx)
+    const recUsedBytes = recordingsCreditsUsed * 1024 * 1024 * 1024
+    const transUsedBytes = transcriptionsCreditsUsed * 1024 * 1024 * 1024
 
     return {
-      totalBytes: TOTAL_STORAGE_LIMIT_BYTES,
-      usedBytes,
-      remainingBytes,
-      percentageUsed: (usedBytes / TOTAL_STORAGE_LIMIT_BYTES) * 100
+      recordings: {
+        totalBytes: TOTAL_STORAGE_LIMIT_BYTES,
+        usedBytes: recUsedBytes,
+        remainingBytes: Math.max(0, TOTAL_STORAGE_LIMIT_BYTES - recUsedBytes),
+        percentageUsed: (recUsedBytes / TOTAL_STORAGE_LIMIT_BYTES) * 100
+      },
+      transcriptions: {
+        totalBytes: TOTAL_STORAGE_LIMIT_BYTES,
+        usedBytes: transUsedBytes,
+        remainingBytes: Math.max(0, TOTAL_STORAGE_LIMIT_BYTES - transUsedBytes),
+        percentageUsed: (transUsedBytes / TOTAL_STORAGE_LIMIT_BYTES) * 100
+      }
     }
   } catch (error) {
     console.error("Failed to fetch storage statistics:", error)
     return {
-      totalBytes: TOTAL_STORAGE_LIMIT_BYTES,
-      usedBytes: 0,
-      remainingBytes: TOTAL_STORAGE_LIMIT_BYTES,
-      percentageUsed: 0
+      recordings: { totalBytes: TOTAL_STORAGE_LIMIT_BYTES, usedBytes: 0, remainingBytes: TOTAL_STORAGE_LIMIT_BYTES, percentageUsed: 0 },
+      transcriptions: { totalBytes: TOTAL_STORAGE_LIMIT_BYTES, usedBytes: 0, remainingBytes: TOTAL_STORAGE_LIMIT_BYTES, percentageUsed: 0 }
     }
   }
 }
@@ -40,7 +60,7 @@ export async function checkAndTriggerStorageWarning() {
     const stats = await getStorageStats()
     const fiveGBytes = 5 * 1024 * 1024 * 1024
 
-    if (stats.remainingBytes <= fiveGBytes) {
+    if (stats.recordings.remainingBytes <= fiveGBytes || stats.transcriptions.remainingBytes <= fiveGBytes) {
       // Find all users who have active recordings stored
       const activeRecordings = await prisma.voiceRecording.findMany({
         where: { movedToCloud: false },
@@ -51,21 +71,22 @@ export async function checkAndTriggerStorageWarning() {
       const userIds = activeRecordings.map(r => r.userId)
       if (userIds.length === 0) return { triggered: false, message: "No active users to notify" }
 
-      const remainingGB = (stats.remainingBytes / (1024 * 1024 * 1024)).toFixed(2)
+      const remainingRec = (stats.recordings.remainingBytes / (1024 * 1024 * 1024)).toFixed(2)
+      const remainingTrans = (stats.transcriptions.remainingBytes / (1024 * 1024 * 1024)).toFixed(2)
 
       // Bulk create notifications
       await prisma.notification.createMany({
         data: userIds.map(userId => ({
           userId,
           title: "Low Storage Space Warning ⚠️",
-          content: `Platform storage space is low (Remaining: ${remainingGB} GB). Your files may be auto-cleaned up in 24 hours. Please download your important files immediately.`,
+          content: `Platform storage space is low (Recordings: ${remainingRec} GB, Transcriptions: ${remainingTrans} GB). Please be careful.`,
           link: "/member"
         }))
       })
 
       await createAuditLog(
         "STORAGE_WARNING_TRIGGERED",
-        `Triggered low storage warning notifications for ${userIds.length} users. Remaining: ${remainingGB} GB`
+        `Triggered low storage warning notifications. Rec remaining: ${remainingRec} GB, Trans remaining: ${remainingTrans} GB`
       )
 
       return { triggered: true, notifiedUsersCount: userIds.length }

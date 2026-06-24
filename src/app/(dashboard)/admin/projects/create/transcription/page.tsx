@@ -2,8 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { ArrowLeft, Save, Plus, Trash2, X, Globe } from "lucide-react"
+import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, FileAudio } from "lucide-react"
 import { createProjectAction } from "@/app/actions/projects"
 
 const COUNTRIES = [
@@ -26,6 +25,97 @@ export default function CreateTranscriptionProjectPage() {
     setSelectedCountries(prev => prev.filter(c => c !== country))
   }
 
+  const [isUploading, setIsUploading] = React.useState(false)
+  const [uploadProgress, setUploadProgress] = React.useState(0)
+  const [uploadStatus, setUploadStatus] = React.useState("")
+
+  const handleClientSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setIsUploading(true)
+    setUploadStatus("Starting upload...")
+    setUploadProgress(0)
+
+    try {
+      const form = e.currentTarget
+      const formData = new FormData(form)
+
+      // Get audio files
+      const audioFiles = formData.getAll("transcriptionFiles") as File[]
+      
+      // If there are valid audio files, upload them one by one to show progress
+      const preUploadedAudio: { url: string, name: string }[] = []
+      
+      if (audioFiles.length > 0 && audioFiles[0].size > 0) {
+        // Remove from formData so we don't send huge payloads to the Next.js action
+        formData.delete("transcriptionFiles")
+        
+        for (let i = 0; i < audioFiles.length; i++) {
+          const file = audioFiles[i]
+          // 1. Get Cloudinary Signature
+          const signRes = await fetch("/api/cloudinary/sign", { method: "POST" })
+          if (!signRes.ok) throw new Error("Failed to get upload signature")
+          const { timestamp, signature, folder, apiKey, cloudName } = await signRes.json()
+
+          // 2. Upload directly to Cloudinary
+          const url = await new Promise<string>((resolve, reject) => {
+            const xhr = new XMLHttpRequest()
+            xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, true)
+            
+            xhr.upload.onprogress = (event) => {
+              if (event.lengthComputable) {
+                const fileProgress = event.loaded / event.total
+                const overallProgress = Math.round(((i + fileProgress) / audioFiles.length) * 100)
+                setUploadProgress(overallProgress)
+              }
+            }
+            
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                const res = JSON.parse(xhr.responseText)
+                if (res.secure_url) resolve(res.secure_url)
+                else reject(new Error("Failed to get secure URL from Cloudinary"))
+              } else {
+                reject(new Error(`Cloudinary upload failed with status ${xhr.status}`))
+              }
+            }
+            
+            xhr.onerror = () => reject(new Error("Network Error"))
+            
+            const uploadData = new FormData()
+            uploadData.append("file", file)
+            uploadData.append("api_key", apiKey)
+            uploadData.append("timestamp", timestamp.toString())
+            uploadData.append("signature", signature)
+            uploadData.append("folder", folder)
+            
+            xhr.send(uploadData)
+          })
+          
+          preUploadedAudio.push({ url, name: file.name })
+        }
+      }
+
+      setUploadStatus("Saving project to database...")
+      setUploadProgress(100)
+      
+      // Add the pre-uploaded URLs
+      if (preUploadedAudio.length > 0) {
+        formData.append("preUploadedAudio", JSON.stringify(preUploadedAudio))
+      }
+
+      const res = await createProjectAction(formData)
+      if (res.success) {
+        router.push("/admin")
+      } else {
+        throw new Error(res.error || "Something went wrong creating the project")
+      }
+    } catch (error: any) {
+      console.error(error)
+      alert(error.message || "An error occurred during upload")
+      setIsUploading(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto w-full animate-slide-up">
@@ -39,14 +129,25 @@ export default function CreateTranscriptionProjectPage() {
           <p className="text-foreground/70">Fill in the details to publish a new transcription project to freelancers.</p>
         </div>
 
-        <form action={async (formData) => {
-          const res = await createProjectAction(formData)
-          if (res.success) {
-            router.push("/admin")
-          } else {
-            alert(res.error || "Something went wrong")
-          }
-        }} className="space-y-8 glass p-8 rounded-2xl border border-border">
+        {isUploading && (
+          <div className="mb-8 p-6 glass rounded-2xl border border-primary/20 bg-primary/5 animate-pulse">
+            <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+              <UploadCloud className="w-5 h-5 text-primary" /> 
+              {uploadProgress === 100 ? "Finalizing..." : "Uploading Files..."}
+            </h3>
+            <p className="text-sm text-foreground/70 mb-4">{uploadStatus}</p>
+            
+            <div className="w-full bg-background rounded-full h-4 overflow-hidden border border-border">
+              <div 
+                className="bg-primary h-full transition-all duration-300 ease-out"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+            <p className="text-right text-xs font-bold mt-2 text-primary">{uploadProgress}%</p>
+          </div>
+        )}
+
+        <form onSubmit={handleClientSubmit} className={`space-y-8 glass p-8 rounded-2xl border border-border ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
           
           <div className="space-y-4 border-b border-border pb-8">
             <h3 className="text-lg font-bold text-foreground">General Information</h3>
@@ -199,39 +300,18 @@ export default function CreateTranscriptionProjectPage() {
                 </select>
               </div>
               
-              {/* Duration and unit choice */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Recording Duration</label>
-                <div className="flex gap-2">
-                  <input name="recordingDuration" type="number" step="0.1" min="0.1" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="e.g. 2.5 or 50" />
-                  <select name="durationUnit" defaultValue="HOUR" className="w-32 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                    <option value="HOUR">Hours</option>
-                    <option value="SENTENCE">Sentences</option>
-                  </select>
-                </div>
-              </div>
-
               {/* Price and model choice */}
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Price Configuration</label>
+                <label className="text-sm font-semibold">Reward Price Configuration</label>
                 <div className="flex gap-2">
-                  <input name="price" type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="50.00" required />
+                  <input name="price" type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="e.g. 10.00" required />
                   <select name="pricingModel" defaultValue="FIXED_PROJECT" className="w-48 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                    <option value="FIXED_PROJECT">Fixed Task</option>
-                    <option value="PER_HOUR">Per Hour</option>
-                    <option value="PER_SENTENCE">Per Sentence</option>
+                    <option value="FIXED_PROJECT">Fixed per Task</option>
+                    <option value="PER_HOUR">Per Audio Hour</option>
                   </select>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Age Range (Optional)</label>
-                <div className="flex gap-2 items-center">
-                  <input name="reqAgeMin" type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="Min age (18)" />
-                  <span className="text-foreground/50 font-bold">–</span>
-                  <input name="reqAgeMax" type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="Max age (60)" />
-                </div>
-              </div>
               <div className="space-y-2 md:col-span-2">
                 <label className="flex items-center gap-3 p-4 bg-primary/5 border border-primary/20 rounded-xl cursor-pointer hover:bg-primary/10 transition-colors">
                   <input name="autoApprove" type="checkbox" value="true" className="w-5 h-5 rounded border-border text-primary focus:ring-primary" />

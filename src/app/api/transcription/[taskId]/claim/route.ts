@@ -27,27 +27,58 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
       return NextResponse.json({ error: "You must be approved to work on this project." }, { status: 403 })
     }
 
-    // Check if task is already assigned
-    if (task.assignedToId) {
-      if (task.assignedToId === userId) {
-        return NextResponse.json({ success: true, message: "Already claimed by you" })
+    // Get user to check team membership
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { teamLeaderId: true, teamRole: true }
+    })
+
+    const isQC = user?.teamRole === "QC"
+    const teamIdToSet = user?.teamLeaderId || null
+
+    if (isQC) {
+      // QC can only claim tasks that are SUBMITTED_TO_QC and belong to their team
+      if (task.status !== "SUBMITTED_TO_QC") {
+        return NextResponse.json({ error: "Task is not ready for QC." }, { status: 400 })
       }
-      return NextResponse.json({ error: "This task has already been claimed by someone else." }, { status: 400 })
-    }
+      if (task.teamId && task.teamId !== teamIdToSet) {
+        return NextResponse.json({ error: "This task belongs to another team." }, { status: 403 })
+      }
+      
+      if (task.qcAssignedToId) {
+        if (task.qcAssignedToId === userId) return NextResponse.json({ success: true, message: "Already claimed by you" })
+        return NextResponse.json({ error: "Already claimed by another QC." }, { status: 400 })
+      }
 
-    // Claim the task atomically
-    await prisma.transcriptionTask.updateMany({
-      where: { id: taskId, assignedToId: null, status: "AVAILABLE" },
-      data: { assignedToId: userId, status: "ASSIGNED" }
-    })
+      await prisma.transcriptionTask.updateMany({
+        where: { id: taskId, qcAssignedToId: null, status: "SUBMITTED_TO_QC" },
+        data: { qcAssignedToId: userId, status: "UNDER_QC_REVIEW" }
+      })
 
-    // Verify it was actually claimed by this user (handles concurrency)
-    const verifyClaim = await prisma.transcriptionTask.findUnique({
-      where: { id: taskId }
-    })
+      const verifyClaim = await prisma.transcriptionTask.findUnique({ where: { id: taskId } })
+      if (verifyClaim?.qcAssignedToId !== userId) {
+        return NextResponse.json({ error: "Failed to claim task. It may have been claimed by someone else." }, { status: 409 })
+      }
+    } else {
+      // Transcriber or Freelancer claiming AVAILABLE task
+      if (task.status !== "AVAILABLE" && task.status !== "REJECTED") {
+        return NextResponse.json({ error: "Task is not available." }, { status: 400 })
+      }
 
-    if (verifyClaim?.assignedToId !== userId) {
-      return NextResponse.json({ error: "Failed to claim task. It may have been claimed by someone else." }, { status: 409 })
+      if (task.assignedToId) {
+        if (task.assignedToId === userId) return NextResponse.json({ success: true, message: "Already claimed by you" })
+        return NextResponse.json({ error: "This task has already been claimed by someone else." }, { status: 400 })
+      }
+
+      await prisma.transcriptionTask.updateMany({
+        where: { id: taskId, assignedToId: null, status: task.status }, // handle both AVAILABLE and REJECTED
+        data: { assignedToId: userId, status: "ASSIGNED", teamId: teamIdToSet }
+      })
+
+      const verifyClaim = await prisma.transcriptionTask.findUnique({ where: { id: taskId } })
+      if (verifyClaim?.assignedToId !== userId) {
+        return NextResponse.json({ error: "Failed to claim task. It may have been claimed by someone else." }, { status: 409 })
+      }
     }
 
     return NextResponse.json({ success: true })

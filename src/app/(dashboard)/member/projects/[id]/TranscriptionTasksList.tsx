@@ -4,7 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Headphones, CheckCircle, Clock } from "lucide-react"
 
-export function TranscriptionTasksList({ tasks, currentUserId }: { tasks: any[], currentUserId: string }) {
+export function TranscriptionTasksList({ tasks, currentUserId, teamRole, teamLeaderId }: { tasks: any[], currentUserId: string, teamRole?: string | null, teamLeaderId?: string | null }) {
   const router = useRouter()
   const [claimingId, setClaimingId] = React.useState<string | null>(null)
 
@@ -25,13 +25,25 @@ export function TranscriptionTasksList({ tasks, currentUserId }: { tasks: any[],
   }
 
   // Find if user already has an active task in this project
-  const myActiveTask = tasks.find(t => t.assignedToId === currentUserId)
+  const myActiveTask = tasks.find(t => t.assignedToId === currentUserId || t.qcAssignedToId === currentUserId)
+
+  const isQC = teamRole === "QC"
+
+  // Filter tasks based on role
+  const availableTasks = tasks.filter(t => {
+    if (t.assignedToId === currentUserId || t.qcAssignedToId === currentUserId) return true // Show my active task
+    if (isQC) {
+      return t.status === "SUBMITTED_TO_QC" && t.teamId === teamLeaderId
+    } else {
+      return t.status === "AVAILABLE" || t.status === "REJECTED"
+    }
+  })
 
   return (
     <div className="glass p-6 rounded-2xl border border-primary/20 bg-primary/5 mb-8">
       <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
         <Headphones className="w-6 h-6 text-primary" />
-        Available Transcription Tasks
+        {isQC ? "Tasks Ready for Quality Control" : "Available Transcription Tasks"}
       </h3>
       
       {myActiveTask && (
@@ -41,14 +53,14 @@ export function TranscriptionTasksList({ tasks, currentUserId }: { tasks: any[],
             onClick={() => router.push(`/member/transcription/${myActiveTask.id}`)}
             className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-bold text-sm"
           >
-            Complete Transcription (Task #{myActiveTask.id.slice(-6)})
+            {isQC ? `Review Task #${myActiveTask.id.slice(-6)}` : `Complete Transcription (Task #${myActiveTask.id.slice(-6)})`}
           </button>
         </div>
       )}
 
       <div className="grid gap-3">
-        {tasks.filter(t => t.status === "AVAILABLE" || t.assignedToId === currentUserId).map(task => {
-          const isMine = task.assignedToId === currentUserId
+        {availableTasks.map(task => {
+          const isMine = task.assignedToId === currentUserId || task.qcAssignedToId === currentUserId
           return (
             <div key={task.id} className="flex items-center justify-between p-4 bg-background border border-border rounded-xl">
               <div>
@@ -58,6 +70,7 @@ export function TranscriptionTasksList({ tasks, currentUserId }: { tasks: any[],
                 </div>
                 <div className="text-xs text-foreground/50 mt-1 flex items-center gap-2">
                   <Clock className="w-3 h-3" /> {task.duration ? `${Math.round(task.duration / 60)} minutes` : "Unknown"}
+                  <span className="ml-2 font-bold opacity-70">Status: {task.status.replace(/_/g, " ")}</span>
                 </div>
               </div>
               

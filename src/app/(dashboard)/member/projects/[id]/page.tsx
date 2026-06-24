@@ -14,7 +14,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   if (!userId) redirect("/login")
 
   // Get current user role
-  const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+  const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, teamRole: true, teamLeaderId: true } })
   const currentUserRole = currentUser?.role || "MEMBER"
 
   // Fetch project with all relations using Prisma ORM
@@ -223,14 +223,26 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <AlertCircle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
                 <p className="text-sm text-foreground/70">By applying, you confirm that you meet all the requirements for this project.</p>
               </div>
-              <form action={async () => {
-                "use server"
-                await applyToProject(id)
-              }}>
-                <button type="submit" className="whitespace-nowrap px-8 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-                  Apply Now
-                </button>
-              </form>
+              <div className="flex gap-3">
+                <form action={async () => {
+                  "use server"
+                  await applyToProject(id, "FREELANCER")
+                }}>
+                  <button type="submit" className="whitespace-nowrap px-6 py-3 bg-primary/10 text-primary border border-primary/20 font-bold rounded-xl hover:bg-primary/20 transition-all">
+                    Apply as Freelancer
+                  </button>
+                </form>
+                {project.isTranscriptionProject && (
+                  <form action={async () => {
+                    "use server"
+                    await applyToProject(id, "TEAM_LEADER")
+                  }}>
+                    <button type="submit" className="whitespace-nowrap px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+                      Apply as Team Leader
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -238,7 +250,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         {/* Execution Options: Option A (Internal) vs Option B (External) */}
         {isApproved && (
           project.isTranscriptionProject ? (
-            <TranscriptionTasksList tasks={transcriptionTasks} currentUserId={userId} />
+            <TranscriptionTasksList tasks={transcriptionTasks} currentUserId={userId} teamRole={currentUser?.teamRole} teamLeaderId={currentUser?.teamLeaderId} />
           ) : project.executionOption === "EXTERNAL" ? (
             <div className="glass p-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 mb-8">
               <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">

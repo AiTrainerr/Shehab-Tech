@@ -166,22 +166,41 @@ export async function createProjectAction(formData: FormData) {
           throw new Error("Script configuration enabled, but no sentences could be parsed or found.")
         }
       } else if (isTranscriptionProject) {
-        const files = formData.getAll("transcriptionFiles") as File[]
-        const validFiles = files.filter(f => f && f.size > 0)
-        
-        if (validFiles.length > 0) {
-          const audioUploads = []
-          for (const file of validFiles) {
-            const url = await uploadToSupabase(file, 'transcription')
+        // Try parsing preUploadedAudio first
+        const preUploadedAudio = formData.get("preUploadedAudio") as string
+        const audioUploads: any[] = []
+
+        if (preUploadedAudio) {
+          const parsed = JSON.parse(preUploadedAudio) as { url: string, name: string }[]
+          for (const item of parsed) {
             audioUploads.push({
               projectId: proj.id,
-              audioFilePath: url,
-              duration: null, // optionally could be parsed if we had an audio parser
+              audioFilePath: item.url,
+              duration: null,
               speakerCount: 1,
               status: "AVAILABLE",
             })
           }
+        } else {
+          // Fallback to traditional upload if any
+          const files = formData.getAll("transcriptionFiles") as File[]
+          const validFiles = files.filter(f => f && f.size > 0)
           
+          if (validFiles.length > 0) {
+            for (const file of validFiles) {
+              const url = await uploadToSupabase(file, 'transcription')
+              audioUploads.push({
+                projectId: proj.id,
+                audioFilePath: url,
+                duration: null, // optionally could be parsed if we had an audio parser
+                speakerCount: 1,
+                status: "AVAILABLE",
+              })
+            }
+          }
+        }
+        
+        if (audioUploads.length > 0) {
           await tx.transcriptionTask.createMany({
             data: audioUploads
           })
@@ -207,7 +226,7 @@ export async function createProjectAction(formData: FormData) {
   }
 }
 
-export async function applyToProject(projectId: string) {
+export async function applyToProject(projectId: string, applicationType: "FREELANCER" | "TEAM_LEADER" = "FREELANCER") {
   try {
     const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
     const { data: { user } } = await supabase.auth.getUser()
@@ -219,7 +238,7 @@ export async function applyToProject(projectId: string) {
     const status = project.autoApprove ? "ACCEPTED" : "PENDING"
 
     await prisma.application.create({
-      data: { projectId, userId: user.id, status }
+      data: { projectId, userId: user.id, status, applicationType }
     })
     
     if (project.autoApprove) {

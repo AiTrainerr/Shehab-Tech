@@ -18,6 +18,7 @@ export async function registerUser(formData: FormData) {
     const age = parseInt(formData.get("age") as string)
     const phone = formData.get("phone") as string
     const whatsapp = formData.get("whatsapp") as string
+    const teamLeaderId = formData.get("teamLeaderId") as string | null
 
     if (!email || !password || !firstName || !lastName) {
       return { success: false, error: "Missing required fields" }
@@ -83,6 +84,8 @@ export async function registerUser(formData: FormData) {
         phone: cleanPhone,
         whatsapp: cleanWhatsapp,
         verificationStatus: "NOT_VERIFIED",
+        teamLeaderId: teamLeaderId || null,
+        teamRole: teamLeaderId ? "TRANSCRIBER" : null, // Default to TRANSCRIBER if joining a team
       }
     })
 

@@ -58,8 +58,16 @@ model User {
   comments      Comment[]
   voiceRecordings    VoiceRecording[]
   pushSubscriptions  PushSubscription[]
-  assignedTasks      TranscriptionTask[]
+  assignedTasks      TranscriptionTask[] @relation("AssignedTranscriber")
+  qcTasks            TranscriptionTask[] @relation("AssignedQC")
+  teamTasks          TranscriptionTask[] @relation("TeamTasks")
   moderatorReviews   TranscriptionReview[]
+
+  // Team features
+  teamLeaderId       String?
+  teamLeader         User?   @relation("TeamMembers", fields: [teamLeaderId], references: [id])
+  teamMembers        User[]  @relation("TeamMembers")
+  teamRole           String? // TRANSCRIBER, QC
 
   // Moderator fields
   isApproved         Boolean  @default(false)
@@ -215,9 +223,10 @@ model Application {
   id          String            @id @default(cuid())
   projectId   String
   userId      String
-  status      String            @default("PENDING") // PENDING, ACCEPTED, WORKING, UNDER_REVIEW, APPROVED, PAID, REJECTED
-  proofUrl    String?           // For task completion proof
-  speakerCode String?           // e.g., "G0001", assigned upon approval
+  status          String            @default("PENDING") // PENDING, ACCEPTED, WORKING, UNDER_REVIEW, APPROVED, PAID, REJECTED
+  proofUrl        String?           // For task completion proof
+  speakerCode     String?           // e.g., "G0001", assigned upon approval
+  applicationType String            @default("FREELANCER") // FREELANCER, TEAM_LEADER
   
   project     Project           @relation(fields: [projectId], references: [id])
   user        User              @relation(fields: [userId], references: [id])
@@ -320,11 +329,17 @@ model TranscriptionTask {
   audioFilePath   String
   duration        Float?   // in seconds
   speakerCount    Int      @default(1)
-  status          String   @default("AVAILABLE") // AVAILABLE, ASSIGNED, SUBMITTED, APPROVED, REJECTED
+  status          String   @default("AVAILABLE") // AVAILABLE, ASSIGNED, SUBMITTED_TO_QC, UNDER_QC_REVIEW, APPROVED_BY_QC, APPROVED, REJECTED
   isFailed        Boolean  @default(false)
   
   assignedToId    String?
-  assignedTo      User?    @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedTo      User?    @relation("AssignedTranscriber", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  qcAssignedToId  String?
+  qcAssignedTo    User?    @relation("AssignedQC", fields: [qcAssignedToId], references: [id], onDelete: SetNull)
+
+  teamId          String?
+  teamLeader      User?    @relation("TeamTasks", fields: [teamId], references: [id], onDelete: SetNull)
   
   project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   segments        TranscriptionSegment[]

@@ -223,7 +223,7 @@ export default async function MemberDashboard() {
                     <div className="mt-4 pt-4 border-t border-border flex justify-end">
                       {app.status === "ACCEPTED" || app.status === "WORKING" ? (
                         <Link href={`/member/projects/${app.project.id}`} className="flex items-center gap-2 text-sm font-bold bg-primary text-primary-foreground px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
-                          ابدأ التسجيل الآن <ArrowRight className="w-4 h-4" />
+                          Start Working <ArrowRight className="w-4 h-4" />
                         </Link>
                       ) : (
                         <Link href={`/member/projects/${app.project.id}`} className="flex items-center gap-2 text-sm font-bold text-primary hover:underline">
@@ -266,7 +266,7 @@ export default async function MemberDashboard() {
                           </span>
                           {notif.link && (
                             <Link href={notif.link} className="text-[10px] text-primary font-bold hover:underline">
-                              عرض ←
+                              View ←
                             </Link>
                           )}
                         </div>
@@ -308,10 +308,10 @@ export default async function MemberDashboard() {
           <div className="glass p-6 rounded-2xl border border-border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-500" /> شاراتي
+                <Trophy className="w-5 h-5 text-yellow-500" /> My Badges
               </h3>
               <Link href="/member/achievements" className="text-xs font-bold text-primary hover:underline">
-                عرض الكل
+                View All
               </Link>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -321,11 +321,11 @@ export default async function MemberDashboard() {
                 </span>
               ))}
               {earnedBadgesCount === 0 && (
-                <p className="text-xs text-foreground/40">أكمل مهامك لتحصل على أول شارة!</p>
+                <p className="text-xs text-foreground/40">Complete tasks to get your first badge!</p>
               )}
             </div>
             {earnedBadgesCount > 0 && (
-              <p className="text-xs text-foreground/50 mt-2">{earnedBadgesCount} شارة مكتسبة من {badges.length}</p>
+              <p className="text-xs text-foreground/50 mt-2">{earnedBadgesCount} earned out of {badges.length} badges</p>
             )}
           </div>
 
@@ -336,8 +336,8 @@ export default async function MemberDashboard() {
                 <DollarSign className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="font-bold">سجل المدفوعات</h3>
-                <p className="text-sm text-foreground/60">عرض تاريخ أرباحك</p>
+                <h3 className="font-bold">Payment History</h3>
+                <p className="text-sm text-foreground/60">View your earnings history</p>
               </div>
               <ArrowRight className="w-5 h-5 text-foreground/30 ml-auto group-hover:text-primary group-hover:translate-x-1 transition-all" />
             </Link>

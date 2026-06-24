@@ -35,9 +35,9 @@ export default async function AchievementsPage() {
         <span className="text-sm font-bold text-primary uppercase tracking-wider">Gamification</span>
         <h1 className="text-3xl font-black text-foreground mt-1 flex items-center gap-3">
           <Trophy className="w-8 h-8 text-yellow-500" />
-          إنجازاتك
+          Achievements
         </h1>
-        <p className="text-foreground/60 mt-1">تابع مستواك وشاراتك وتقدمك على المنصة</p>
+        <p className="text-foreground/60 mt-1">Track your level, badges, and progress on the platform</p>
       </div>
 
       {/* Level Card */}
@@ -53,7 +53,7 @@ export default async function AchievementsPage() {
       {/* All Levels Roadmap */}
       <div className="glass p-6 rounded-2xl border border-border animate-slide-up stagger-2">
         <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-          <Target className="w-5 h-5 text-primary" /> خريطة المستويات
+          <Target className="w-5 h-5 text-primary" /> Level Roadmap
         </h2>
         <div className="space-y-4">
           {LEVELS.map((lvl, i) => {
@@ -75,16 +75,16 @@ export default async function AchievementsPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold">{lvl.label} <span className="text-foreground/40 text-sm">({lvl.labelEn})</span></h3>
+                    <h3 className="font-bold">{lvl.labelEn}</h3>
                     {isCurrentLevel && (
-                      <span className="text-xs font-bold px-2 py-0.5 bg-primary/10 text-primary rounded-full">الحالي</span>
+                      <span className="text-xs font-bold px-2 py-0.5 bg-primary/10 text-primary rounded-full">Current</span>
                     )}
                     {isPast && (
-                      <span className="text-xs font-bold px-2 py-0.5 bg-green-500/10 text-green-500 rounded-full">✓ مكتمل</span>
+                      <span className="text-xs font-bold px-2 py-0.5 bg-green-500/10 text-green-500 rounded-full">✓ Completed</span>
                     )}
                   </div>
                   <p className="text-xs text-foreground/50 mt-0.5">
-                    {lvl.maxCompleted ? `${lvl.minCompleted} – ${lvl.maxCompleted} مهمة` : `${lvl.minCompleted}+ مهمة`}
+                    {lvl.maxCompleted ? `${lvl.minCompleted} – ${lvl.maxCompleted} Tasks` : `${lvl.minCompleted}+ Tasks`}
                   </p>
                   {isCurrentLevel && (
                     <div className="mt-2">
@@ -101,9 +101,9 @@ export default async function AchievementsPage() {
       {/* Stats Summary */}
       <div className="grid grid-cols-3 gap-4 animate-slide-up stagger-3">
         {[
-          { icon: CheckCircle, label: "مهام مكتملة", value: user.completedCount, color: "text-green-500 bg-green-500/10" },
-          { icon: Star, label: "التقييم", value: user.rating > 0 ? user.rating.toFixed(1) : "—", color: "text-yellow-500 bg-yellow-500/10" },
-          { icon: Trophy, label: "شارات مكتسبة", value: `${earnedBadgesCount}/${badges.length}`, color: "text-purple-500 bg-purple-500/10" },
+          { icon: CheckCircle, label: "Completed Tasks", value: user.completedCount, color: "text-green-500 bg-green-500/10" },
+          { icon: Star, label: "Rating", value: user.rating > 0 ? user.rating.toFixed(1) : "—", color: "text-yellow-500 bg-yellow-500/10" },
+          { icon: Trophy, label: "Earned Badges", value: `${earnedBadgesCount}/${badges.length}`, color: "text-purple-500 bg-purple-500/10" },
         ].map(stat => (
           <div key={stat.label} className="glass p-4 rounded-2xl border border-border text-center">
             <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center mx-auto mb-2`}>
@@ -118,7 +118,7 @@ export default async function AchievementsPage() {
       {/* Badges */}
       <div className="glass p-6 rounded-2xl border border-border animate-slide-up stagger-4">
         <h2 className="text-lg font-bold mb-6 flex items-center gap-2">
-          <Trophy className="w-5 h-5 text-yellow-500" /> الشارات
+          <Trophy className="w-5 h-5 text-yellow-500" /> Badges
         </h2>
         <BadgesGrid badges={badges} />
       </div>

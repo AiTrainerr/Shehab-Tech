@@ -11,14 +11,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
 
     const task = await prisma.transcriptionTask.findUnique({
       where: { id: taskId },
-      select: { assignedToId: true, status: true }
+      select: { assignedToId: true, qcAssignedToId: true, status: true }
     })
 
-    if (!task || task.assignedToId !== userId) {
+    if (!task || (task.assignedToId !== userId && task.qcAssignedToId !== userId)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    if (task.status === "SUBMITTED" || task.status === "APPROVED") {
+    if (task.status === "APPROVED" || task.status === "APPROVED_BY_QC") {
       return NextResponse.json({ error: "Task is locked" }, { status: 400 })
     }
 
