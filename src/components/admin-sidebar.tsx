@@ -46,7 +46,7 @@ export function AdminSidebar({
 
   // Find current page name for mobile header
   const currentItem = allItems.find(item =>
-    item.exact ? pathname === item.href : pathname.startsWith(item.href)
+    "exact" in item && item.exact ? pathname === item.href : pathname.startsWith(item.href)
   )
 
   return (
@@ -57,7 +57,7 @@ export function AdminSidebar({
           <div className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-4">Overview</div>
           <nav className="space-y-1">
             {navItems.map((item) => {
-              const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+              const isActive = "exact" in item && item.exact ? pathname === item.href : pathname.startsWith(item.href)
               return (
                 <Link key={item.name} href={item.href} className={`flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors ${isActive ? "bg-primary/10 text-primary" : "text-foreground/70 hover:bg-background"}`}>
                   <item.icon className="w-5 h-5" /> {item.name}
@@ -95,7 +95,7 @@ export function AdminSidebar({
             <div className="p-4 space-y-1">
               <p className="text-xs font-bold text-foreground/40 uppercase tracking-wider mb-3">Navigation</p>
               {navItems.map((item) => {
-                const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+                const isActive = "exact" in item && item.exact ? pathname === item.href : pathname.startsWith(item.href)
                 return (
                   <Link
                     key={item.name}
@@ -141,7 +141,7 @@ export function AdminSidebar({
           {/* Quick-access: show first 4 nav items as icons */}
           <div className="flex items-center gap-1">
             {allItems.slice(0, 4).map((item) => {
-              const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href)
+              const isActive = "exact" in item && item.exact ? pathname === item.href : pathname.startsWith(item.href)
               return (
                 <Link
                   key={item.name}

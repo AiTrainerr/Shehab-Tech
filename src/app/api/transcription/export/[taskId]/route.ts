@@ -13,8 +13,9 @@ function formatTime(seconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`
 }
 
-export async function GET(req: NextRequest, { params }: { params: { taskId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
+    const { taskId } = await params;
     const cookieStore = await cookies()
     const userId = cookieStore.get("userId")?.value
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: { taskId: stri
     }
 
     const task = await prisma.transcriptionTask.findUnique({
-      where: { id: params.taskId },
+      where: { id: taskId },
       include: {
         project: true,
         segments: { orderBy: { startTime: "asc" } }

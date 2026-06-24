@@ -50,8 +50,8 @@ export function TranscriptionQAClientWrapper({ taskId, audioUrl, initialSegments
         initialSegments={initialSegments}
         speakerCount={speakerCount}
         isReviewMode={isReadOnly}
-        onReviewApprove={handleApprove}
-        onReviewReject={handleReject}
+        onApprove={handleApprove}
+        onReject={handleReject}
       />
     </div>
   )

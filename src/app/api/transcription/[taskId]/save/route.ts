@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 
-export async function POST(req: NextRequest, { params }: { params: { taskId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
+    const { taskId } = await params;
     const cookieStore = await cookies()
     const userId = cookieStore.get("userId")?.value
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const task = await prisma.transcriptionTask.findUnique({
-      where: { id: params.taskId },
+      where: { id: taskId },
       select: { assignedToId: true, status: true }
     })
 
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: { taskId: str
     await prisma.$transaction(async (tx) => {
       // 1. Delete existing segments for this task
       await tx.transcriptionSegment.deleteMany({
-        where: { taskId: params.taskId }
+        where: { taskId: taskId }
       })
 
       // 2. Insert new segments
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: { taskId: str
         await tx.transcriptionSegment.createMany({
           data: segments.map(s => ({
             id: s.id.startsWith("wavesurfer") ? undefined : s.id, // Only keep IDs if they were previously saved, else let CUID generate
-            taskId: params.taskId,
+            taskId: taskId,
             startTime: s.startTime,
             endTime: s.endTime,
             speakerLabel: s.speakerLabel,
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest, { params }: { params: { taskId: str
       
       // Update task updated at
       await tx.transcriptionTask.update({
-        where: { id: params.taskId },
+        where: { id: taskId },
         data: { updatedAt: new Date() }
       })
     })

@@ -3,13 +3,13 @@ import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { TranscriptionEditor, Segment } from "@/components/transcription-editor"
-import { ArrowLeft, Headphones, CheckCircle2, AlertCircle } from "lucide-react"
+import { ArrowLeft, Headphones, CheckCircle2, AlertCircle, ArrowRight, ShieldCheck } from "lucide-react"
 import { TranscriptionQAClientWrapper } from "./TranscriptionQAClientWrapper"
 import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
-export default async function AdminQATranscriptionPage({ params }: { params: { taskId: string } }) {
+export default async function AdminQATranscriptionPage({ params }: { params: Promise<{ taskId: string }> }) {
   const cookieStore = await cookies()
   const userId = cookieStore.get("userId")?.value
   if (!userId) redirect("/login")
@@ -25,8 +25,9 @@ export default async function AdminQATranscriptionPage({ params }: { params: { t
   }
 
   // Fetch task
+  const { taskId } = await params;
   const task = await prisma.transcriptionTask.findUnique({
-    where: { id: params.taskId },
+    where: { id: taskId },
     include: {
       project: true,
       assignedTo: { select: { firstName: true, lastName: true } },

@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 
-export async function POST(req: NextRequest, { params }: { params: { taskId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
+    const { taskId } = await params;
     const cookieStore = await cookies()
     const userId = cookieStore.get("userId")?.value
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const task = await prisma.transcriptionTask.findUnique({
-      where: { id: params.taskId },
+      where: { id: taskId },
       include: { project: true }
     })
 
@@ -36,13 +37,13 @@ export async function POST(req: NextRequest, { params }: { params: { taskId: str
 
     // Claim the task atomically
     await prisma.transcriptionTask.updateMany({
-      where: { id: params.taskId, assignedToId: null, status: "AVAILABLE" },
+      where: { id: taskId, assignedToId: null, status: "AVAILABLE" },
       data: { assignedToId: userId, status: "ASSIGNED" }
     })
 
     // Verify it was actually claimed by this user (handles concurrency)
     const verifyClaim = await prisma.transcriptionTask.findUnique({
-      where: { id: params.taskId }
+      where: { id: taskId }
     })
 
     if (verifyClaim?.assignedToId !== userId) {

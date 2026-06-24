@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 
-export async function POST(req: NextRequest, { params }: { params: { taskId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
+    const { taskId } = await params;
     const cookieStore = await cookies()
     const userId = cookieStore.get("userId")?.value
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { taskId: str
     }
 
     const task = await prisma.transcriptionTask.findUnique({
-      where: { id: params.taskId }
+      where: { id: taskId }
     })
 
     if (!task) {
@@ -35,14 +36,14 @@ export async function POST(req: NextRequest, { params }: { params: { taskId: str
     await prisma.$transaction(async (tx) => {
       // 1. Update task status
       await tx.transcriptionTask.update({
-        where: { id: params.taskId },
+        where: { id: taskId },
         data: { status, updatedAt: new Date() }
       })
 
       // 2. Create review record
       await tx.transcriptionReview.create({
         data: {
-          taskId: params.taskId,
+          taskId: taskId,
           moderatorId: userId,
           status,
           notes: notes || null
