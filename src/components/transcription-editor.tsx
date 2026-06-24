@@ -4,7 +4,7 @@ import * as React from "react"
 import WaveSurfer from "wavesurfer.js"
 import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.esm.js"
 import TimelinePlugin from "wavesurfer.js/dist/plugins/timeline.esm.js"
-import { Play, Pause, ZoomIn, ZoomOut, Save, Plus, Trash2, Check, X } from "lucide-react"
+import { Play, Pause, ZoomIn, ZoomOut, Save, Plus, Trash2, Check, X, AlertCircle, Undo2, Redo2, ToggleLeft, ToggleRight } from "lucide-react"
 
 export interface Segment {
   id: string
@@ -22,7 +22,7 @@ interface TranscriptionEditorProps {
   speakerCount: number
   isReviewMode?: boolean
   isQC?: boolean
-  onSave?: (segments: Segment[]) => Promise<void>
+  onSave?: (segments: Segment[], isAutoSave?: boolean) => Promise<void>
   onSubmit?: () => Promise<void>
   onApprove?: () => Promise<void>
   onReject?: (notes: string) => Promise<void>
@@ -58,11 +58,58 @@ export function TranscriptionEditor({
   const [isSaving, setIsSaving] = React.useState(false)
   const [rejectNotes, setRejectNotes] = React.useState("")
   const [showRejectBox, setShowRejectBox] = React.useState(false)
+  const [isLooping, setIsLooping] = React.useState(false)
   const [isReady, setIsReady] = React.useState(false)
   const [activeSegmentId, setActiveSegmentId] = React.useState<string | null>(null)
-  const [isLooping, setIsLooping] = React.useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false)
   const segmentRefs = React.useRef<Record<string, HTMLDivElement | null>>({})
+
+  // History & Auto-Save State
+  const [autoSave, setAutoSave] = React.useState(true)
+  const historyRef = React.useRef<Segment[][]>([initialSegments])
+  const historyIndexRef = React.useRef(0)
+  const skipHistoryRef = React.useRef(false)
+  
+  // Debounced push to history
+  React.useEffect(() => {
+    if (skipHistoryRef.current) {
+      skipHistoryRef.current = false
+      return
+    }
+    const timer = setTimeout(() => {
+      const currentHistory = historyRef.current
+      const currentIndex = historyIndexRef.current
+      
+      // If segments are exactly the same by reference, skip
+      if (currentHistory[currentIndex] === segments) return
+      
+      const newHistory = currentHistory.slice(0, currentIndex + 1)
+      newHistory.push(segments)
+      if (newHistory.length > 50) newHistory.shift() // Keep max 50 states
+      
+      historyRef.current = newHistory
+      historyIndexRef.current = newHistory.length - 1
+    }, 500)
+    
+    return () => clearTimeout(timer)
+  }, [segments])
+
+  // Auto-Save Effect
+  React.useEffect(() => {
+    if (!autoSave || !hasUnsavedChanges || !onSave) return
+    const timer = setTimeout(async () => {
+      setIsSaving(true)
+      try {
+        await onSave(segments, true)
+        setHasUnsavedChanges(false)
+      } catch (e) {
+        console.error("Auto-save failed", e)
+      } finally {
+        setIsSaving(false)
+      }
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [autoSave, hasUnsavedChanges, segments, onSave])
 
   // Initialize WaveSurfer
   React.useEffect(() => {
@@ -315,10 +362,52 @@ export function TranscriptionEditor({
     if (!onSave) return
     setIsSaving(true)
     try {
-      await onSave(segments)
+      await onSave(segments, false)
       setHasUnsavedChanges(false)
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const syncRegions = (targetSegments: Segment[]) => {
+    const wsRegions = regionsRef.current
+    if (!wsRegions) return
+    wsRegions.clearRegions()
+    targetSegments.forEach((seg) => {
+      try {
+        wsRegions.addRegion({
+          id: seg.id,
+          start: seg.startTime,
+          end: seg.endTime,
+          color: "rgba(37, 99, 235, 0.2)",
+          drag: !isReviewMode,
+          resize: !isReviewMode,
+        })
+      } catch (e) {
+        console.error("Failed to add region", e)
+      }
+    })
+  }
+
+  const handleUndo = () => {
+    if (historyIndexRef.current > 0) {
+      historyIndexRef.current -= 1
+      const past = historyRef.current[historyIndexRef.current]
+      skipHistoryRef.current = true
+      setSegments(past)
+      setHasUnsavedChanges(true)
+      syncRegions(past)
+    }
+  }
+
+  const handleRedo = () => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      historyIndexRef.current += 1
+      const future = historyRef.current[historyIndexRef.current]
+      skipHistoryRef.current = true
+      setSegments(future)
+      setHasUnsavedChanges(true)
+      syncRegions(future)
     }
   }
 
@@ -345,32 +434,53 @@ export function TranscriptionEditor({
       {/* Waveform Section */}
       <div className="glass p-4 rounded-2xl border border-border">
         {/* Controls */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-2">
-            <button
-              onClick={handlePlayPause}
-              className="p-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-            >
+            <button onClick={handlePlayPause} className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity">
               {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
             </button>
-            <button onClick={handleZoomOut} className="p-2 hover:bg-border rounded-lg transition-colors">
-              <ZoomOut className="w-5 h-5" />
-            </button>
-            <button onClick={handleZoomIn} className="p-2 hover:bg-border rounded-lg transition-colors">
-              <ZoomIn className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1 bg-background/50 border border-border rounded-xl p-1">
+              <button onClick={handleZoomOut} className="w-8 h-8 flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-background rounded-lg transition-colors"><ZoomOut className="w-4 h-4" /></button>
+              <button onClick={handleZoomIn} className="w-8 h-8 flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-background rounded-lg transition-colors"><ZoomIn className="w-4 h-4" /></button>
+            </div>
+            
+            {/* History Controls */}
+            {!isReviewMode && (
+              <div className="flex items-center gap-1 bg-background/50 border border-border rounded-xl p-1 ml-2">
+                <button 
+                  onClick={handleUndo} 
+                  disabled={historyIndexRef.current === 0}
+                  title="Undo"
+                  className="w-8 h-8 flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-background rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  <Undo2 className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={handleRedo}
+                  disabled={historyIndexRef.current === historyRef.current.length - 1}
+                  title="Redo"
+                  className="w-8 h-8 flex items-center justify-center text-foreground/70 hover:text-foreground hover:bg-background rounded-lg transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  <Redo2 className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
-          
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-2 flex-wrap">
             {!isReviewMode && onSave && (
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-bold text-sm disabled:opacity-50"
-              >
-                <Save className="w-4 h-4" />
-                {isSaving ? "Saving..." : "Save Changes"}
-              </button>
+              <>
+                <button 
+                  onClick={() => setAutoSave(!autoSave)} 
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${autoSave ? 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20' : 'bg-background text-foreground/70 border-border hover:bg-foreground/5'}`}
+                >
+                  {autoSave ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                  Auto-Save {autoSave ? 'ON' : 'OFF'}
+                </button>
+                <button onClick={handleSave} disabled={isSaving || (!hasUnsavedChanges && !autoSave)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 text-white hover:bg-green-600 transition-colors text-sm font-bold disabled:opacity-50">
+                  <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Save Changes"}
+                </button>
+              </>
             )}
             {!isReviewMode && onSubmit && (
               <button

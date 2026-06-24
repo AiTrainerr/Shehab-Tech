@@ -7,7 +7,7 @@ import { TranscriptionEditor } from "@/components/transcription-editor"
 export function TranscriptionClientWrapper({ taskId, audioUrl, initialSegments, speakerCount, isReadOnly, isQC }: any) {
   const router = useRouter()
 
-  const handleSave = async (segments: any[]) => {
+  const handleSave = async (segments: any[], isAutoSave = false) => {
     try {
       const res = await fetch(`/api/transcription/${taskId}/save`, {
         method: "POST",
@@ -17,11 +17,10 @@ export function TranscriptionClientWrapper({ taskId, audioUrl, initialSegments, 
 
       if (!res.ok) throw new Error("Failed to save")
       
-      // Optional: show toast notification
-      alert("Saved successfully!")
+      if (!isAutoSave) alert("Saved successfully!")
     } catch (e) {
       console.error(e)
-      alert("An error occurred while saving.")
+      if (!isAutoSave) alert("An error occurred while saving.")
     }
   }
 
