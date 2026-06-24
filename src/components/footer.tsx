@@ -1,7 +1,14 @@
+"use client"
+
 import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Shield, Globe2, Mail, Phone, MessageSquare } from "lucide-react"
 
 export function Footer() {
+  const pathname = usePathname()
+  
+  if (pathname !== "/") return null
+
   return (
     <footer className="bg-card border-t border-border mt-auto relative overflow-hidden">
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
