@@ -9,14 +9,15 @@ import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
-export default async function FreelancerTranscriptionPage({ params }: { params: { taskId: string } }) {
+export default async function FreelancerTranscriptionPage({ params }: { params: Promise<{ taskId: string }> }) {
+  const { taskId } = await params;
   const cookieStore = await cookies()
   const userId = cookieStore.get("userId")?.value
   if (!userId) redirect("/login")
 
   // Fetch task and verify ownership
   const task = await prisma.transcriptionTask.findUnique({
-    where: { id: params.taskId },
+    where: { id: taskId },
     include: {
       project: { include: { images: true } },
       segments: { orderBy: { startTime: "asc" } },
