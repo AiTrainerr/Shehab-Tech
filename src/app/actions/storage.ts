@@ -5,30 +5,42 @@ import { createClientServer } from "@/lib/supabase"
 import { deleteFromCloudinary } from "@/lib/cloudinary"
 import { createAuditLog } from "@/app/actions/audit"
 import { revalidatePath } from "next/cache"
-import { v2 as cloudinary } from "cloudinary"
 
 const TOTAL_STORAGE_LIMIT_BYTES = 25 * 1024 * 1024 * 1024 // 25 GB limit
 
+async function fetchCloudinaryUsage(cloudName: string, apiKey: string, apiSecret: string) {
+  try {
+    const credentials = Buffer.from(`${apiKey}:${apiSecret}`).toString("base64")
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/usage`, {
+      headers: { Authorization: `Basic ${credentials}` },
+      cache: "no-store",
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null
+  }
+}
+
 export async function getStorageStats() {
   try {
-    // Account 1: Voice Recordings
-    const recordingsUsage = await cloudinary.api.usage({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET
-    }).catch(() => null)
-
-    // Account 2: Transcriptions
-    const transcriptionsUsage = await cloudinary.api.usage({
-      cloud_name: process.env.CLOUDINARY_TRANSCRIPTION_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_TRANSCRIPTION_API_KEY,
-      api_secret: process.env.CLOUDINARY_TRANSCRIPTION_API_SECRET
-    }).catch(() => null)
+    const [recordingsUsage, transcriptionsUsage] = await Promise.all([
+      fetchCloudinaryUsage(
+        process.env.CLOUDINARY_CLOUD_NAME!,
+        process.env.CLOUDINARY_API_KEY!,
+        process.env.CLOUDINARY_API_SECRET!
+      ),
+      fetchCloudinaryUsage(
+        process.env.CLOUDINARY_TRANSCRIPTION_CLOUD_NAME!,
+        process.env.CLOUDINARY_TRANSCRIPTION_API_KEY!,
+        process.env.CLOUDINARY_TRANSCRIPTION_API_SECRET!
+      ),
+    ])
 
     const recordingsCreditsUsed = recordingsUsage?.credits?.usage || 0
     const transcriptionsCreditsUsed = transcriptionsUsage?.credits?.usage || 0
 
-    // 1 Credit = 1 GB (Approx)
+    // 1 Credit ≈ 1 GB
     const recUsedBytes = recordingsCreditsUsed * 1024 * 1024 * 1024
     const transUsedBytes = transcriptionsCreditsUsed * 1024 * 1024 * 1024
 
@@ -61,7 +73,6 @@ export async function checkAndTriggerStorageWarning() {
     const fiveGBytes = 5 * 1024 * 1024 * 1024
 
     if (stats.recordings.remainingBytes <= fiveGBytes || stats.transcriptions.remainingBytes <= fiveGBytes) {
-      // Find all users who have active recordings stored
       const activeRecordings = await prisma.voiceRecording.findMany({
         where: { movedToCloud: false },
         select: { userId: true },
@@ -74,7 +85,6 @@ export async function checkAndTriggerStorageWarning() {
       const remainingRec = (stats.recordings.remainingBytes / (1024 * 1024 * 1024)).toFixed(2)
       const remainingTrans = (stats.transcriptions.remainingBytes / (1024 * 1024 * 1024)).toFixed(2)
 
-      // Bulk create notifications
       await prisma.notification.createMany({
         data: userIds.map(userId => ({
           userId,
@@ -110,7 +120,6 @@ export async function adminExecuteCleanup(reason: string) {
       return { success: false, error: "Unauthorized" }
     }
 
-    // Find all voice recordings that are expired (expiresAt < now)
     const expiredRecordings = await prisma.voiceRecording.findMany({
       where: {
         expiresAt: { lt: new Date() },
@@ -123,7 +132,6 @@ export async function adminExecuteCleanup(reason: string) {
       return { success: true, count: 0, message: "No expired recordings to clean up" }
     }
 
-    // Delete files from Cloudinary and mark as movedToCloud in DB
     for (const rec of expiredRecordings) {
       try {
         await deleteFromCloudinary(rec.publicId)
@@ -139,7 +147,6 @@ export async function adminExecuteCleanup(reason: string) {
     const adminName = `${dbUser.firstName} ${dbUser.lastName}`
     const detailsText = `Admin "${adminName}" executed manual cleanup of ${expiredRecordings.length} expired recording files. Reason: ${reason}`
 
-    // Log the manual delete operation in AuditLog
     await createAuditLog("MANUAL_STORAGE_CLEANUP", detailsText)
 
     revalidatePath("/admin/storage")
