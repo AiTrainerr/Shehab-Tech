@@ -15,6 +15,7 @@ import { Footer } from "@/components/footer";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationManager } from "@/components/push-notification-manager";
 import { SplashScreen } from "@/components/splash-screen";
+import { SessionTimeout } from "@/components/session-timeout";
 import { createClientServer } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
 
@@ -88,6 +89,7 @@ export default async function RootLayout({
           <Footer />
           <PWAInstallPrompt />
           <PushNotificationManager />
+          {currentUser && <SessionTimeout />}
         </ThemeProvider>
       </body>
     </html>

@@ -6,6 +6,7 @@ import { useTheme } from "next-themes"
 import { Moon, Sun, Menu, X, LogOut, User, BadgeCheck } from "lucide-react"
 import { logoutUser } from "@/app/actions/logout"
 import { NotificationBell } from "@/components/notification-bell"
+import { GlobalSearch } from "@/components/global-search"
 
 export function Navbar({ user }: { user?: any }) {
   const userRole = user?.role
@@ -51,6 +52,7 @@ export function Navbar({ user }: { user?: any }) {
                     <Link href="/member" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Dashboard</Link>
                     <Link href="/member/projects" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Available Projects</Link>
                     <Link href="/member/projects?filter=past" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Past Projects</Link>
+                    <Link href="/member/achievements" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1">🏆 Achievements</Link>
                   </>
                 )}
               </>
@@ -59,6 +61,11 @@ export function Navbar({ user }: { user?: any }) {
 
           {/* Right side — shown on ALL screen sizes */}
           <div className="flex items-center gap-2">
+            {/* Global Search — only for logged-in users */}
+            {userRole && (
+              <GlobalSearch isAdmin={isAdminOrMod} />
+            )}
+
             {/* Theme toggle */}
             {mounted && (
               <button

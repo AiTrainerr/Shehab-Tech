@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign, FolderOpen, Award, ShieldCheck, MessageSquare } from "lucide-react"
+import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign, FolderOpen, Award, ShieldCheck, MessageSquare, BarChart3 } from "lucide-react"
 
 export function AdminSidebar({ 
   pendingVerifications,
@@ -35,6 +35,7 @@ export function AdminSidebar({
   ]
 
   const managementItems = isModerator ? [] : [
+    { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
     { name: "Skills", href: "/admin/skills", icon: Award },
     { name: "Verification Requests", href: "/admin/verification", icon: ShieldCheck, badge: pendingVerifications > 0 ? pendingVerifications : null },
     { name: "Portfolios", href: "/portfolio", icon: Briefcase },
