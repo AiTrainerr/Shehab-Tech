@@ -65,6 +65,8 @@ export async function createProjectAction(formData: FormData) {
     const maxDuration = formData.get("maxDuration") ? parseInt(formData.get("maxDuration") as string) : null
     const hasScript = formData.get("hasScript") === "true"
     const scriptType = formData.get("scriptType") as string || "STATIC"
+    const isTranscriptionProject = formData.get("isTranscriptionProject") === "true"
+    const outputFormat = formData.get("outputFormat") as string || "WORD"
     const targetMales = parseInt(formData.get("targetMales") as string) || 0
     const targetFemales = parseInt(formData.get("targetFemales") as string) || 0
     const requiredParticipants = targetMales + targetFemales
@@ -100,6 +102,8 @@ export async function createProjectAction(formData: FormData) {
           requiredParticipants,
           targetMales,
           targetFemales,
+          isTranscriptionProject,
+          outputFormat,
           languages: { create: languages },
           images: { create: images }
         }
@@ -160,6 +164,28 @@ export async function createProjectAction(formData: FormData) {
           })
         } else {
           throw new Error("Script configuration enabled, but no sentences could be parsed or found.")
+        }
+        }
+      } else if (isTranscriptionProject) {
+        const files = formData.getAll("transcriptionFiles") as File[]
+        const validFiles = files.filter(f => f && f.size > 0)
+        
+        if (validFiles.length > 0) {
+          const audioUploads = []
+          for (const file of validFiles) {
+            const url = await uploadToSupabase(file, 'transcription')
+            audioUploads.push({
+              projectId: proj.id,
+              audioFilePath: url,
+              duration: null, // optionally could be parsed if we had an audio parser
+              speakerCount: 1,
+              status: "AVAILABLE",
+            })
+          }
+          
+          await tx.transcriptionTask.createMany({
+            data: audioUploads
+          })
         }
       }
 

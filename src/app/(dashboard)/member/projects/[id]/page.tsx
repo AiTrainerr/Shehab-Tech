@@ -5,6 +5,7 @@ import { redirect, notFound } from "next/navigation"
 import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, DollarSign, Globe, ArrowRight, Mic } from "lucide-react"
 import { applyToProject } from "@/app/actions/projects"
 import { CommentsSection } from "@/components/comments-section"
+import { TranscriptionTasksList } from "./TranscriptionTasksList"
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -59,10 +60,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const applicantCount = project._count.applications
 
   // Fetch sentences for voice recording (only if approved)
-  const sentences = isApproved ? await prisma.projectSentence.findMany({
+  const sentences = isApproved && !project.isTranscriptionProject ? await prisma.projectSentence.findMany({
     where: { projectId: id },
     orderBy: { order: "asc" },
     include: { recordings: { where: { userId } } }
+  }) : []
+
+  // Fetch transcription tasks (only if approved and project is transcription)
+  const transcriptionTasks = isApproved && project.isTranscriptionProject ? await prisma.transcriptionTask.findMany({
+    where: { projectId: id },
+    orderBy: { createdAt: "asc" }
   }) : []
 
   // Parse countries
@@ -230,7 +237,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
         {/* Execution Options: Option A (Internal) vs Option B (External) */}
         {isApproved && (
-          project.executionOption === "EXTERNAL" ? (
+          project.isTranscriptionProject ? (
+            <TranscriptionTasksList tasks={transcriptionTasks} currentUserId={userId} />
+          ) : project.executionOption === "EXTERNAL" ? (
             <div className="glass p-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 mb-8">
               <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
                 <Globe className="w-5 h-5 text-yellow-500" /> External Platform Task

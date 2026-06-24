@@ -56,8 +56,10 @@ model User {
   messagesRecv  Message[] @relation("ReceivedMessages")
   portfolios    Portfolio[]
   comments      Comment[]
-  voiceRecordings VoiceRecording[]
-  pushSubscriptions PushSubscription[]
+  voiceRecordings    VoiceRecording[]
+  pushSubscriptions  PushSubscription[]
+  assignedTasks      TranscriptionTask[]
+  moderatorReviews   TranscriptionReview[]
 
   // Moderator fields
   isApproved         Boolean  @default(false)
@@ -130,6 +132,11 @@ model Project {
   targetMales          Int      @default(0)
   targetFemales        Int      @default(0)
 
+  // Transcription Platform fields
+  isTranscriptionProject Boolean @default(false)
+  outputFormat           String  @default("WORD") // WORD, EXCEL, JSON, SRT
+  allowFreelancerDownload Boolean @default(false)
+
   skills          ProjectSkill[]
   applications    Application[]
   comments        Comment[]
@@ -137,6 +144,7 @@ model Project {
   images          ProjectImage[]
   sentences       ProjectSentence[]
   moderators      User[]           @relation("ProjectModerators")
+  transcriptionTasks TranscriptionTask[]
 }
 
 model ProjectSentence {
@@ -300,4 +308,55 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Transcription Platform Models
+// ─────────────────────────────────────────────────────────────────────────────
+
+model TranscriptionTask {
+  id              String   @id @default(cuid())
+  projectId       String
+  audioFilePath   String
+  duration        Float?   // in seconds
+  speakerCount    Int      @default(1)
+  status          String   @default("AVAILABLE") // AVAILABLE, ASSIGNED, SUBMITTED, APPROVED, REJECTED
+  isFailed        Boolean  @default(false)
+  
+  assignedToId    String?
+  assignedTo      User?    @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  segments        TranscriptionSegment[]
+  reviews         TranscriptionReview[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model TranscriptionSegment {
+  id              String   @id @default(cuid())
+  taskId          String
+  startTime       Float
+  endTime         Float
+  speakerLabel    String   @default("Speaker 1")
+  transcriptText  String   @default("")
+
+  task            TranscriptionTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model TranscriptionReview {
+  id              String   @id @default(cuid())
+  taskId          String
+  moderatorId     String
+  status          String   // APPROVED, REJECTED
+  notes           String?
+
+  task            TranscriptionTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  moderator       User              @relation(fields: [moderatorId], references: [id], onDelete: Cascade)
+
+  reviewedAt      DateTime @default(now())
 }

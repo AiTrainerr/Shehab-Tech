@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign, FolderOpen, Award, ShieldCheck, MessageSquare, BarChart3 } from "lucide-react"
+import { Users, FileText, Activity, AlertCircle, BookOpen, Briefcase, DollarSign, FolderOpen, Award, ShieldCheck, MessageSquare, BarChart3, Headphones } from "lucide-react"
 
 export function AdminSidebar({ 
   pendingVerifications,
@@ -29,7 +29,8 @@ export function AdminSidebar({
     ...(!isModerator ? [{ name: "Users", href: "/admin/users", icon: Users }] : []),
     ...(!isModerator ? [{ name: "Projects", href: "/admin/projects", icon: FolderOpen }] : []),
     ...(showApplications ? [{ name: "Applications", href: "/admin/applications", icon: FileText }] : []),
-    ...(showQC ? [{ name: "QC Panel", href: "/admin/qc", icon: ShieldCheck }] : []),
+    ...(showQC ? [{ name: "Audio QC Panel", href: "/admin/qc", icon: ShieldCheck }] : []),
+    ...(showQC ? [{ name: "Transcription QA", href: "/admin/transcription", icon: Headphones }] : []),
     { name: "Comments", href: "/admin/comments", icon: MessageSquare },
     { name: "My Profile", href: "/member/profile", icon: BookOpen },
   ]

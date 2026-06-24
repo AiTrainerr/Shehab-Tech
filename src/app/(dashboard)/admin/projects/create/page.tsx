@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Save, Plus, Trash2, X, Globe } from "lucide-react"
+import { ArrowLeft, Save, Plus, Trash2, X, Globe, Mic, Headphones } from "lucide-react"
 import { createProjectAction } from "@/app/actions/projects"
 
 const COUNTRIES = [
@@ -19,6 +19,8 @@ export default function CreateProjectPage() {
   const [showDropdown, setShowDropdown] = React.useState(false)
 
   // Interactive UI state options
+  const [projectType, setProjectType] = React.useState<"RECORDING" | "TRANSCRIPTION" | null>(null)
+  const isTranscriptionProject = projectType === "TRANSCRIPTION"
   const [executionOption, setExecutionOption] = React.useState("INTERNAL")
   const [hasScript, setHasScript] = React.useState(true)
   const [scriptMode, setScriptMode] = React.useState("file")
@@ -37,13 +39,56 @@ export default function CreateProjectPage() {
   }
 
   return (
+  if (!projectType) {
+    return (
+      <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8 items-center justify-center">
+        <div className="max-w-4xl mx-auto w-full space-y-8 animate-slide-up">
+          <div className="text-center">
+            <Link href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition-colors mb-4">
+              <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+            </Link>
+            <h1 className="text-4xl font-black text-foreground mb-4">What do you want to create?</h1>
+            <p className="text-foreground/70">Select the type of project you want to publish for freelancers.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <button
+              onClick={() => setProjectType("RECORDING")}
+              className="flex flex-col items-center justify-center p-12 glass rounded-3xl border-2 border-transparent hover:border-primary/50 hover:bg-primary/5 transition-all group"
+            >
+              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Mic className="w-10 h-10 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Voice Recording</h2>
+              <p className="text-foreground/60 text-center text-sm">Freelancers will read text scripts and record their voices. Can be internal or external.</p>
+            </button>
+
+            <button
+              onClick={() => setProjectType("TRANSCRIPTION")}
+              className="flex flex-col items-center justify-center p-12 glass rounded-3xl border-2 border-transparent hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group"
+            >
+              <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Headphones className="w-10 h-10 text-blue-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Audio Transcription</h2>
+              <p className="text-foreground/60 text-center text-sm">Freelancers will listen to audio files and type out the spoken words with timestamps.</p>
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
     <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto w-full">
+      <div className="max-w-4xl mx-auto w-full animate-slide-up">
         <div className="mb-8">
-          <Link href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition-colors mb-4">
-            <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-          </Link>
-          <h1 className="text-3xl font-black text-foreground">Create New Project</h1>
+          <button onClick={() => setProjectType(null)} className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition-colors mb-4">
+            <ArrowLeft className="w-4 h-4" /> Change Project Type
+          </button>
+          <h1 className="text-3xl font-black text-foreground">
+            Create {isTranscriptionProject ? "Transcription" : "Voice Recording"} Project
+          </h1>
           <p className="text-foreground/70">Fill in the details to publish a new project to freelancers.</p>
         </div>
 
@@ -58,6 +103,8 @@ export default function CreateProjectPage() {
           
           <div className="space-y-4 border-b border-border pb-8">
             <h3 className="text-lg font-bold text-foreground">General Information</h3>
+            <input type="hidden" name="isTranscriptionProject" value={isTranscriptionProject ? "true" : "false"} />
+
             <div className="space-y-2">
               <label className="text-sm font-semibold">Project Title</label>
               <input name="title" type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="e.g. Arabic Voice Recording" required />
@@ -143,8 +190,9 @@ export default function CreateProjectPage() {
           </div>
 
           {/* Execution Option & Audio Specs Section */}
-          <div className="space-y-4 border-b border-border pb-8">
-            <h3 className="text-lg font-bold text-foreground">Project Execution & Audio Specifications</h3>
+          {!isTranscriptionProject && (
+            <div className="space-y-4 border-b border-border pb-8">
+              <h3 className="text-lg font-bold text-foreground">Project Execution & Audio Specifications</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -229,70 +277,88 @@ export default function CreateProjectPage() {
                 <input name="targetFemales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 50" />
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">ZIP Internal Recording Naming Rule</label>
-                <select name="namingRule" defaultValue="SEQUENCE" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="SEQUENCE">Sequential Number (1, 2, 3...)</option>
-                  <option value="TEXT">Recorded Sentence Text (sentence_text)</option>
-                </select>
               </div>
             </div>
           </div>
+          )}
 
-          {/* Script Management Section */}
+          {/* Script Management Section / Audio Upload Section */}
           <div className="space-y-4 border-b border-border pb-8">
-            <h3 className="text-lg font-bold text-foreground">Script Configuration</h3>
+            <h3 className="text-lg font-bold text-foreground">
+              {isTranscriptionProject ? "Audio Files (Tasks)" : "Script Configuration"}
+            </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Display Script/Texts to Freelancers?</label>
-                <select
-                  name="hasScript"
-                  value={hasScript.toString()}
-                  onChange={(e) => setHasScript(e.target.value === "true")}
-                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
-                >
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-              </div>
-
-              {hasScript && (
+              {isTranscriptionProject ? (
                 <>
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold">Script Type</label>
-                    <select name="scriptType" defaultValue="STATIC" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                      <option value="STATIC">Static script for all participants</option>
-                      <option value="RANDOM">Random script from pool</option>
-                      <option value="CATEGORY">Custom category-based script</option>
+                    <label className="text-sm font-semibold">Export Format</label>
+                    <select name="outputFormat" defaultValue="WORD" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                      <option value="WORD">Word (.docx)</option>
+                      <option value="EXCEL">Excel (.xlsx)</option>
+                      <option value="JSON">JSON</option>
+                      <option value="SRT">SRT (Subtitles)</option>
                     </select>
                   </div>
-
+                  
                   <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-semibold">Upload Script Mode</label>
+                    <label className="text-sm font-semibold">Upload Audio Files (Creates 1 Task per File)</label>
+                    <input name="transcriptionFiles" type="file" accept="audio/*" multiple className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required={isTranscriptionProject} />
+                    <p className="text-xs text-foreground/50">You can select multiple files. Each file will be treated as an individual transcription task.</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Display Script/Texts to Freelancers?</label>
                     <select
-                      value={scriptMode}
-                      onChange={(e) => setScriptMode(e.target.value)}
+                      name="hasScript"
+                      value={hasScript.toString()}
+                      onChange={(e) => setHasScript(e.target.value === "true")}
                       className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
                     >
-                      <option value="file">Upload File (XLSX, CSV, TXT)</option>
-                      <option value="manual">Manual Input</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
                     </select>
-                    {/* Hidden input to pass scriptMode to Server Action */}
-                    <input type="hidden" name="scriptMode" value={scriptMode} />
                   </div>
 
-                  {scriptMode === "file" ? (
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-semibold">Select Script File</label>
-                      <input name="scriptFile" type="file" accept=".xlsx,.xls,.csv,.txt" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
-                      <p className="text-xs text-foreground/50">Supported formats: Excel (.xlsx, .xls), CSV (.csv), Plain Text (.txt)</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-semibold">Enter Sentences (one sentence per line)</label>
-                      <textarea name="manualScriptText" className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none" placeholder="Sentence 1&#10;Sentence 2&#10;Sentence 3..." required />
-                    </div>
+                  {hasScript && (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-sm font-semibold">Script Type</label>
+                        <select name="scriptType" defaultValue="STATIC" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                          <option value="STATIC">Static script for all participants</option>
+                          <option value="RANDOM">Random script from pool</option>
+                          <option value="CATEGORY">Custom category-based script</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-semibold">Upload Script Mode</label>
+                        <select
+                          value={scriptMode}
+                          onChange={(e) => setScriptMode(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                        >
+                          <option value="file">Upload File (XLSX, CSV, TXT)</option>
+                          <option value="manual">Manual Input</option>
+                        </select>
+                        <input type="hidden" name="scriptMode" value={scriptMode} />
+                      </div>
+
+                      {scriptMode === "file" ? (
+                        <div className="space-y-2 md:col-span-2">
+                          <label className="text-sm font-semibold">Select Script File</label>
+                          <input name="scriptFile" type="file" accept=".xlsx,.xls,.csv,.txt" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
+                          <p className="text-xs text-foreground/50">Supported formats: Excel (.xlsx, .xls), CSV (.csv), Plain Text (.txt)</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 md:col-span-2">
+                          <label className="text-sm font-semibold">Enter Sentences (one sentence per line)</label>
+                          <textarea name="manualScriptText" className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none" placeholder="Sentence 1&#10;Sentence 2&#10;Sentence 3..." required />
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
