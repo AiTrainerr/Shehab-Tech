@@ -552,10 +552,25 @@ export function TranscriptionEditor({
                 {isActive && (
                   <div className="flex gap-2">
                     <button 
-                      onClick={(e) => { e.stopPropagation(); handlePlayActiveSegment(); }}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (isPlaying) {
+                          handlePlayPause();
+                        } else {
+                          handlePlayActiveSegment();
+                        }
+                      }}
                       className="flex-1 flex items-center justify-center gap-1 text-xs bg-primary/10 text-primary hover:bg-primary/20 py-1.5 rounded-md transition-colors"
                     >
-                      <Play className="w-3 h-3" /> Play
+                      {isPlaying ? (
+                        <>
+                          <Pause className="w-3 h-3" /> Pause
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3 h-3" /> Play
+                        </>
+                      )}
                     </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); setIsLooping(!isLooping); }}
