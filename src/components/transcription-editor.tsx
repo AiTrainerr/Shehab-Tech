@@ -363,8 +363,12 @@ export function TranscriptionEditor({
           </div>
         )}
 
-        <div className="grid gap-4">
-          {segments.map((seg, idx) => {
+        <div className="flex flex-col gap-4">
+          {[...segments].sort((a, b) => {
+            if (a.id === activeSegmentId) return -1;
+            if (b.id === activeSegmentId) return 1;
+            return a.startTime - b.startTime;
+          }).map((seg, idx) => {
             const isActive = activeSegmentId === null || activeSegmentId === seg.id;
             const effectiveSpeakerCount = Math.max(speakerCount || 1, 8); // Ensure at least 8 speakers
 
