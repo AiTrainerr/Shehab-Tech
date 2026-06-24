@@ -86,24 +86,23 @@ export function TranscriptionEditor({
     const wsRegions = ws.registerPlugin(RegionsPlugin.create())
     regionsRef.current = wsRegions
 
+    // Add initial segments immediately (WaveSurfer v7 handles rendering them when ready)
+    initialSegments.forEach((seg) => {
+      wsRegions.addRegion({
+        id: seg.id,
+        start: seg.startTime,
+        end: seg.endTime,
+        color: "rgba(37, 99, 235, 0.2)",
+        drag: !isReviewMode,
+        resize: !isReviewMode,
+      })
+    })
+
     ws.on("play", () => setIsPlaying(true))
     ws.on("pause", () => setIsPlaying(false))
     ws.on("ready", () => {
       setIsReady(true)
       ws.zoom(zoom) // apply initial zoom
-      
-      // Load initial segments into regions
-      wsRegions.clearRegions()
-      initialSegments.forEach((seg) => {
-        wsRegions.addRegion({
-          id: seg.id,
-          start: seg.startTime,
-          end: seg.endTime,
-          color: "rgba(37, 99, 235, 0.2)",
-          drag: !isReviewMode,
-          resize: !isReviewMode,
-        })
-      })
     })
 
     // Handle region creation by dragging
