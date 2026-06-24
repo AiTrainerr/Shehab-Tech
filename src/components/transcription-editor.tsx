@@ -57,6 +57,7 @@ export function TranscriptionEditor({
   const [isSaving, setIsSaving] = React.useState(false)
   const [rejectNotes, setRejectNotes] = React.useState("")
   const [showRejectBox, setShowRejectBox] = React.useState(false)
+  const [isReady, setIsReady] = React.useState(false)
 
   // Initialize WaveSurfer
   React.useEffect(() => {
@@ -84,6 +85,10 @@ export function TranscriptionEditor({
 
     ws.on("play", () => setIsPlaying(true))
     ws.on("pause", () => setIsPlaying(false))
+    ws.on("ready", () => {
+      setIsReady(true)
+      ws.zoom(zoom) // apply initial zoom
+    })
 
     // Handle region creation by dragging
     wsRegions.enableDragSelection({
@@ -124,10 +129,14 @@ export function TranscriptionEditor({
 
   // Sync zoom
   React.useEffect(() => {
-    if (wsRef.current) {
-      wsRef.current.zoom(zoom)
+    if (wsRef.current && isReady) {
+      try {
+        wsRef.current.zoom(zoom)
+      } catch (e) {
+        console.warn("Zoom error:", e)
+      }
     }
-  }, [zoom])
+  }, [zoom, isReady])
 
   // Load initial segments into regions
   React.useEffect(() => {
