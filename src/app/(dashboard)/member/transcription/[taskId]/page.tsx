@@ -57,14 +57,14 @@ export default async function FreelancerTranscriptionPage({ params }: { params: 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-slide-up">
         <div>
           <Link href="/member" className="text-sm font-semibold text-foreground/50 hover:text-primary mb-2 flex items-center gap-1">
-            <ArrowRight className="w-4 h-4 rotate-180" /> العودة للوحة التحكم
+            <ArrowRight className="w-4 h-4 rotate-180" /> Back to Dashboard
           </Link>
           <h1 className="text-2xl font-black text-foreground flex items-center gap-3">
             <Headphones className="w-7 h-7 text-primary" />
-            {task.project.title} — تفريغ صوتي
+            {task.project.title} — Audio Transcription
           </h1>
           <p className="text-foreground/60 text-sm mt-1">
-            حدد مناطق من الموجة الصوتية لكتابة التفريغ. الحفظ يتم عند الضغط على زر الحفظ.
+            Select regions from the audio waveform to write the transcription. Saving happens when you click the save button.
           </p>
         </div>
         
@@ -74,7 +74,7 @@ export default async function FreelancerTranscriptionPage({ params }: { params: 
           task.status === "SUBMITTED" ? "bg-purple-500/10 text-purple-500" :
           "bg-blue-500/10 text-blue-500"
         }`}>
-          الحالة: {task.status}
+          Status: {task.status}
         </div>
       </div>
 
@@ -109,11 +109,11 @@ function TranscriptionClientWrapper({ taskId, audioUrl, initialSegments, speaker
       if (!res.ok) throw new Error("Failed to save")
       
       // Optional: show toast notification
-      alert("تم الحفظ بنجاح!")
+      alert("Saved successfully!")
       router.refresh()
     } catch (e) {
       console.error(e)
-      alert("حدث خطأ أثناء الحفظ.")
+      alert("An error occurred while saving.")
     }
   }
 

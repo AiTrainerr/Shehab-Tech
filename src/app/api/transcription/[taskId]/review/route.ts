@@ -54,10 +54,10 @@ export async function POST(req: NextRequest, { params }: { params: { taskId: str
         await tx.notification.create({
           data: {
             userId: task.assignedToId,
-            title: `تم مراجعة تفريغ المشروع`,
+            title: `Transcription Project Reviewed`,
             content: status === "APPROVED" 
-              ? `تهانينا! تم قبول عملك في المشروع بنجاح.` 
-              : `تم طلب تعديلات على عملك. يرجى المراجعة: ${notes}`,
+              ? `Congratulations! Your work in the project has been successfully approved.` 
+              : `Edits have been requested on your work. Please review: ${notes}`,
             link: `/member/transcription/${task.id}`
           }
         })

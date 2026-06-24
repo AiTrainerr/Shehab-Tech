@@ -36,9 +36,9 @@ export default async function AdminTranscriptionQueuePage() {
         <div>
           <h1 className="text-2xl font-black text-foreground flex items-center gap-3">
             <Headphones className="w-7 h-7 text-primary" />
-            QA Queue (التفريغ الصوتي)
+            QA Queue (Audio Transcription)
           </h1>
-          <p className="text-foreground/60 text-sm mt-1">مراجعة المهام المسلمة وتصدير الملفات النهائية</p>
+          <p className="text-foreground/60 text-sm mt-1">Review submitted tasks and export final files</p>
         </div>
       </div>
 
@@ -47,18 +47,18 @@ export default async function AdminTranscriptionQueuePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-card/30">
-                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">المشروع</th>
-                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">المفرغ</th>
-                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">المدة / المقاطع</th>
-                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">الحالة</th>
-                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">الإجراءات</th>
+                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Project</th>
+                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Freelancer</th>
+                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Duration / Segments</th>
+                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Status</th>
+                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {tasks.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-foreground/40">
-                    لا توجد مهام تفريغ حالياً
+                    No transcription tasks available currently
                   </td>
                 </tr>
               ) : (
@@ -75,12 +75,12 @@ export default async function AdminTranscriptionQueuePage() {
                           <div className="text-xs text-foreground/50 mt-0.5">{task.assignedTo.email}</div>
                         </>
                       ) : (
-                        <span className="text-foreground/40 italic">غير معين</span>
+                        <span className="text-foreground/40 italic">Unassigned</span>
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-foreground">{task.duration ? `${Math.round(task.duration / 60)} دقيقة` : "غير محدد"}</div>
-                      <div className="text-xs text-foreground/50 mt-0.5">{task._count.segments} مقطع</div>
+                      <div className="text-foreground">{task.duration ? `${Math.round(task.duration / 60)} minutes` : "Unknown"}</div>
+                      <div className="text-xs text-foreground/50 mt-0.5">{task._count.segments} segments</div>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${
@@ -104,19 +104,19 @@ export default async function AdminTranscriptionQueuePage() {
                           href={`/admin/transcription/qa/${task.id}`}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 rounded-lg text-xs font-bold transition-colors"
                         >
-                          <ShieldCheck className="w-4 h-4" /> مراجعة
+                          <ShieldCheck className="w-4 h-4" /> Review
                         </Link>
                         
                         {/* Export Menu */}
                         {task.status === "APPROVED" && (
                           <div className="flex items-center gap-1">
-                            <a href={`/api/transcription/export/${task.id}?format=word`} download className="p-1.5 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors" title="تصدير Word">
+                            <a href={`/api/transcription/export/${task.id}?format=word`} download className="p-1.5 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-colors" title="Export Word">
                               <Download className="w-4 h-4" />
                             </a>
-                            <a href={`/api/transcription/export/${task.id}?format=excel`} download className="p-1.5 text-green-500 hover:bg-green-500/10 rounded-lg transition-colors" title="تصدير Excel">
+                            <a href={`/api/transcription/export/${task.id}?format=excel`} download className="p-1.5 text-green-500 hover:bg-green-500/10 rounded-lg transition-colors" title="Export Excel">
                               <Download className="w-4 h-4" />
                             </a>
-                            <a href={`/api/transcription/export/${task.id}?format=srt`} download className="p-1.5 text-orange-500 hover:bg-orange-500/10 rounded-lg transition-colors" title="تصدير SRT">
+                            <a href={`/api/transcription/export/${task.id}?format=srt`} download className="p-1.5 text-orange-500 hover:bg-orange-500/10 rounded-lg transition-colors" title="Export SRT">
                               <Download className="w-4 h-4" />
                             </a>
                           </div>

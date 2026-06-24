@@ -59,14 +59,14 @@ export default async function AdminQATranscriptionPage({ params }: { params: { t
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-slide-up">
         <div>
           <Link href="/admin/transcription" className="text-sm font-semibold text-foreground/50 hover:text-primary mb-2 flex items-center gap-1">
-            <ArrowRight className="w-4 h-4 rotate-180" /> العودة لقائمة المراجعة
+            <ArrowRight className="w-4 h-4 rotate-180" /> Back to QA Queue
           </Link>
           <h1 className="text-2xl font-black text-foreground flex items-center gap-3">
             <ShieldCheck className="w-7 h-7 text-primary" />
-            مراجعة الجودة (QA) — {task.project.title}
+            QA Review — {task.project.title}
           </h1>
           <p className="text-foreground/60 text-sm mt-1">
-            مفرغ النص: <span className="font-bold text-foreground">{task.assignedTo ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}` : "غير معين"}</span>
+            Transcriber: <span className="font-bold text-foreground">{task.assignedTo ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}` : "Unassigned"}</span>
           </p>
         </div>
         
@@ -77,11 +77,11 @@ export default async function AdminQATranscriptionPage({ params }: { params: { t
             task.status === "SUBMITTED" ? "bg-purple-500/10 text-purple-500" :
             "bg-blue-500/10 text-blue-500"
           }`}>
-            حالة المهمة: {task.status}
+            Task Status: {task.status}
           </div>
           {lastReview && (
             <span className="text-xs text-foreground/50">
-              آخر مراجعة بواسطة: {lastReview.moderator.firstName} ({lastReview.status})
+              Last review by: {lastReview.moderator.firstName} ({lastReview.status})
             </span>
           )}
         </div>
@@ -106,7 +106,7 @@ function TranscriptionQAClientWrapper({ taskId, audioUrl, initialSegments, speak
   const router = useRouter()
 
   const handleApprove = async () => {
-    if (!confirm("هل أنت متأكد من قبول التفريغ بشكل نهائي؟")) return
+    if (!confirm("Are you sure you want to finally approve this transcription?")) return
     try {
       const res = await fetch(`/api/transcription/${taskId}/review`, {
         method: "POST",
@@ -115,11 +115,11 @@ function TranscriptionQAClientWrapper({ taskId, audioUrl, initialSegments, speak
       })
 
       if (!res.ok) throw new Error("Failed to approve")
-      alert("تم قبول التفريغ بنجاح!")
+      alert("Transcription approved successfully!")
       router.push("/admin/transcription")
     } catch (e) {
       console.error(e)
-      alert("حدث خطأ أثناء المراجعة.")
+      alert("An error occurred during review.")
     }
   }
 
@@ -132,11 +132,11 @@ function TranscriptionQAClientWrapper({ taskId, audioUrl, initialSegments, speak
       })
 
       if (!res.ok) throw new Error("Failed to reject")
-      alert("تم رفض التفريغ وإرسال الملاحظات للمفرغ.")
+      alert("Transcription rejected and feedback sent to the transcriber.")
       router.push("/admin/transcription")
     } catch (e) {
       console.error(e)
-      alert("حدث خطأ أثناء المراجعة.")
+      alert("An error occurred during review.")
     }
   }
 

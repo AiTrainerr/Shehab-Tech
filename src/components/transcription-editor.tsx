@@ -208,11 +208,11 @@ export function TranscriptionEditor({
                 className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-bold text-sm disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                {isSaving ? "جاري الحفظ..." : "حفظ التعديلات"}
+                {isSaving ? "Saving..." : "Save Changes"}
               </button>
             )}
             {!isReviewMode && (
-              <span className="text-xs text-foreground/50">قم بالسحب لإنشاء مقطع جديد</span>
+              <span className="text-xs text-foreground/50">Drag to create a new segment</span>
             )}
           </div>
         </div>
@@ -225,13 +225,13 @@ export function TranscriptionEditor({
       {/* Segments Section */}
       <div className="space-y-4">
         <h3 className="text-lg font-bold flex items-center justify-between">
-          <span>المقاطع (Segments)</span>
-          <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full">{segments.length} مقطع</span>
+          <span>Segments</span>
+          <span className="text-sm bg-primary/10 text-primary px-3 py-1 rounded-full">{segments.length} segments</span>
         </h3>
 
         {segments.length === 0 && (
           <div className="p-12 text-center border-2 border-dashed border-border rounded-2xl text-foreground/50">
-            لا توجد مقاطع بعد. قم بتحديد جزء من الموجة الصوتية لإضافة مقطع.
+            No segments yet. Select a region on the waveform to add a segment.
           </div>
         )}
 
@@ -264,7 +264,7 @@ export function TranscriptionEditor({
                     onClick={() => handleDeleteSegment(seg.id)}
                     className="w-full flex items-center justify-center gap-1 text-xs text-red-500 hover:bg-red-500/10 py-1.5 rounded-md transition-colors"
                   >
-                    <Trash2 className="w-3 h-3" /> حذف المقطع
+                    <Trash2 className="w-3 h-3" /> Delete Segment
                   </button>
                 )}
               </div>
@@ -274,7 +274,7 @@ export function TranscriptionEditor({
                 <textarea
                   value={seg.transcriptText}
                   onChange={(e) => handleSegmentTextChange(seg.id, e.target.value)}
-                  placeholder="اكتب التفريغ هنا..."
+                  placeholder="Type transcription here..."
                   disabled={isReviewMode}
                   className="w-full h-full min-h-[80px] bg-background/50 border border-border rounded-xl p-3 text-sm outline-none focus:border-primary transition-colors resize-y disabled:opacity-90"
                   dir="auto"
@@ -288,14 +288,14 @@ export function TranscriptionEditor({
       {/* Review Controls (Admin/QA Mode) */}
       {isReviewMode && (
         <div className="glass p-6 rounded-2xl border border-border mt-8">
-          <h3 className="text-lg font-bold mb-4">قرار المراجعة (QA Decision)</h3>
+          <h3 className="text-lg font-bold mb-4">QA Decision</h3>
           
           {showRejectBox ? (
             <div className="space-y-4 animate-fade-in">
               <textarea
                 value={rejectNotes}
                 onChange={(e) => setRejectNotes(e.target.value)}
-                placeholder="اكتب ملاحظات الرفض للمفرغ لكي يقوم بالتعديل..."
+                placeholder="Write rejection notes for the transcriber to fix..."
                 className="w-full min-h-[100px] bg-background border border-border rounded-xl p-3 text-sm outline-none focus:border-red-500 transition-colors"
               />
               <div className="flex gap-3">
@@ -304,13 +304,13 @@ export function TranscriptionEditor({
                   disabled={!rejectNotes.trim()}
                   className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-all disabled:opacity-50"
                 >
-                  تأكيد الرفض
+                  Confirm Rejection
                 </button>
                 <button
                   onClick={() => setShowRejectBox(false)}
                   className="px-6 py-3 border border-border font-semibold rounded-xl hover:bg-card transition-all"
                 >
-                  إلغاء
+                  Cancel
                 </button>
               </div>
             </div>
@@ -320,13 +320,13 @@ export function TranscriptionEditor({
                 onClick={() => onApprove && onApprove()}
                 className="flex-1 py-4 bg-green-500 text-white font-bold text-lg rounded-xl hover:bg-green-600 transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
               >
-                <Check className="w-6 h-6" /> قبول التفريغ
+                <Check className="w-6 h-6" /> Approve Transcription
               </button>
               <button
                 onClick={() => setShowRejectBox(true)}
                 className="flex-1 py-4 bg-red-500/10 text-red-500 font-bold text-lg rounded-xl hover:bg-red-500/20 transition-all flex items-center justify-center gap-2"
               >
-                <X className="w-6 h-6" /> طلب تعديلات
+                <X className="w-6 h-6" /> Request Edits
               </button>
             </div>
           )}
