@@ -25,9 +25,19 @@ interface Application {
 type TabType = "ALL" | "READY_FIRST" | "READY_FIXED" | "NEEDS_FIX" | "WORKING" | "COMPLETED";
 
 export function AdminApplicationsClient({ applications }: { applications: Application[] }) {
-  const [searchTerm, setSearchTerm] = React.useState("")
-  const [activeTab, setActiveTab] = React.useState<TabType>("ALL")
+  const [statusFilter, setStatusFilter] = React.useState<string>("ALL")
+  const [projectFilter, setProjectFilter] = React.useState<string>("ALL")
   const [loading, setLoading] = React.useState<string | null>(null)
+
+  const uniqueProjects = React.useMemo(() => {
+    const map = new Map();
+    applications.forEach(a => {
+      if (!map.has(a.project.id)) {
+        map.set(a.project.id, a.project);
+      }
+    });
+    return Array.from(map.values());
+  }, [applications]);
 
   const [rejectId, setRejectId] = React.useState<string | null>(null)
   const [rejectReason, setRejectReason] = React.useState("")
@@ -61,9 +71,16 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       (a.speakerCode && a.speakerCode.toLowerCase().includes(searchTerm.toLowerCase()));
       
     if (!matchesSearch) return false;
+    if (projectFilter !== "ALL" && a.project.id !== projectFilter) return false;
+
+    if (statusFilter !== "ALL") {
+      if (statusFilter === "PENDING" && a.status !== "PENDING") return false;
+      if (statusFilter === "APPROVED" && a.status !== "APPROVED" && a.status !== "WORKING") return false;
+      if (statusFilter === "REJECTED" && a.status !== "REJECTED") return false;
+      if (statusFilter === "COMPLETED" && a.status !== "COMPLETED" && a.status !== "FINAL_REVIEW" && a.status !== "PAID") return false;
+    }
     
-    if (activeTab === "ALL") return true;
-    return a.reviewCategory === activeTab;
+    return true;
   })
 
   return (
@@ -81,27 +98,36 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
         </div>
       </div>
 
-      <div className="flex overflow-x-auto pb-2 gap-2 hide-scrollbar">
-        {[
-          { id: "ALL", label: "All" },
-          { id: "READY_FIRST", label: "Needs Review (First Time)" },
-          { id: "READY_FIXED", label: "Needs Review (Fixed)" },
-          { id: "WORKING", label: "Recording" },
-          { id: "NEEDS_FIX", label: "Needs Re-record" },
-          { id: "COMPLETED", label: "Completed" }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as TabType)}
-            className={`px-4 py-2 rounded-xl font-bold text-sm whitespace-nowrap transition-all ${
-              activeTab === tab.id 
-                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30' 
-                : 'bg-card text-foreground/60 border border-border hover:bg-background'
-            }`}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-card p-4 rounded-2xl border border-border">
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-foreground/60 uppercase">Applicant Acceptance Status</label>
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full bg-background border border-border rounded-xl px-4 py-2 outline-none focus:border-primary font-semibold"
           >
-            {tab.label}
-          </button>
-        ))}
+            <option value="ALL">All Applicants</option>
+            <option value="PENDING">Pending Approval (Needs Action)</option>
+            <option value="APPROVED">Approved / Working</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-foreground/60 uppercase">Project Name</label>
+          <select 
+            value={projectFilter}
+            onChange={(e) => setProjectFilter(e.target.value)}
+            className="w-full bg-background border border-border rounded-xl px-4 py-2 outline-none focus:border-primary font-semibold"
+          >
+            <option value="ALL">All Projects</option>
+            {uniqueProjects.map(p => (
+              <option key={p.id} value={p.id}>{p.title}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
