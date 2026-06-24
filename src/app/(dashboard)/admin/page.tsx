@@ -145,6 +145,27 @@ export default async function AdminDashboard() {
           )}
         </div>
 
+        {/* Supervisor Affiliate Link */}
+        {isModerator && (
+          <div className="mb-8 glass p-6 rounded-2xl border border-purple-500/20 bg-purple-500/5 animate-slide-up">
+            <div className="flex items-center gap-3 mb-3">
+              <Shield className="w-6 h-6 text-purple-500" />
+              <h2 className="text-xl font-bold text-foreground">Supervisor Affiliate Link</h2>
+            </div>
+            <p className="text-sm text-foreground/70 mb-4">
+              Share this link with your team. Anyone who registers through this link will automatically be assigned to your team permanently.
+            </p>
+            <div className="flex items-center gap-2">
+              <input 
+                type="text" 
+                readOnly 
+                value={`https://shehab-tech.com/register?team=${userId}`}
+                className="flex-1 bg-background border border-border rounded-xl px-4 py-2 text-sm text-foreground outline-none font-mono"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, i) => (
