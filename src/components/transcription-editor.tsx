@@ -86,23 +86,30 @@ export function TranscriptionEditor({
     const wsRegions = ws.registerPlugin(RegionsPlugin.create())
     regionsRef.current = wsRegions
 
-    // Add initial segments immediately (WaveSurfer v7 handles rendering them when ready)
-    initialSegments.forEach((seg) => {
-      wsRegions.addRegion({
-        id: seg.id,
-        start: seg.startTime,
-        end: seg.endTime,
-        color: "rgba(37, 99, 235, 0.2)",
-        drag: !isReviewMode,
-        resize: !isReviewMode,
-      })
-    })
-
     ws.on("play", () => setIsPlaying(true))
     ws.on("pause", () => setIsPlaying(false))
     ws.on("ready", () => {
       setIsReady(true)
       ws.zoom(zoom) // apply initial zoom
+      
+      // Delay region creation slightly to ensure canvas is fully rendered
+      setTimeout(() => {
+        wsRegions.clearRegions()
+        initialSegments.forEach((seg) => {
+          try {
+            wsRegions.addRegion({
+              id: seg.id,
+              start: seg.startTime,
+              end: seg.endTime,
+              color: "rgba(37, 99, 235, 0.2)",
+              drag: !isReviewMode,
+              resize: !isReviewMode,
+            })
+          } catch (e) {
+            console.error("Failed to add region", e)
+          }
+        })
+      }, 100)
     })
 
     // Handle region creation by dragging
@@ -291,8 +298,26 @@ export function TranscriptionEditor({
     }
   }
 
+  const displaySegments = React.useMemo(() => {
+    const active = segments.find(s => s.id === activeSegmentId);
+    const others = segments.filter(s => s.id !== activeSegmentId).sort((a, b) => a.startTime - b.startTime);
+    return active ? [active, ...others] : others;
+  }, [segments, activeSegmentId]);
+
   return (
     <div className="space-y-6">
+      {hasUnsavedChanges && (
+        <div className="bg-yellow-500/10 border border-yellow-500 text-yellow-600 dark:text-yellow-400 px-4 py-3 rounded-2xl text-sm font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-slide-up">
+          <span className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" /> 
+            يوجد تعديلات لم يتم حفظها. يرجى الحفظ قبل مغادرة الصفحة! (Unsaved changes)
+          </span>
+          <button onClick={handleSave} disabled={isSaving} className="bg-yellow-500 text-white px-4 py-2 rounded-xl hover:bg-yellow-600 transition-colors whitespace-nowrap disabled:opacity-50">
+            {isSaving ? "Saving..." : "Save Now"}
+          </button>
+        </div>
+      )}
+
       {/* Waveform Section */}
       <div className="glass p-4 rounded-2xl border border-border">
         {/* Controls */}
@@ -373,13 +398,7 @@ export function TranscriptionEditor({
         )}
 
         <div className="flex flex-col gap-4">
-          {[...segments].sort((a, b) => {
-            const isAActive = a.id === activeSegmentId;
-            const isBActive = b.id === activeSegmentId;
-            if (isAActive && !isBActive) return -1;
-            if (!isAActive && isBActive) return 1;
-            return a.startTime - b.startTime;
-          }).map((seg, idx) => {
+          {displaySegments.map((seg, idx) => {
             const isActive = activeSegmentId === null || activeSegmentId === seg.id;
             const effectiveSpeakerCount = Math.max(speakerCount || 1, 8); // Ensure at least 8 speakers
 
