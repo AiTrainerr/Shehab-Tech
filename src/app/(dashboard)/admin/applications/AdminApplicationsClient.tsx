@@ -281,29 +281,48 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
               )}
 
               {app.status !== 'PENDING' && (
-                (app.totalSentences || 0) > 0 ? (
-                  <Link
-                    href={`/admin/applications/${app.id}/review`}
-                    className={`w-full px-4 py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
-                      app.status === 'UNDER_REVIEW' 
-                        ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/20' 
-                        : 'bg-card border border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <FileText className="w-4 h-4" /> 
-                    {app.status === 'UNDER_REVIEW' ? 'Review Recordings' : 'View Recordings'}
-                  </Link>
-                ) : (
-                  app.status === 'UNDER_REVIEW' && (
-                    <button
-                      onClick={() => handleApprove(app.id)}
-                      disabled={loading === app.id}
-                      className="w-full px-4 py-2 bg-yellow-500 text-white hover:bg-yellow-600 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 disabled:opacity-50"
+                <div className="flex flex-col gap-2 w-full">
+                  {(app.totalSentences || 0) > 0 ? (
+                    <Link
+                      href={`/admin/applications/${app.id}/review`}
+                      className={`w-full px-4 py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
+                        app.status === 'UNDER_REVIEW' 
+                          ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/20' 
+                          : 'bg-card border border-border hover:border-primary/50'
+                      }`}
                     >
-                      <Check className="w-4 h-4" /> Approve Proof
+                      <FileText className="w-4 h-4" /> 
+                      {app.status === 'UNDER_REVIEW' ? 'Review Recordings' : 'View Recordings'}
+                    </Link>
+                  ) : (
+                    app.status === 'UNDER_REVIEW' && (
+                      <button
+                        onClick={() => handleApprove(app.id)}
+                        disabled={loading === app.id}
+                        className="w-full px-4 py-2 bg-yellow-500 text-white hover:bg-yellow-600 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 disabled:opacity-50"
+                      >
+                        <Check className="w-4 h-4" /> Approve Proof
+                      </button>
+                    )
+                  )}
+
+                  {(app.status === 'WORKING' || app.status === 'UNDER_REVIEW') && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm("هل أنت متأكد من تحرير التاسك وحذف كل تسجيلات هذا المستخدم؟ (سيتلقى إشعاراً بالرفض)")) return;
+                        setLoading(app.id);
+                        const res = await rejectApplication(app.id, "تم الرفض بسبب عدم إكمال التاسك");
+                        if (!res.success) alert(res.error);
+                        setLoading(null);
+                      }}
+                      disabled={loading === app.id}
+                      className="w-full px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                      title="تحرير التاسك ورفض المستخدم"
+                    >
+                      <X className="w-4 h-4" /> تحرير التاسك
                     </button>
-                  )
-                )
+                  )}
+                </div>
               )}
             </div>
           </div>
