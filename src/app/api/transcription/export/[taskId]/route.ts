@@ -69,18 +69,46 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ task
       const sheet = workbook.addWorksheet("Transcription")
 
       sheet.columns = [
-        { header: "Start Time", key: "start", width: 15 },
-        { header: "End Time", key: "end", width: 15 },
-        { header: "Speaker", key: "speaker", width: 20 },
-        { header: "Transcript", key: "text", width: 80 }
+        { header: "Name", key: "name", width: 20 },
+        { header: "音频", key: "audio_cn", width: 10 },
+        { header: "_id", key: "_id", width: 25 },
+        { header: "audio", key: "audio", width: 40 },
+        { header: "audio_duration", key: "audio_duration", width: 15 },
+        { header: "geo_coverage", key: "geo_coverage", width: 15 },
+        { header: "context_audio", key: "context_audio", width: 15 },
+        { header: "context_start", key: "context_start", width: 15 },
+        { header: "context_end", key: "context_end", width: 15 },
+        { header: "transcription", key: "transcription", width: 60 },
+        { header: "Full-Text ASR(without reference)", key: "asr1", width: 60 },
+        { header: "Full-Text ASR(with reference)", key: "asr2", width: 60 },
+        { header: "Key Information Extraction", key: "key_info", width: 30 },
+        { header: "Remark", key: "remark", width: 30 },
+        { header: "Screenshot of Google map", key: "screen1", width: 15 },
+        { header: "Screenshot of Google map", key: "screen2", width: 15 },
+        { header: "Screenshot of Google map", key: "screen3", width: 15 },
+        { header: "Screenshot of Google map", key: "screen4", width: 15 }
       ]
 
       task.segments.forEach(seg => {
         sheet.addRow({
-          start: formatTime(seg.startTime),
-          end: formatTime(seg.endTime),
-          speaker: seg.speakerLabel,
-          text: seg.transcriptText
+          name: task.assignedTo ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}` : "Unassigned",
+          audio_cn: "",
+          _id: task.id,
+          audio: task.audioFileUrl?.split('/').pop() || "audio.wav",
+          audio_duration: task.duration || "",
+          geo_coverage: "",
+          context_audio: "",
+          context_start: seg.startTime,
+          context_end: seg.endTime,
+          transcription: seg.transcriptText,
+          asr1: seg.transcriptText,
+          asr2: seg.transcriptText,
+          key_info: "",
+          remark: seg.speakerLabel || "",
+          screen1: "",
+          screen2: "",
+          screen3: "",
+          screen4: ""
         })
       })
 
