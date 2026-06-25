@@ -2,8 +2,6 @@ import * as React from "react"
 import Link from "next/link"
 import { prisma } from "@/lib/prisma"
 import { Users, FileText, Activity, AlertCircle, Plus, BookOpen, Briefcase, DollarSign, MessageSquare, Shield } from "lucide-react"
-import { GrantPermissionsForm } from "@/components/grant-permissions-form"
-import { AdminSupervisorsClient } from "@/components/admin-supervisors-client"
 import { CopyReferralLink } from "@/components/copy-referral-link"
 
 import { cookies } from "next/headers"
@@ -204,15 +202,7 @@ export default async function AdminDashboard() {
           )}
         </div>
 
-        {/* Grant Supervisor Permissions Form & Current Supervisors */}
-        {!isModerator && (
-          <div className="grid lg:grid-cols-2 gap-8 mb-8">
-            <GrantPermissionsForm projects={activeProjectsList} />
-            
-            {/* Current Supervisors List */}
-            <AdminSupervisorsClient supervisors={currentModeratorsList} projects={activeProjectsList} />
-          </div>
-        )}
+        {/* Supervisors link moved to sidebar */}
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Recent Verifications */}

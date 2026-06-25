@@ -35,6 +35,7 @@ export function AdminSidebar({
   ]
 
   const managementItems = isModerator ? [] : [
+    { name: "Supervisors", href: "/admin/supervisors", icon: ShieldCheck },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
     { name: "Skills", href: "/admin/skills", icon: Award },
     { name: "Verification Requests", href: "/admin/verification", icon: ShieldCheck, badge: pendingVerifications > 0 ? pendingVerifications : null },
