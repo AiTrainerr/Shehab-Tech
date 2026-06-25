@@ -16,11 +16,11 @@ export default async function AdminDashboard() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, assignedProjectId: true }
+    select: { role: true, assignedProjects: { select: { id: true } } }
   })
 
   const isModerator = currentUser?.role === "MODERATOR"
-  const assignedProjectId = currentUser?.assignedProjectId || "none"
+  const assignedProjectIds = currentUser?.assignedProjects?.map(p => p.id) || []
 
   let totalUsers = 0
   let totalProjects = 0
@@ -33,10 +33,10 @@ export default async function AdminDashboard() {
 
   if (isModerator) {
     const [modProjCount, modUsersCount, modProject] = await Promise.all([
-      prisma.project.count({ where: { id: assignedProjectId } }),
-      prisma.application.count({ where: { projectId: assignedProjectId } }),
-      prisma.project.findUnique({
-        where: { id: assignedProjectId },
+      prisma.project.count({ where: { id: { in: assignedProjectIds.length > 0 ? assignedProjectIds : ["none"] } } }),
+      prisma.application.count({ where: { projectId: { in: assignedProjectIds.length > 0 ? assignedProjectIds : ["none"] } } }),
+      prisma.project.findFirst({
+        where: { id: { in: assignedProjectIds.length > 0 ? assignedProjectIds : ["none"] } },
         select: {
           id: true,
           title: true,
@@ -66,7 +66,7 @@ export default async function AdminDashboard() {
           lastName: true, 
           email: true, 
           isApproved: true, 
-          assignedProjectId: true,
+          assignedProjects: { select: { id: true } },
           canReviewQC: true,
           canApproveApplications: true,
           _count: { select: { comments: true, teamMembers: true } }
