@@ -9,6 +9,7 @@ interface Task {
   status: string
   duration: number | null
   assignedToId: string | null
+  reviews?: { notes: string | null }[]
 }
 
 export function FreelancerTranscriptionStats({ 
@@ -90,18 +91,24 @@ export function FreelancerTranscriptionStats({
       {/* Rejected Tasks Action Section */}
       {rejectedTasks.length > 0 && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 w-full sm:w-auto flex-1">
             <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-bold text-red-600 dark:text-red-400 text-lg">Action Required</h4>
+            <div className="flex-1">
+              <h4 className="font-bold text-red-600 dark:text-red-400 text-lg">إجراء مطلوب</h4>
               <p className="text-sm text-red-600/80 dark:text-red-400/80">
-                You have {rejectedTasks.length} task(s) that require edits (To be redone).
+                لديك {rejectedTasks.length} مهمة (مهام) تحتاج إلى تعديلات.
               </p>
+              {rejectedTasks[0].reviews && rejectedTasks[0].reviews.length > 0 && rejectedTasks[0].reviews[0].notes && (
+                <div className="bg-red-500/10 p-3 rounded-lg border border-red-500/20 mt-3 w-full max-w-2xl">
+                  <p className="text-xs font-bold text-red-700 dark:text-red-300 mb-1">سبب التعديل للمهمة الأولى:</p>
+                  <p className="text-sm text-red-600 dark:text-red-400 whitespace-pre-wrap">{rejectedTasks[0].reviews[0].notes}</p>
+                </div>
+              )}
             </div>
           </div>
           <Link 
             href={`/member/transcription/${rejectedTasks[0].id}`}
-            className="w-full sm:w-auto whitespace-nowrap px-6 py-2.5 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
+            className="w-full sm:w-auto whitespace-nowrap px-6 py-2.5 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 shrink-0"
           >
             <PlayCircle className="w-5 h-5" />
             إعادة المهام المرفوضة (Redo)

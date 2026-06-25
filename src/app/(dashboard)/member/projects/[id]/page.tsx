@@ -69,6 +69,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   // Fetch transcription tasks (only if approved and project is transcription)
   const transcriptionTasks = isApproved && project.isTranscriptionProject ? await prisma.transcriptionTask.findMany({
     where: { projectId: id },
+    include: {
+      reviews: {
+        orderBy: { reviewedAt: "desc" },
+        take: 1
+      }
+    },
     orderBy: { createdAt: "asc" }
   }) : []
 
