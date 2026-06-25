@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, FileAudio } from "lucide-react"
+import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, FileAudio, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { createProjectAction } from "@/app/actions/projects"
 
@@ -131,20 +131,36 @@ export default function CreateTranscriptionProjectPage() {
         </div>
 
         {isUploading && (
-          <div className="mb-8 p-6 glass rounded-2xl border border-primary/20 bg-primary/5 animate-pulse">
-            <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-              <UploadCloud className="w-5 h-5 text-primary" /> 
-              {uploadProgress === 100 ? "Finalizing..." : "Uploading Files..."}
-            </h3>
-            <p className="text-sm text-foreground/70 mb-4">{uploadStatus}</p>
-            
-            <div className="w-full bg-background rounded-full h-4 overflow-hidden border border-border">
-              <div 
-                className="bg-primary h-full transition-all duration-300 ease-out"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="glass p-8 rounded-3xl border border-primary/20 shadow-2xl shadow-primary/10 max-w-sm w-full mx-4 flex flex-col items-center text-center">
+              <div className="relative mb-6">
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
+                <div className="relative bg-background border border-primary/20 p-4 rounded-full">
+                  {uploadProgress === 100 ? (
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                  ) : (
+                    <UploadCloud className="w-8 h-8 text-primary animate-bounce" />
+                  )}
+                </div>
+              </div>
+              
+              <h3 className="font-black text-xl mb-2 text-foreground">
+                {uploadProgress === 100 ? "Finalizing Setup..." : "Uploading Files..."}
+              </h3>
+              <p className="text-sm text-foreground/60 mb-6 font-medium max-w-[250px] truncate">
+                {uploadStatus || "Please wait while we process your project data."}
+              </p>
+              
+              <div className="w-full bg-background/50 rounded-full h-3 overflow-hidden border border-border shadow-inner">
+                <div 
+                  className="bg-primary h-full transition-all duration-300 ease-out relative overflow-hidden"
+                  style={{ width: `${uploadProgress}%` }}
+                >
+                  <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite]"></div>
+                </div>
+              </div>
+              <p className="text-xs font-bold mt-3 text-primary tracking-wider">{uploadProgress}%</p>
             </div>
-            <p className="text-right text-xs font-bold mt-2 text-primary">{uploadProgress}%</p>
           </div>
         )}
 
