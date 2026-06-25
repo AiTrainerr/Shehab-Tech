@@ -95,7 +95,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ task
           name: task.assignedTo ? `${task.assignedTo.firstName} ${task.assignedTo.lastName}` : "Unassigned",
           audio_cn: "",
           _id: task.id,
-          audio: task.audioFileUrl?.split('/').pop() || "audio.wav",
+          audio: task.audioFilePath?.split('/').pop() || "audio.wav",
           audio_duration: task.duration || "",
           geo_coverage: "",
           context_audio: "",
