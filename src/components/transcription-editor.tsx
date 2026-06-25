@@ -475,10 +475,10 @@ export function TranscriptionEditor({
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${autoSave ? 'bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20' : 'bg-background text-foreground/70 border-border hover:bg-foreground/5'}`}
                 >
                   {autoSave ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-                  Auto-Save {autoSave ? 'ON' : 'OFF'}
+                  <span>Auto-Save {autoSave ? 'ON' : 'OFF'}</span>
                 </button>
                 <button onClick={handleSave} disabled={isSaving || (!hasUnsavedChanges && !autoSave)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 text-white hover:bg-green-600 transition-colors text-sm font-bold disabled:opacity-50">
-                  <Save className="w-4 h-4" /> {isSaving ? "Saving..." : "Save Changes"}
+                  <Save className="w-4 h-4" /> <span>{isSaving ? "Saving..." : "Save Changes"}</span>
                 </button>
               </>
             )}
@@ -562,21 +562,14 @@ export function TranscriptionEditor({
                       }}
                       className="flex-1 flex items-center justify-center gap-1 text-xs bg-primary/10 text-primary hover:bg-primary/20 py-1.5 rounded-md transition-colors"
                     >
-                      {isPlaying ? (
-                        <>
-                          <Pause className="w-3 h-3" /> Pause
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-3 h-3" /> Play
-                        </>
-                      )}
+                      {isPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
+                      <span>{isPlaying ? "Pause" : "Play"}</span>
                     </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); setIsLooping(!isLooping); }}
                       className={`flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-md transition-colors ${isLooping ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-background/50 border border-border hover:bg-border'}`}
                     >
-                      Loop {isLooping ? "ON" : "OFF"}
+                      <span>Loop {isLooping ? "ON" : "OFF"}</span>
                     </button>
                   </div>
                 )}
