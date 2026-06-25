@@ -322,9 +322,9 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             <h3 className="text-xl font-bold mb-2">Reject Application</h3>
             <p className="text-sm text-foreground/60 mb-6">Please provide a reason for rejecting this application. This will be sent to the user as a notification.</p>
             <div className="flex flex-col gap-2 mb-4">
-              <button onClick={() => setRejectReason("الشخص المتقدم غير نيتف (Not a Native Speaker)")} className="text-left text-sm px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-lg transition-colors border border-border">الشخص المتقدم غير نيتف</button>
-              <button onClick={() => setRejectReason("لم يتم تحديث الصفحة الشخصية والبورتفوليو (Profile/Portfolio not updated)")} className="text-left text-sm px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-lg transition-colors border border-border">لم يتم تحديث الصفحة الشخصية والبورتفوليو</button>
-              <button onClick={() => setRejectReason("هذا المشروع يحتاج توثيق حساب (Account verification required)")} className="text-left text-sm px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-lg transition-colors border border-border">هذا المشروع يحتاج توثيق حساب (Verification)</button>
+              <button onClick={() => setRejectReason("الشخص المتقدم غير نيتف")} className="text-left text-sm px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-lg transition-colors border border-border">الشخص المتقدم غير نيتف</button>
+              <button onClick={() => setRejectReason("لم يتم تحديث الصفحة الشخصية والبورتفوليو")} className="text-left text-sm px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-lg transition-colors border border-border">لم يتم تحديث الصفحة الشخصية والبورتفوليو</button>
+              <button onClick={() => setRejectReason("هذا المشروع يحتاج توثيق حساب")} className="text-left text-sm px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-lg transition-colors border border-border">هذا المشروع يحتاج توثيق حساب</button>
             </div>
             <textarea
               value={rejectReason}
