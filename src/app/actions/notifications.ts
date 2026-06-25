@@ -53,12 +53,43 @@ export async function deleteNotification(notifId: string) {
   }
 }
 
+import { sendPushNotification } from "@/app/actions/push"
+
 export async function createNotification(userId: string, title: string, content: string, link?: string) {
   try {
     await prisma.notification.create({
       data: { userId, title, content, link: link || null }
     })
+    
+    // Asynchronously send push notification (fire and forget)
+    sendPushNotification(userId, title, content, link).catch(err => {
+      console.error("Push notification failed silently:", err)
+    })
   } catch (e) {
     console.error("Failed to create notification:", e)
+  }
+}
+
+export async function createManyNotifications(
+  notifications: { userId: string, title: string, content: string, link?: string }[]
+) {
+  try {
+    await prisma.notification.createMany({
+      data: notifications.map(n => ({
+        userId: n.userId,
+        title: n.title,
+        content: n.content,
+        link: n.link || null
+      }))
+    })
+
+    // Asynchronously send push notifications (fire and forget)
+    Promise.allSettled(
+      notifications.map(n => sendPushNotification(n.userId, n.title, n.content, n.link))
+    ).catch(err => {
+      console.error("Bulk push notification failed silently:", err)
+    })
+  } catch (e) {
+    console.error("Failed to create many notifications:", e)
   }
 }

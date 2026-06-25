@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { createClientServer } from "@/lib/supabase"
 import { deleteFromCloudinary } from "@/lib/cloudinary"
 import { createAuditLog } from "@/app/actions/audit"
+import { createManyNotifications } from "@/app/actions/notifications"
 import { revalidatePath } from "next/cache"
 
 const TOTAL_STORAGE_LIMIT_BYTES = 25 * 1024 * 1024 * 1024 // 25 GB limit
@@ -85,14 +86,14 @@ export async function checkAndTriggerStorageWarning() {
       const remainingRec = (stats.recordings.remainingBytes / (1024 * 1024 * 1024)).toFixed(2)
       const remainingTrans = (stats.transcriptions.remainingBytes / (1024 * 1024 * 1024)).toFixed(2)
 
-      await prisma.notification.createMany({
-        data: userIds.map(userId => ({
+      await createManyNotifications(
+        userIds.map(userId => ({
           userId,
           title: "Low Storage Space Warning ⚠️",
           content: `Platform storage space is low (Recordings: ${remainingRec} GB, Transcriptions: ${remainingTrans} GB). Please be careful.`,
           link: "/member"
         }))
-      })
+      )
 
       await createAuditLog(
         "STORAGE_WARNING_TRIGGERED",

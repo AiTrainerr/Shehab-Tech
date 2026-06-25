@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { uploadToSupabase } from "@/lib/storage"
 import * as XLSX from "xlsx"
+import { createNotification, createManyNotifications } from "@/app/actions/notifications"
 
 export async function createProjectAction(formData: FormData) {
   try {
@@ -244,28 +245,26 @@ export async function applyToProject(projectId: string, applicationType: "FREELA
     })
     
     if (project.autoApprove) {
-      await prisma.notification.create({
-        data: {
-          userId: user.id,
-          title: "Application Auto-Approved!",
-          content: `Your application for "${project.title}" has been automatically approved.`,
-          link: `/member/projects/${projectId}`
-        }
-      })
+      await createNotification(
+        user.id,
+        "Application Auto-Approved!",
+        `Your application for "${project.title}" has been automatically approved.`,
+        `/member/projects/${projectId}`
+      )
     }
     
     const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } })
     const applicant = await prisma.user.findUnique({ where: { id: user.id }, select: { firstName: true, lastName: true } })
     
     if (admins.length > 0 && applicant) {
-      await prisma.notification.createMany({
-        data: admins.map(admin => ({
+      await createManyNotifications(
+        admins.map(admin => ({
           userId: admin.id,
           title: project.autoApprove ? "New Application (Auto-Approved)" : "New Application",
           content: `${applicant.firstName} ${applicant.lastName} applied for "${project.title}".`,
           link: `/profile/${user.id}`
         }))
-      })
+      )
     }
     
     return { success: true }
@@ -294,14 +293,12 @@ export async function promoteToQC(applicationId: string) {
       include: { project: { select: { title: true } } }
     })
 
-    await prisma.notification.create({
-      data: {
-        userId: app.userId,
-        title: "Promoted to QC 🎉",
-        content: `You have been promoted to Quality Control (QC) for project "${app.project.title}".`,
-        link: `/member/projects/${app.projectId}`
-      }
-    })
+    await createNotification(
+      app.userId,
+      "Promoted to QC 🎉",
+      `You have been promoted to Quality Control (QC) for project "${app.project.title}".`,
+      `/member/projects/${app.projectId}`
+    )
 
     const { revalidatePath } = await import("next/cache")
     revalidatePath("/admin/applications")
@@ -360,30 +357,14 @@ export async function approveApplication(applicationId: string) {
       include: { project: true }
     })
     
-    await prisma.notification.create({
-      data: {
-        userId: application.userId,
-        title: newStatus === "APPROVED" ? "Project Approved!" : "Application Accepted! (Start Now)",
-        content: newStatus === "APPROVED" 
-          ? `Your work for "${application.project.title}" has been finally approved. Your unique speaker code is ${speakerCode}.`
-          : `Your application for "${application.project.title}" has been accepted. Click here to start working!`,
-        link: `/member/projects/${application.projectId}`
-      }
-    })
-    
-    // Send Push Notification asynchronously (fire and forget)
-    import("@/app/actions/push").then(m => {
-      m.sendPushNotification(
-        application.userId,
-        newStatus === "APPROVED" ? "تم قبول عملك!" : "تم قبول طلبك!",
-        newStatus === "APPROVED" 
-          ? `تم قبول عملك في "${application.project.title}". كودك هو ${speakerCode}.`
-          : `تم قبول طلبك لـ "${application.project.title}". اضغط للبدء!`,
-        `/member/projects/${application.projectId}`
-      )
-    }).catch(console.error)
-    
-    
+    await createNotification(
+      application.userId,
+      newStatus === "APPROVED" ? "تم قبول عملك!" : "تم قبول طلبك!",
+      newStatus === "APPROVED" 
+        ? `تم قبول عملك في "${application.project.title}". كودك هو ${speakerCode}.`
+        : `تم قبول طلبك لـ "${application.project.title}". اضغط للبدء!`,
+      `/member/projects/${application.projectId}`
+    )
     const { revalidatePath } = await import("next/cache")
     revalidatePath("/admin/applications")
     revalidatePath(`/member/projects/${application.projectId}`)
@@ -430,13 +411,11 @@ export async function rejectApplication(applicationId: string, reason?: string) 
       ? `Your application for "${application.project.title}" was not selected. Reason: ${reason}`
       : `Your application for "${application.project.title}" was not selected.`
 
-    await prisma.notification.create({
-      data: {
-        userId: application.userId,
-        title: "Application Status Update",
-        content
-      }
-    })
+    await createNotification(
+      application.userId,
+      "Application Status Update",
+      content
+    )
     
     const { revalidatePath } = await import("next/cache")
     revalidatePath("/admin/applications")
@@ -662,13 +641,11 @@ export async function markApplicationPaid(applicationId: string) {
       include: { project: true }
     })
 
-    await prisma.notification.create({
-      data: {
-        userId: application.userId,
-        title: "💰 Payout Released!",
-        content: `Your payment for the project "${application.project.title}" has been processed and marked as paid.`
-      }
-    })
+    await createNotification(
+      application.userId,
+      "💰 Payout Released!",
+      `Your payment for the project "${application.project.title}" has been processed and marked as paid.`
+    )
 
     const { revalidatePath } = await import("next/cache")
     revalidatePath("/admin/payments")

@@ -5,6 +5,7 @@ import { createClientServer } from "@/lib/supabase"
 import { uploadAudioToCloudinary, deleteFromCloudinary, cloudinary } from "@/lib/cloudinary"
 import { createAuditLog } from "@/app/actions/audit"
 import { revalidatePath } from "next/cache"
+import { createNotification, createManyNotifications } from "@/app/actions/notifications"
 import * as XLSX from "xlsx"
 
 // ─── Admin: Upload script/sentences (Excel, CSV, TXT, or Manual) ─────────────
@@ -323,16 +324,14 @@ export async function saveBulkReview(
     }
 
     // Send a single summary notification to the freelancer
-    await prisma.notification.create({
-      data: {
-        userId: application.userId,
-        title: allAccepted ? "🎉 Recordings Under Final Client Review!" : "📋 Review Completed – Action Required",
-        content: allAccepted
-          ? `All your recordings for "${application.project.title}" have been accepted by the reviewer and are now under final client review.`
-          : `Reviewer completed the review for "${application.project.title}". ${acceptedCount} accepted, ${rejectedCount} require re-recording. Please check your project.`,
-        link: `/member/projects/${application.projectId}`
-      }
-    })
+    await createNotification(
+      application.userId,
+      allAccepted ? "🎉 Recordings Under Final Client Review!" : "📋 Review Completed – Action Required",
+      allAccepted
+        ? `All your recordings for "${application.project.title}" have been accepted by the reviewer and are now under final client review.`
+        : `Reviewer completed the review for "${application.project.title}". ${acceptedCount} accepted, ${rejectedCount} require re-recording. Please check your project.`,
+      `/member/projects/${application.projectId}`
+    )
 
     await createAuditLog(
       "QC_BULK_REVIEW",
@@ -434,9 +433,7 @@ export async function submitAllRecordings(projectId: string) {
     }))
 
     if (notificationsToCreate.length > 0) {
-      await prisma.notification.createMany({
-        data: notificationsToCreate
-      })
+      await createManyNotifications(notificationsToCreate)
     }
 
     return { success: true }
@@ -518,14 +515,12 @@ export async function reviewAllRecordings(applicationId: string, action: "APPROV
         data: { status: "APPROVED" }
       })
       
-      await prisma.notification.create({
-        data: {
-          userId: application.userId,
-          title: "Project Approved! 🎉",
-          content: `Your recordings for ${application.project.title} have been fully approved.`,
-          link: `/member/projects/${application.projectId}`
-        }
-      })
+      await createNotification(
+        application.userId,
+        "Project Approved! 🎉",
+        `Your recordings for ${application.project.title} have been fully approved.`,
+        `/member/projects/${application.projectId}`
+      )
     } else {
       await prisma.voiceRecording.updateMany({
         where: { id: { in: recordings.map(r => r.id) } },
@@ -536,14 +531,12 @@ export async function reviewAllRecordings(applicationId: string, action: "APPROV
         data: { status: "WORKING" } // Set to WORKING to let the freelancer re-record
       })
       
-      await prisma.notification.create({
-        data: {
-          userId: application.userId,
-          title: "Recordings Rejected",
-          content: `All recordings for ${application.project.title} need to be re-recorded. Reason: ${reason || "Quality issues."}`,
-          link: `/member/projects/${application.projectId}/record`
-        }
-      })
+      await createNotification(
+        application.userId,
+        "Recordings Rejected",
+        `All recordings for ${application.project.title} need to be re-recorded. Reason: ${reason || "Quality issues."}`,
+        `/member/projects/${application.projectId}/record`
+      )
     }
 
     revalidatePath(`/admin/applications/[id]/review`, "page")

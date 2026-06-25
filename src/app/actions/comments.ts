@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { createClientServer } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
+import { createManyNotifications } from "@/app/actions/notifications"
 
 export async function addComment(projectId: string, content: string, parentId?: string) {
   try {
@@ -67,9 +68,7 @@ export async function addComment(projectId: string, content: string, parentId?: 
       }
 
       if (notificationsToCreate.length > 0) {
-        await prisma.notification.createMany({
-          data: notificationsToCreate
-        })
+        await createManyNotifications(notificationsToCreate)
       }
     } catch (notifErr) {
       console.error("Failed to create notifications for comment:", notifErr)
