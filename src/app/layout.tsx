@@ -11,6 +11,7 @@ export const viewport: Viewport = {
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import NextTopLoader from "nextjs-toploader";
+import { Suspense } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
@@ -91,19 +92,21 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <NextTopLoader
-            color="#0ea5e9"
-            initialPosition={0.08}
-            crawlSpeed={200}
-            height={4}
-            crawl={true}
-            showSpinner={true}
-            easing="ease"
-            speed={200}
-            shadow="0 0 10px #0ea5e9,0 0 5px #0ea5e9"
-            zIndex={1600}
-            showAtBottom={false}
-          />
+          <Suspense fallback={null}>
+            <NextTopLoader
+              color="#0ea5e9"
+              initialPosition={0.08}
+              crawlSpeed={200}
+              height={4}
+              crawl={true}
+              showSpinner={true}
+              easing="ease"
+              speed={200}
+              shadow="0 0 10px #0ea5e9,0 0 5px #0ea5e9"
+              zIndex={1600}
+              showAtBottom={false}
+            />
+          </Suspense>
           <SplashScreen />
           <Navbar user={currentUser} />
           <main className="flex-grow pt-16">
