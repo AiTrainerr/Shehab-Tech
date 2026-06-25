@@ -45,19 +45,27 @@ export async function uploadSentences(
 
       if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
         const workbook = XLSX.read(buffer, { type: "buffer" })
-        const sheet = workbook.Sheets[workbook.SheetNames[0]]
-        const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
-
-        sentences = rows
-          .map((row: any[]) => {
-            for (const cell of row) {
-              if (cell !== undefined && cell !== null && String(cell).trim()) {
-                return String(cell).trim()
+        let allSentences: string[] = []
+        
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName]
+          const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+          
+          const sheetSentences = rows
+            .map((row: any[]) => {
+              for (const cell of row) {
+                if (cell !== undefined && cell !== null && String(cell).trim()) {
+                  return String(cell).trim()
+                }
               }
-            }
-            return null
-          })
-          .filter(Boolean) as string[]
+              return null
+            })
+            .filter(Boolean) as string[]
+            
+          allSentences = [...allSentences, ...sheetSentences]
+        }
+        
+        sentences = allSentences
       } else if (name.endsWith(".txt")) {
         const text = buffer.toString("utf-8")
         sentences = text
