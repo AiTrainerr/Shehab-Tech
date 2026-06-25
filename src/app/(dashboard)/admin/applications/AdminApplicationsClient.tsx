@@ -18,7 +18,8 @@ interface Application {
   acceptedCount?: number
   speakerCode?: string | null
   proofUrl?: string | null
-  project: { id: string; title: string; pricingModel: string }
+  projectRole?: string
+  project: { id: string; title: string; pricingModel: string; workflowType?: string }
   user: { id: string; firstName: string; lastName: string; email: string; ranking: string; verificationStatus: string }
 }
 
