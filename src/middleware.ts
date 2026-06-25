@@ -49,7 +49,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect already-logged-in users away from auth pages
-  if (isAuthPage && user) {
+  if (isAuthPage && user && request.cookies.has('userId')) {
     return NextResponse.redirect(new URL('/member', request.url))
   }
 
