@@ -111,19 +111,47 @@ export function AdminSupervisorsClient({
                   </div>
                 </div>
 
-                <div className="mt-2 flex flex-col gap-1.5">
-                  <span className="text-xs font-semibold text-foreground/50">Roles:</span>
-                  <div className="flex flex-col gap-1">
-                    {mod.canReviewQC && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/10 text-purple-500 w-fit">
-                        Team Leader (QC)
-                      </span>
-                    )}
-                    {mod.canApproveApplications && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/10 text-orange-500 w-fit">
-                        Platform Admin (Applicants)
-                      </span>
-                    )}
+                <div className="mt-2 pt-2 border-t border-border/50 flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-foreground/50">Team Leader (QC):</span>
+                    <button
+                      onClick={async () => {
+                        setLoadingId(`role-qc-${mod.id}`)
+                        const res = await updateModeratorPermissions(mod.id, { canReviewQC: !mod.canReviewQC })
+                        if (res.success) router.refresh()
+                        else alert(res.error)
+                        setLoadingId(null)
+                      }}
+                      disabled={loadingId === `role-qc-${mod.id}`}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                        mod.canReviewQC
+                          ? "bg-purple-500/10 text-purple-500 hover:bg-purple-500/20"
+                          : "bg-foreground/5 text-foreground/50 hover:bg-foreground/10"
+                      }`}
+                    >
+                      {mod.canReviewQC ? "Enabled" : "Disabled"}
+                    </button>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-foreground/50">Admin (Applicants):</span>
+                    <button
+                      onClick={async () => {
+                        setLoadingId(`role-app-${mod.id}`)
+                        const res = await updateModeratorPermissions(mod.id, { canApproveApplications: !mod.canApproveApplications })
+                        if (res.success) router.refresh()
+                        else alert(res.error)
+                        setLoadingId(null)
+                      }}
+                      disabled={loadingId === `role-app-${mod.id}`}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                        mod.canApproveApplications
+                          ? "bg-orange-500/10 text-orange-500 hover:bg-orange-500/20"
+                          : "bg-foreground/5 text-foreground/50 hover:bg-foreground/10"
+                      }`}
+                    >
+                      {mod.canApproveApplications ? "Enabled" : "Disabled"}
+                    </button>
                   </div>
                 </div>
 
