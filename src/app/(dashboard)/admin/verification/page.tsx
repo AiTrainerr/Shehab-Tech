@@ -4,6 +4,8 @@ import { ArrowLeft, AlertCircle, CheckCircle, XCircle } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { approveVerification, rejectVerification } from "@/app/actions/verification"
 import { revalidatePath } from "next/cache"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
 export const dynamic = 'force-dynamic'
 
