@@ -122,10 +122,17 @@ export async function assignModeratorProject(userId: string, projectId: string |
       if (proj) projectTitle = proj.title
     }
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: { assignedProjectId: projectId }
-    })
+    if (projectId) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { assignedProjects: { connect: { id: projectId } } }
+      })
+    } else {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { assignedProjects: { set: [] } }
+      })
+    }
 
     await createAuditLog(
       "ASSIGN_MODERATOR_PROJECT",
@@ -146,7 +153,7 @@ export async function updateModeratorPermissions(
     canReviewQC?: boolean
     canApproveApplications?: boolean
     role?: string
-    assignedProjectId?: string | null
+    revokeAllProjects?: boolean
     isApproved?: boolean
   }
 ) {
@@ -165,9 +172,14 @@ export async function updateModeratorPermissions(
       select: { email: true }
     })
 
+    const { revokeAllProjects, ...updateData } = data
+
     const updated = await prisma.user.update({
       where: { id: userId },
-      data
+      data: {
+        ...updateData,
+        ...(revokeAllProjects ? { assignedProjects: { set: [] } } : {})
+      }
     })
 
     await createAuditLog(
@@ -182,3 +194,28 @@ export async function updateModeratorPermissions(
     return { success: false, error: "Failed to update permissions" }
   }
 }
+
+export async function removeSupervisorProject(userId: string, projectId: string) {
+  try {
+    const supabase = await createClientServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { assignedProjects: { disconnect: { id: projectId } } }
+    })
+
+    revalidatePath("/admin/supervisors")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Remove project error:", error)
+    return { success: false, error: "Failed to remove project" }
+  }
+}
+

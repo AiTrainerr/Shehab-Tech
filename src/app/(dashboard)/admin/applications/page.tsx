@@ -15,7 +15,7 @@ export default async function AdminApplicationsPage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, assignedProjectId: true, canApproveApplications: true }
+    select: { role: true, assignedProjects: { select: { id: true } }, canApproveApplications: true }
   })
 
   if (currentUser?.role === "MODERATOR" && !currentUser.canApproveApplications) {
@@ -26,7 +26,8 @@ export default async function AdminApplicationsPage() {
     project: { status: { in: ["OPEN", "IN_PROGRESS"] } }
   }
   if (currentUser?.role === "MODERATOR") {
-    whereClause.projectId = currentUser.assignedProjectId || "none"
+    const assignedIds = currentUser.assignedProjects?.map(p => p.id) || []
+    whereClause.projectId = assignedIds.length > 0 ? { in: assignedIds } : "none"
   }
 
   const applicationsData = await prisma.application.findMany({

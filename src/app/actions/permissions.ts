@@ -43,7 +43,9 @@ export async function grantSupervisorPermissions(
       data: {
         role: "MODERATOR",
         isApproved: true,
-        assignedProjectId: projectId,
+        assignedProjects: {
+          connect: { id: projectId }
+        },
         canReviewQC,
         canApproveApplications
       }

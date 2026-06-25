@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Shield, MessageSquare, Mic2, XCircle } from "lucide-react"
-import { updateModeratorPermissions } from "@/app/actions/users"
+import { Shield, MessageSquare, Mic2, XCircle, X } from "lucide-react"
+import { updateModeratorPermissions, removeSupervisorProject } from "@/app/actions/users"
 import { useRouter } from "next/navigation"
 
 interface Project {
@@ -17,7 +17,7 @@ interface Supervisor {
   lastName: string
   email: string
   isApproved: boolean
-  assignedProjectId: string | null
+  assignedProjects: { id: string }[]
   canReviewQC: boolean
   canApproveApplications: boolean
   reviewedCount: number
@@ -43,7 +43,7 @@ export function AdminSupervisorsClient({
     setLoadingId(id)
     const res = await updateModeratorPermissions(id, {
       role: "MEMBER",
-      assignedProjectId: null,
+      revokeAllProjects: true,
       canReviewQC: false,
       canApproveApplications: false,
       isApproved: false
@@ -72,7 +72,6 @@ export function AdminSupervisorsClient({
           </div>
         ) : (
           supervisors.map((mod) => {
-            const assignedProject = projects.find(p => p.id === mod.assignedProjectId)
             return (
               <div key={mod.id} className="p-4 bg-background rounded-xl border border-border flex flex-col gap-3 group relative">
                 <div className="flex justify-between items-start">
@@ -129,11 +128,37 @@ export function AdminSupervisorsClient({
                 </div>
 
                 <div className="mt-2 pt-2 border-t border-border/50 flex flex-col gap-1.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-semibold text-foreground/50">Assigned Project:</span>
-                    <span className="text-xs font-bold text-primary max-w-[150px] truncate" title={assignedProject?.title || "None"}>
-                      {assignedProject?.title || "None"}
-                    </span>
+                  <span className="text-xs font-semibold text-foreground/50">Assigned Projects:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {mod.assignedProjects.length === 0 ? (
+                      <span className="text-xs font-bold text-foreground/50">None</span>
+                    ) : (
+                      mod.assignedProjects.map(ap => {
+                        const project = projects.find(p => p.id === ap.id)
+                        return (
+                          <div key={ap.id} className="flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-bold">
+                            <span className="truncate max-w-[120px]" title={project?.title || "Unknown"}>
+                              {project?.title || "Unknown"}
+                            </span>
+                            <button
+                              onClick={async () => {
+                                if (!confirm("Remove this project from supervisor?")) return;
+                                setLoadingId(`remove-${mod.id}-${ap.id}`);
+                                const res = await removeSupervisorProject(mod.id, ap.id);
+                                if (res.success) router.refresh();
+                                else alert(res.error);
+                                setLoadingId(null);
+                              }}
+                              disabled={loadingId === `remove-${mod.id}-${ap.id}`}
+                              className="p-0.5 hover:bg-primary/20 rounded-full transition-colors disabled:opacity-50 ml-1"
+                              title="Remove Project"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )
+                      })
+                    )}
                   </div>
                 </div>
               </div>

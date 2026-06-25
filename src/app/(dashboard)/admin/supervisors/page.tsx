@@ -35,7 +35,7 @@ export default async function SupervisorsPage() {
         lastName: true, 
         email: true, 
         isApproved: true, 
-        assignedProjectId: true,
+        assignedProjects: { select: { id: true } },
         canReviewQC: true,
         canApproveApplications: true,
         _count: { select: { comments: true, teamMembers: true } }

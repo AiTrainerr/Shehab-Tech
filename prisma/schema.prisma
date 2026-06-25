@@ -71,8 +71,7 @@ model User {
 
   // Moderator fields
   isApproved         Boolean  @default(false)
-  assignedProjectId  String?
-  assignedProject    Project? @relation("ProjectModerators", fields: [assignedProjectId], references: [id], onDelete: SetNull)
+  assignedProjects   Project[] @relation("ProjectModerators")
   canReviewQC        Boolean  @default(false)
   canApproveApplications Boolean @default(false)
 }

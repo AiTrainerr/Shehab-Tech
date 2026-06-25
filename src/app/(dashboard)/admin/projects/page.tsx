@@ -16,11 +16,11 @@ export default async function AdminProjectsPage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, assignedProjectId: true }
+    select: { role: true, assignedProjects: { select: { id: true } } }
   })
 
   const whereClause = currentUser?.role === "MODERATOR"
-    ? { id: currentUser.assignedProjectId || "none" }
+    ? { id: { in: currentUser.assignedProjects.length > 0 ? currentUser.assignedProjects.map(p => p.id) : ["none"] } }
     : {}
 
   const projects = await prisma.project.findMany({

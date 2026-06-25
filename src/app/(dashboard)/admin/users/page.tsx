@@ -23,7 +23,7 @@ export default async function UsersPage() {
         verificationStatus: true,
         role: true,
         isApproved: true,
-        assignedProjectId: true,
+        assignedProjects: { select: { id: true } },
         canReviewQC: true,
         canApproveApplications: true,
         createdAt: true,

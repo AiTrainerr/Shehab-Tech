@@ -16,7 +16,7 @@ export default async function AdminQcPage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, assignedProjectId: true, canReviewQC: true }
+    select: { role: true, assignedProjects: { select: { id: true } }, canReviewQC: true }
   })
 
   if (currentUser?.role === "MODERATOR" && !currentUser.canReviewQC) {
@@ -25,8 +25,9 @@ export default async function AdminQcPage() {
 
   const whereClause: any = { status: "PENDING" }
   if (currentUser?.role === "MODERATOR") {
+    const assignedIds = currentUser.assignedProjects?.map(p => p.id) || []
     whereClause.sentence = {
-      projectId: currentUser.assignedProjectId || "none"
+      projectId: assignedIds.length > 0 ? { in: assignedIds } : "none"
     }
   }
 

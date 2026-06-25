@@ -15,15 +15,15 @@ export default async function AdminCommentsPage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, assignedProjectId: true }
+    select: { role: true, assignedProjects: { select: { id: true } } }
   })
 
   const isModerator = currentUser?.role === "MODERATOR"
-  const assignedProjectId = currentUser?.assignedProjectId || "none"
+  const assignedProjectIds = currentUser?.assignedProjects.map(p => p.id) || []
 
   const whereClause: any = { parentId: null }
   if (isModerator) {
-    whereClause.projectId = assignedProjectId
+    whereClause.projectId = assignedProjectIds.length > 0 ? { in: assignedProjectIds } : "none"
   }
 
   // Fetch comments
@@ -44,12 +44,12 @@ export default async function AdminCommentsPage() {
   })
 
   const totalComments = await prisma.comment.count({
-    where: isModerator ? { projectId: assignedProjectId } : {}
+    where: isModerator ? { projectId: assignedProjectIds.length > 0 ? { in: assignedProjectIds } : "none" } : {}
   })
   const totalReplies  = await prisma.comment.count({
     where: { 
       parentId: { not: null },
-      ...(isModerator ? { projectId: assignedProjectId } : {})
+      ...(isModerator ? { projectId: assignedProjectIds.length > 0 ? { in: assignedProjectIds } : "none" } : {})
     }
   })
 

@@ -212,7 +212,7 @@ export function AdminUsersClient({ initialUsers, statusConfig, projects }: { ini
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold text-foreground/50">Assign Project:</span>
                       <select
-                        value={user.assignedProjectId || ""}
+                        value=""
                         onChange={async (e) => {
                           const val = e.target.value || null
                           const res = await assignModeratorProject(user.id, val)
@@ -224,7 +224,7 @@ export function AdminUsersClient({ initialUsers, statusConfig, projects }: { ini
                         }}
                         className="px-2 py-1.5 bg-background border border-border rounded-lg text-xs outline-none focus:border-primary"
                       >
-                        <option value="">Not Assigned</option>
+                        <option value="" disabled>Select project to assign...</option>
                         {projects.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.title}
@@ -281,7 +281,7 @@ export function AdminUsersClient({ initialUsers, statusConfig, projects }: { ini
                           if (!confirm("Are you sure you want to completely remove supervisor permissions for this user and return them to standard Member status?")) return
                           const res = await updateModeratorPermissions(user.id, {
                             role: "MEMBER",
-                            assignedProjectId: null,
+                            revokeAllProjects: true,
                             canReviewQC: false,
                             canApproveApplications: false,
                             isApproved: false
