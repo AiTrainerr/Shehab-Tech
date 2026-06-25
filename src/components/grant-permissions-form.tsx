@@ -13,7 +13,8 @@ export function GrantPermissionsForm({ projects }: { projects: Project[] }) {
   const [email, setEmail] = React.useState("")
   const [selectedProject, setSelectedProject] = React.useState("")
   const [canReviewQC, setCanReviewQC] = React.useState(true)
-  const [canApproveApplications, setCanApproveApplications] = React.useState(true)
+  const [canApproveApplications, setCanApproveApplications] = React.useState(false)
+  const [moderatorType, setModeratorType] = React.useState<"INTERNAL" | "OUTSOURCED">("INTERNAL")
   const [isLoading, setIsLoading] = React.useState(false)
   const [message, setMessage] = React.useState<{ type: "success" | "error"; text: string } | null>(null)
 
@@ -45,7 +46,8 @@ export function GrantPermissionsForm({ projects }: { projects: Project[] }) {
       email.trim(),
       selectedProject,
       canReviewQC,
-      canApproveApplications
+      canApproveApplications,
+      moderatorType
     )
 
     setIsLoading(false)
@@ -135,8 +137,56 @@ export function GrantPermissionsForm({ projects }: { projects: Project[] }) {
           </select>
         </div>
 
+        {/* Moderator Type Selection */}
+        <div>
+          <span className="block text-sm font-semibold text-foreground/80 mb-2">Moderator Type</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setModeratorType("INTERNAL")}
+              disabled={isLoading}
+              className={`p-3 rounded-xl border text-left transition-all ${
+                moderatorType === "INTERNAL"
+                  ? "bg-blue-500/10 border-blue-500/30"
+                  : "bg-card/30 border-border text-foreground/60 hover:border-foreground/20"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                  moderatorType === "INTERNAL" ? "border-blue-500" : "border-foreground/30"
+                }`}>
+                  {moderatorType === "INTERNAL" && <div className="w-2 h-2 rounded-full bg-blue-500" />}
+                </div>
+                <p className={`text-sm font-bold ${moderatorType === "INTERNAL" ? "text-blue-500" : ""}`}>Platform Admin</p>
+              </div>
+              <p className="text-xxs text-foreground/60 pl-6">Internal team. Manages the general freelancer pool.</p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setModeratorType("OUTSOURCED")}
+              disabled={isLoading}
+              className={`p-3 rounded-xl border text-left transition-all ${
+                moderatorType === "OUTSOURCED"
+                  ? "bg-emerald-500/10 border-emerald-500/30"
+                  : "bg-card/30 border-border text-foreground/60 hover:border-foreground/20"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                  moderatorType === "OUTSOURCED" ? "border-emerald-500" : "border-foreground/30"
+                }`}>
+                  {moderatorType === "OUTSOURCED" && <div className="w-2 h-2 rounded-full bg-emerald-500" />}
+                </div>
+                <p className={`text-sm font-bold ${moderatorType === "OUTSOURCED" ? "text-emerald-500" : ""}`}>Team Leader</p>
+              </div>
+              <p className="text-xxs text-foreground/60 pl-6">Outsourced team. Manages ONLY their own team members.</p>
+            </button>
+          </div>
+        </div>
+
         {/* Permissions Toggles */}
-        <div className="space-y-3 pt-2">
+        <div className="space-y-3 pt-4 border-t border-border/50">
           <span className="block text-sm font-semibold text-foreground/80">Permissions Scope</span>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

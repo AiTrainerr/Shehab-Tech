@@ -9,7 +9,8 @@ export async function grantSupervisorPermissions(
   email: string,
   projectId: string,
   canReviewQC: boolean,
-  canApproveApplications: boolean
+  canApproveApplications: boolean,
+  moderatorType: "INTERNAL" | "OUTSOURCED" = "INTERNAL"
 ) {
   try {
     const supabase = await createClientServer()
@@ -47,7 +48,8 @@ export async function grantSupervisorPermissions(
           connect: { id: projectId }
         },
         canReviewQC,
-        canApproveApplications
+        canApproveApplications,
+        moderatorType
       }
     })
 

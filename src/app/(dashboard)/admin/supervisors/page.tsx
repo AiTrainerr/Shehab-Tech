@@ -38,6 +38,7 @@ export default async function SupervisorsPage() {
         assignedProjects: { select: { id: true } },
         canReviewQC: true,
         canApproveApplications: true,
+        moderatorType: true,
         _count: { select: { comments: true, teamMembers: true } }
       },
       orderBy: { updatedAt: "desc" }

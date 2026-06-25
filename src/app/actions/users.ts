@@ -155,6 +155,7 @@ export async function updateModeratorPermissions(
     role?: string
     revokeAllProjects?: boolean
     isApproved?: boolean
+    moderatorType?: "INTERNAL" | "OUTSOURCED"
   }
 ) {
   try {

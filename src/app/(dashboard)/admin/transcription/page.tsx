@@ -15,14 +15,27 @@ export default async function AdminTranscriptionQueuePage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, canReviewQC: true }
+    select: { role: true, canReviewQC: true, moderatorType: true, assignedProjects: { select: { id: true } } }
   })
 
   if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN" && !currentUser?.canReviewQC) {
     redirect("/admin")
   }
 
+  const whereClause: any = {}
+  if (currentUser?.role === "MODERATOR") {
+    const assignedIds = currentUser.assignedProjects?.map(p => p.id) || []
+    whereClause.projectId = assignedIds.length > 0 ? { in: assignedIds } : "none"
+    
+    if (currentUser.moderatorType === "OUTSOURCED") {
+      whereClause.assignedTo = { teamLeaderId: currentUser.id }
+    } else {
+      whereClause.assignedTo = { teamLeaderId: null }
+    }
+  }
+
   const tasks = await prisma.transcriptionTask.findMany({
+    where: whereClause,
     include: {
       project: { select: { title: true } },
       assignedTo: { select: { id: true, firstName: true, lastName: true, email: true } },

@@ -74,6 +74,7 @@ model User {
   assignedProjects   Project[] @relation("ProjectModerators")
   canReviewQC        Boolean  @default(false)
   canApproveApplications Boolean @default(false)
+  moderatorType      String   @default("INTERNAL") // INTERNAL, OUTSOURCED
 }
 
 model Skill {

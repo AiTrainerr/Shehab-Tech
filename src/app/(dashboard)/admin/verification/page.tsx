@@ -8,8 +8,26 @@ import { revalidatePath } from "next/cache"
 export const dynamic = 'force-dynamic'
 
 export default async function VerificationPage() {
+  const cookieStore = await cookies()
+  const userId = cookieStore.get("userId")?.value
+  if (!userId) redirect("/login")
+
+  const currentUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true, moderatorType: true }
+  })
+
+  const whereClause: any = { verificationStatus: "PENDING" }
+  if (currentUser?.role === "MODERATOR") {
+    if (currentUser.moderatorType === "OUTSOURCED") {
+      whereClause.teamLeaderId = currentUser.id
+    } else {
+      whereClause.teamLeaderId = null
+    }
+  }
+
   const pendingUsers = await prisma.user.findMany({
-    where: { verificationStatus: "PENDING" },
+    where: whereClause,
     select: { id: true, firstName: true, lastName: true, email: true, idCardUrl: true, selfieUrl: true, verificationStatus: true },
     orderBy: { createdAt: "desc" }
   })

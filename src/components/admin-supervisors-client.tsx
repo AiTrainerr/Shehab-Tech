@@ -113,6 +113,28 @@ export function AdminSupervisorsClient({
 
                 <div className="mt-2 pt-2 border-t border-border/50 flex flex-col gap-2">
                   <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-foreground/50">Type:</span>
+                    <button
+                      onClick={async () => {
+                        setLoadingId(`role-type-${mod.id}`)
+                        const newType = mod.moderatorType === "INTERNAL" ? "OUTSOURCED" : "INTERNAL"
+                        const res = await updateModeratorPermissions(mod.id, { moderatorType: newType })
+                        if (res.success) router.refresh()
+                        else alert(res.error)
+                        setLoadingId(null)
+                      }}
+                      disabled={loadingId === `role-type-${mod.id}`}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors disabled:opacity-50 ${
+                        mod.moderatorType === "INTERNAL"
+                          ? "bg-blue-500/10 text-blue-500 hover:bg-blue-500/20"
+                          : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                      }`}
+                    >
+                      {mod.moderatorType === "INTERNAL" ? "Platform Admin" : "Team Leader"}
+                    </button>
+                  </div>
+
+                  <div className="flex justify-between items-center">
                     <span className="text-xs font-semibold text-foreground/50">Team Leader (QC):</span>
                     <button
                       onClick={async () => {
