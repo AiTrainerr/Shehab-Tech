@@ -33,23 +33,8 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // ─── DELETED ACCOUNT DETECTION ──────────────────────────────────────────
-  // If user has a Supabase session but is NOT on an auth/api page,
-  // check if their DB record still exists. If not, force logout.
-  // We rely on the absence of the `userId` cookie as a lightweight proxy
-  // (the login action sets it; if Supabase session exists but cookie is gone, they were logged out server-side)
-  // For a more robust check we use a flag set by the logout route.
   const isPublicPath = PUBLIC_PREFIXES.some(p => pathname.startsWith(p))
   const isAuthPage = AUTH_PAGES.some(p => pathname === p || pathname.startsWith(p))
-
-  if (user && !isAuthPage && !isPublicPath) {
-    // If Supabase has a session but the legacy userId cookie is missing,
-    // it means the account was deleted / force-logged-out server-side.
-    // Redirect to logout to fully clear the Supabase session too.
-    const userIdCookie = request.cookies.get("userId")?.value
-    if (!userIdCookie) {
-      return NextResponse.redirect(new URL('/api/auth/logout?reason=deleted', request.url))
-    }
-  }
   // ────────────────────────────────────────────────────────────────────────
 
   // Protect dashboard routes — no Supabase session at all
@@ -64,8 +49,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect already-logged-in users away from auth pages
-  // Only redirect if they have BOTH a Supabase session AND a userId cookie (fully logged in)
-  if (isAuthPage && user && request.cookies.has("userId")) {
+  if (isAuthPage && user) {
     return NextResponse.redirect(new URL('/member', request.url))
   }
 
