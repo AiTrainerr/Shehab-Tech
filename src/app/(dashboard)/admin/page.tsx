@@ -71,7 +71,7 @@ export default async function AdminDashboard() {
           assignedProjectId: true,
           canReviewQC: true,
           canApproveApplications: true,
-          _count: { select: { comments: true } }
+          _count: { select: { comments: true, teamMembers: true } }
         },
         orderBy: { updatedAt: "desc" }
       }),

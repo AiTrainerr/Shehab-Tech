@@ -23,6 +23,7 @@ interface Supervisor {
   reviewedCount: number
   _count: {
     comments: number
+    teamMembers: number
   }
 }
 
@@ -104,6 +105,26 @@ export function AdminSupervisorsClient({
                   <div className="flex items-center gap-1.5 px-2 py-1 bg-foreground/5 rounded-lg text-xs font-bold text-foreground/70" title="Total Comments Made">
                     <MessageSquare className="w-3.5 h-3.5" />
                     <span>{mod._count.comments || 0} Comments</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 text-blue-500 rounded-lg text-xs font-bold" title="Team Members">
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>{mod._count.teamMembers || 0} Team Members</span>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex flex-col gap-1.5">
+                  <span className="text-xs font-semibold text-foreground/50">Roles:</span>
+                  <div className="flex flex-col gap-1">
+                    {mod.canReviewQC && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/10 text-purple-500 w-fit">
+                        Team Leader (QC)
+                      </span>
+                    )}
+                    {mod.canApproveApplications && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/10 text-orange-500 w-fit">
+                        Platform Admin (Applicants)
+                      </span>
+                    )}
                   </div>
                 </div>
 

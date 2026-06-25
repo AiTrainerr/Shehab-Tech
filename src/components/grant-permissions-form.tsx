@@ -157,8 +157,8 @@ export function GrantPermissionsForm({ projects }: { projects: Project[] }) {
                 <Square className="w-5 h-5 text-foreground/30 shrink-0" />
               )}
               <div>
-                <p className="text-sm font-bold">Review Recordings (QC)</p>
-                <p className="text-xxs text-foreground/50">Listen, approve or reject audios</p>
+                <p className="text-sm font-bold">Team Leader (Project Supervisor)</p>
+                <p className="text-xxs text-foreground/50">Manage assigned project & review team recordings</p>
               </div>
             </button>
 
@@ -179,8 +179,8 @@ export function GrantPermissionsForm({ projects }: { projects: Project[] }) {
                 <Square className="w-5 h-5 text-foreground/30 shrink-0" />
               )}
               <div>
-                <p className="text-sm font-bold">Approve Applications & Rate Users</p>
-                <p className="text-xxs text-foreground/50">Accept/decline requests & rate skills</p>
+                <p className="text-sm font-bold">Platform Admin (Manage Applicants)</p>
+                <p className="text-xxs text-foreground/50">Accept/decline requests & manage platform applicants</p>
               </div>
             </button>
           </div>
