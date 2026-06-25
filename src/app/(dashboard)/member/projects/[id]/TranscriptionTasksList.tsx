@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { Headphones, CheckCircle, Clock } from "lucide-react"
+import { FreelancerTranscriptionStats } from "@/components/freelancer-transcription-stats"
 
 export function TranscriptionTasksList({ tasks, currentUserId, teamRole, teamLeaderId }: { tasks: any[], currentUserId: string, teamRole?: string | null, teamLeaderId?: string | null }) {
   const router = useRouter()
@@ -24,27 +25,38 @@ export function TranscriptionTasksList({ tasks, currentUserId, teamRole, teamLea
     }
   }
 
-  // Find if user already has an active task in this project
-  const myActiveTask = tasks.find(t => t.assignedToId === currentUserId || t.qcAssignedToId === currentUserId)
-
   const isQC = teamRole === "QC"
 
-  // Filter tasks based on role
+  // Find if user already has an active task in this project that they are CURRENTLY working on
+  const myActiveTask = tasks.find(t => {
+    if (isQC) return t.qcAssignedToId === currentUserId && t.status === "UNDER_QC_REVIEW"
+    return t.assignedToId === currentUserId && (t.status === "ASSIGNED" || t.status === "REJECTED")
+  })
+
+  // Filter tasks based on role to show in available pool
   const availableTasks = tasks.filter(t => {
-    if (t.assignedToId === currentUserId || t.qcAssignedToId === currentUserId) return true // Show my active task
+    if (t.id === myActiveTask?.id) return true // Show my active task
     if (isQC) {
       return t.status === "SUBMITTED_TO_QC" && t.teamId === teamLeaderId
     } else {
-      return t.status === "AVAILABLE" || t.status === "REJECTED"
+      // For freelancer, show available tasks
+      // Also show rejected tasks ONLY if they were assigned to this freelancer
+      if (t.status === "AVAILABLE") return true
+      if (t.status === "REJECTED" && t.assignedToId === currentUserId) return true
+      return false
     }
   })
 
   return (
-    <div className="glass p-6 rounded-2xl border border-primary/20 bg-primary/5 mb-8">
-      <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
-        <Headphones className="w-6 h-6 text-primary" />
-        {isQC ? "Tasks Ready for Quality Control" : "Available Transcription Tasks"}
-      </h3>
+    <div className="mb-8">
+      {/* Freelancer Statistics Dashboard */}
+      {!isQC && <FreelancerTranscriptionStats tasks={tasks} currentUserId={currentUserId} />}
+
+      <div className="glass p-6 rounded-2xl border border-primary/20 bg-primary/5">
+        <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+          <Headphones className="w-6 h-6 text-primary" />
+          {isQC ? "Tasks Ready for Quality Control" : "Available Transcription Tasks"}
+        </h3>
       
       {myActiveTask ? (
         <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
@@ -75,7 +87,8 @@ export function TranscriptionTasksList({ tasks, currentUserId, teamRole, teamLea
           <p className="font-bold text-lg mb-2">No tasks available</p>
           <p>All tasks have been claimed or none are ready yet.</p>
         </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

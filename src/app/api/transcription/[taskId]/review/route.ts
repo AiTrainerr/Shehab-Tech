@@ -50,7 +50,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
         }
       })
 
-      // 3. Create notification for the assigned freelancer
+      // 3. Create notification for the assigned freelancer (COMMENTED OUT to prevent spam)
+      /*
       if (task.assignedToId) {
         await tx.notification.create({
           data: {
@@ -63,6 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
           }
         })
       }
+      */
     })
 
     return NextResponse.json({ success: true })
