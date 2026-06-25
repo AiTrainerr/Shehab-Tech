@@ -15,7 +15,7 @@ export default async function AdminApplicationsPage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, assignedProjects: { select: { id: true } }, canApproveApplications: true, moderatorType: true }
+    select: { id: true, role: true, assignedProjects: { select: { id: true } }, canApproveApplications: true, moderatorType: true }
   })
 
   if (currentUser?.role === "MODERATOR" && !currentUser.canApproveApplications) {

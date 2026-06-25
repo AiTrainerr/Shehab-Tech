@@ -15,7 +15,7 @@ export default async function AdminTranscriptionQueuePage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, canReviewQC: true, moderatorType: true, assignedProjects: { select: { id: true } } }
+    select: { id: true, role: true, canReviewQC: true, moderatorType: true, assignedProjects: { select: { id: true } } }
   })
 
   if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN" && !currentUser?.canReviewQC) {

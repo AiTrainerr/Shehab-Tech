@@ -14,7 +14,7 @@ export default async function VerificationPage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, moderatorType: true }
+    select: { id: true, role: true, moderatorType: true }
   })
 
   const whereClause: any = { verificationStatus: "PENDING" }
