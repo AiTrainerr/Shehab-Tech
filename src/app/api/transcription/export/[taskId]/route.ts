@@ -33,7 +33,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ task
       where: { id: taskId },
       include: {
         project: true,
-        segments: { orderBy: { startTime: "asc" } }
+        segments: { orderBy: { startTime: "asc" } },
+        assignedTo: true
       }
     })
 
