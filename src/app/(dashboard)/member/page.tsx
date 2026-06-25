@@ -7,6 +7,7 @@ import { Briefcase, CheckCircle, DollarSign, Star, Bell, Clock, ArrowRight, Book
 import { MemberDashboardClient } from "@/components/member-dashboard-client"
 import { getUserLevel, getUserBadges, getLevelProgress, getNextLevel } from "@/lib/gamification"
 import { LevelCard, BadgesGrid } from "@/components/achievement-badge"
+import { CopyReferralLink } from "@/components/copy-referral-link"
 
 export default async function MemberDashboard() {
   const cookieStore = await cookies()
@@ -179,14 +180,7 @@ export default async function MemberDashboard() {
           <p className="text-sm text-foreground/70 mb-4">
             Share this link with your team. Anyone who registers through this link will automatically be assigned to your team permanently.
           </p>
-          <div className="flex items-center gap-2">
-            <input 
-              type="text" 
-              readOnly 
-              value={`https://shehab-tech.com/register?team=${user.id}`}
-              className="flex-1 bg-background border border-border rounded-xl px-4 py-2 text-sm text-foreground outline-none font-mono"
-            />
-          </div>
+          <CopyReferralLink userId={user.id} />
         </div>
       )}
 
