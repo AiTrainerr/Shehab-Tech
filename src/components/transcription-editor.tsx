@@ -266,8 +266,8 @@ export function TranscriptionEditor({
     // Intercept native browser refresh/close
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
-      e.returnValue = "You have unsaved changes. Are you sure you want to leave?"
-      return "You have unsaved changes. Are you sure you want to leave?"
+      e.returnValue = "يوجد تعديلات لم يتم حفظها. هل أنت متأكد أنك تريد المغادرة؟"
+      return "يوجد تعديلات لم يتم حفظها. هل أنت متأكد أنك تريد المغادرة؟"
     }
     window.addEventListener("beforeunload", onBeforeUnload)
 
@@ -279,7 +279,7 @@ export function TranscriptionEditor({
       if (anchor && anchor.href && !anchor.target) {
         // If it's an internal link, ask for confirmation
         const isInternal = anchor.href.startsWith(window.location.origin) || anchor.href.startsWith('/');
-        if (isInternal && !window.confirm("يوجد تعديلات لم يتم حفظها. هل أنت متأكد أنك تريد المغادرة بدون حفظ؟ (Unsaved changes)")) {
+        if (isInternal && !window.confirm("يوجد تعديلات لم يتم حفظها. هل أنت متأكد أنك تريد المغادرة بدون حفظ؟")) {
           e.preventDefault();
           e.stopPropagation();
         }
@@ -423,10 +423,10 @@ export function TranscriptionEditor({
         <div className="bg-yellow-500/10 border border-yellow-500 text-yellow-600 dark:text-yellow-400 px-4 py-3 rounded-2xl text-sm font-bold flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-slide-up">
           <span className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5" /> 
-            يوجد تعديلات لم يتم حفظها. يرجى الحفظ قبل مغادرة الصفحة! (Unsaved changes)
+            يوجد تعديلات لم يتم حفظها. يرجى الحفظ قبل مغادرة الصفحة!
           </span>
-          <button onClick={handleSave} disabled={isSaving} className="bg-yellow-500 text-white px-4 py-2 rounded-xl hover:bg-yellow-600 transition-colors whitespace-nowrap disabled:opacity-50">
-            {isSaving ? "Saving..." : "Save Now"}
+          <button onClick={handleSave} disabled={isSaving} className="bg-yellow-500 text-white px-4 py-2 rounded-xl hover:bg-yellow-600 transition-colors whitespace-nowrap disabled:opacity-50 font-bold">
+            {isSaving ? "جاري الحفظ..." : "حفظ الآن"}
           </button>
         </div>
       )}
