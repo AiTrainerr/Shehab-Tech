@@ -7,6 +7,14 @@ import { AdminRatingForm } from "@/components/admin-rating-form"
 import { toggleModeratorApproval, assignModeratorProject, updateModeratorPermissions } from "@/app/actions/users"
 import { useRouter } from "next/navigation"
 
+const countryDialCodes: Record<string, string> = {
+  EG: "+20", SA: "+966", AE: "+971", JO: "+962", LB: "+961", DZ: "+213", MA: "+212",
+  IQ: "+964", SD: "+249", SY: "+963", TN: "+216", YE: "+967", KW: "+965", QA: "+974",
+  OM: "+968", BH: "+973", US: "+1", UK: "+44", CA: "+1", AU: "+61", DE: "+49", FR: "+33",
+  IT: "+39", ES: "+34", TR: "+90", IN: "+91", PK: "+92", ID: "+62", MY: "+60", NG: "+234",
+  ZA: "+27", BR: "+55", MX: "+52"
+}
+
 interface Project {
   id: string
   title: string
@@ -135,7 +143,9 @@ export function AdminUsersClient({ initialUsers, statusConfig, projects }: { ini
                         {user.phone && (
                           <span className="flex items-center gap-1.5 bg-yellow-500/5 border border-yellow-500/10 px-2 py-1 rounded-lg">
                             <Phone className="w-3.5 h-3.5 text-yellow-500" />
-                            <a href={`tel:${user.phone}`} className="hover:text-primary transition-colors">{user.phone}</a>
+                            <a href={`tel:${user.country && countryDialCodes[user.country] ? countryDialCodes[user.country] : ""}${user.phone}`} className="hover:text-primary transition-colors">
+                              {user.country && countryDialCodes[user.country] ? countryDialCodes[user.country] : ""}{user.phone}
+                            </a>
                           </span>
                         )}
                         {user.country && (

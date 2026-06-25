@@ -12,6 +12,14 @@ import { ShareProfileButton } from "@/components/share-profile-button"
 import { PortfolioGrid } from "@/components/portfolio-grid"
 import { InlineSkillManager, InlineLanguageManager } from "./InlineEditors"
 
+const countryDialCodes: Record<string, string> = {
+  EG: "+20", SA: "+966", AE: "+971", JO: "+962", LB: "+961", DZ: "+213", MA: "+212",
+  IQ: "+964", SD: "+249", SY: "+963", TN: "+216", YE: "+967", KW: "+965", QA: "+974",
+  OM: "+968", BH: "+973", US: "+1", UK: "+44", CA: "+1", AU: "+61", DE: "+49", FR: "+33",
+  IT: "+39", ES: "+34", TR: "+90", IN: "+91", PK: "+92", ID: "+62", MY: "+60", NG: "+234",
+  ZA: "+27", BR: "+55", MX: "+52"
+}
+
 export default async function ProfilePage() {
   const cookieStore = await cookies()
   const userId = cookieStore.get("userId")?.value
@@ -80,7 +88,7 @@ export default async function ProfilePage() {
               <div className="flex flex-wrap gap-4 text-sm text-foreground/70">
                 <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" />{user.email}</span>
                 {user.country && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4" />{user.country}</span>}
-                {user.phone && <span className="flex items-center gap-1.5"><Phone className="w-4 h-4" />{user.phone}</span>}
+                {user.phone && <span className="flex items-center gap-1.5"><Phone className="w-4 h-4" />{user.country && countryDialCodes[user.country] ? countryDialCodes[user.country] : ""}{user.phone}</span>}
                 {user.age && <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{user.age} years old</span>}
               </div>
             </div>
