@@ -66,6 +66,7 @@ export async function createProjectAction(formData: FormData) {
     const hasScript = formData.get("hasScript") === "true"
     const scriptType = formData.get("scriptType") as string || "STATIC"
     const isTranscriptionProject = formData.get("isTranscriptionProject") === "true"
+    const workflowType = formData.get("workflowType") as string || "MOD_ONLY"
     const outputFormat = formData.get("outputFormat") as string || "WORD"
     const targetMales = parseInt(formData.get("targetMales") as string) || 0
     const targetFemales = parseInt(formData.get("targetFemales") as string) || 0
@@ -103,6 +104,7 @@ export async function createProjectAction(formData: FormData) {
           targetMales,
           targetFemales,
           isTranscriptionProject,
+          workflowType,
           outputFormat,
           languages: { create: languages },
           images: { create: images }
@@ -271,6 +273,43 @@ export async function applyToProject(projectId: string, applicationType: "FREELA
     console.error("Apply error:", error)
     if (error.code === 'P2002') return { success: false, error: "You have already applied." }
     return { success: false, error: "Failed to apply" }
+  }
+}
+
+export async function promoteToQC(applicationId: string) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    // Check if admin/mod
+    const currentUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN" && currentUser?.role !== "MODERATOR") {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    const app = await prisma.application.update({
+      where: { id: applicationId },
+      data: { projectRole: "QC", status: "ACCEPTED" }, // Promote and accept
+      include: { project: { select: { title: true } } }
+    })
+
+    await prisma.notification.create({
+      data: {
+        userId: app.userId,
+        title: "Promoted to QC 🎉",
+        content: `You have been promoted to Quality Control (QC) for project "${app.project.title}".`,
+        link: `/member/projects/${app.projectId}`
+      }
+    })
+
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath("/admin/applications")
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("Promote to QC error:", error)
+    return { success: false, error: "Failed to promote to QC" }
   }
 }
 

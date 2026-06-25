@@ -21,7 +21,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
       select: { teamRole: true, teamLeaderId: true }
     })
 
-    const isQC = user?.teamRole === "QC"
+    const application = await prisma.application.findUnique({
+      where: { projectId_userId: { projectId: task.projectId, userId: userId } }
+    })
+
+    const isQC = user?.teamRole === "QC" || application?.projectRole === "QC"
 
     if (isQC) {
       if (task.qcAssignedToId !== userId) {
@@ -38,7 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
         return NextResponse.json({ error: "Forbidden" }, { status: 403 })
       }
       
-      const newStatus = task.teamId ? "SUBMITTED_TO_QC" : "SUBMITTED"
+      const newStatus = (task.teamId || task.project.workflowType === "MOD_AND_QC") ? "SUBMITTED_TO_QC" : "SUBMITTED"
       
       await prisma.transcriptionTask.update({
         where: { id: taskId },
@@ -52,13 +56,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tas
 
     if (isQC) {
       // Find next task for QC
+      const qcWhere: any = {
+        projectId: task.projectId,
+        status: "SUBMITTED_TO_QC",
+        qcAssignedToId: null
+      }
+      if (task.teamId) {
+        qcWhere.teamId = teamIdToSet
+      }
+      
       nextTask = await prisma.transcriptionTask.findFirst({
-        where: {
-          projectId: task.projectId,
-          status: "SUBMITTED_TO_QC",
-          teamId: teamIdToSet,
-          qcAssignedToId: null
-        },
+        where: qcWhere,
         orderBy: { createdAt: "asc" }
       })
       if (nextTask) {

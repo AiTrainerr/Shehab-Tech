@@ -6,7 +6,6 @@ import { useTheme } from "next-themes"
 import { Moon, Sun, Menu, X, LogOut, User, BadgeCheck } from "lucide-react"
 import { logoutUser } from "@/app/actions/logout"
 import { NotificationBell } from "@/components/notification-bell"
-import { GlobalSearch } from "@/components/global-search"
 
 export function Navbar({ user }: { user?: any }) {
   const userRole = user?.role
@@ -61,11 +60,6 @@ export function Navbar({ user }: { user?: any }) {
 
           {/* Right side — shown on ALL screen sizes */}
           <div className="flex items-center gap-2">
-            {/* Global Search — only for logged-in users */}
-            {userRole && (
-              <GlobalSearch isAdmin={isAdminOrMod} />
-            )}
-
             {/* Theme toggle */}
             {mounted && (
               <button

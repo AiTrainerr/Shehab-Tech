@@ -32,7 +32,7 @@ export default async function AdminApplicationsPage() {
   const applicationsData = await prisma.application.findMany({
     where: whereClause,
     include: {
-      project: { select: { id: true, title: true, pricingModel: true } },
+      project: { select: { id: true, title: true, pricingModel: true, workflowType: true } },
       user: { select: { id: true, firstName: true, lastName: true, email: true, ranking: true, verificationStatus: true } }
     },
     orderBy: { createdAt: "desc" }
@@ -111,17 +111,16 @@ export default async function AdminApplicationsPage() {
       reviewCategory = "WORKING";
     }
 
-    const isCompleted = totalSentences > 0 && recordedCount >= totalSentences;
-
     return { 
       ...app, 
       recordedCount, 
       totalSentences, 
-      isCompleted, 
+      isCompleted: recordedCount >= totalSentences, 
       reviewCategory,
       pendingCount,
       reRecordCount,
-      acceptedCount
+      acceptedCount,
+      projectRole: app.projectRole
     }
   })
 

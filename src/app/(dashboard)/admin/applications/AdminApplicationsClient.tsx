@@ -242,6 +242,22 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                       title={app.status === 'FINAL_REVIEW' ? "Reject Project Review" : "Reject Application"}>
                       <X className="w-5 h-5" />
                     </button>
+                    {app.project.workflowType === "MOD_AND_QC" && app.projectRole !== "QC" && (
+                      <button 
+                        onClick={async () => {
+                          if (!confirm("Promote this user to QC? They will only review tasks for this project.")) return;
+                          setLoading(app.id);
+                          const { promoteToQC } = await import("@/app/actions/projects");
+                          const res = await promoteToQC(app.id);
+                          if (!res.success) alert(res.error);
+                          setLoading(null);
+                        }}
+                        disabled={loading === app.id}
+                        className="flex-1 px-2 py-2 bg-purple-500/10 text-purple-600 font-bold text-xs rounded-xl hover:bg-purple-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
+                        title="Promote to QC">
+                        Promote to QC
+                      </button>
+                    )}
                     <button 
                       onClick={() => handleApprove(app.id)}
                       disabled={loading === app.id}

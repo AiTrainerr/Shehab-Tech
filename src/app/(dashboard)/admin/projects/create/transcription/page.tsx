@@ -158,6 +158,14 @@ export default function CreateTranscriptionProjectPage() {
               <label className="text-sm font-semibold">Project Title</label>
               <input name="title" type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="e.g. Arabic Audio Transcription" required />
             </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Workflow Type</label>
+              <select name="workflowType" defaultValue="MOD_ONLY" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none" required>
+                <option value="MOD_ONLY">Mod Only (1-Stage: Transcriber submits directly)</option>
+                <option value="MOD_AND_QC">Mod and QC (2-Stages: Transcriber then QC Review)</option>
+              </select>
+            </div>
             
             <div className="space-y-2">
               <label className="text-sm font-semibold">Public Description</label>

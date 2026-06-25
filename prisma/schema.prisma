@@ -142,6 +142,7 @@ model Project {
 
   // Transcription Platform fields
   isTranscriptionProject Boolean @default(false)
+  workflowType           String  @default("MOD_ONLY") // MOD_ONLY, MOD_AND_QC
   outputFormat           String  @default("WORD") // WORD, EXCEL, JSON, SRT
   allowFreelancerDownload Boolean @default(false)
 
@@ -227,6 +228,7 @@ model Application {
   proofUrl        String?           // For task completion proof
   speakerCode     String?           // e.g., "G0001", assigned upon approval
   applicationType String            @default("FREELANCER") // FREELANCER, TEAM_LEADER
+  projectRole     String            @default("TRANSCRIBER") // TRANSCRIBER, QC
   
   project     Project           @relation(fields: [projectId], references: [id])
   user        User              @relation(fields: [userId], references: [id])
