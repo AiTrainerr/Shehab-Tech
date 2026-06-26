@@ -20,6 +20,7 @@ interface Supervisor {
   assignedProjects: { id: string }[]
   canReviewQC: boolean
   canApproveApplications: boolean
+  moderatorType: "INTERNAL" | "OUTSOURCED"
   reviewedCount: number
   _count: {
     comments: number
