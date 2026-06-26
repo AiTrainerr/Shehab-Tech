@@ -9,7 +9,8 @@ export function AdminSidebar({
   pendingVerifications,
   userRole,
   canReviewQC,
-  canApproveApplications
+  canApproveApplications,
+  moderatorType
 }: { 
   pendingVerifications: number
   userRole?: string
