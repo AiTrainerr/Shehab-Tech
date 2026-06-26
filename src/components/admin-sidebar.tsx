@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Users, FileText, Activity, BookOpen, Briefcase, DollarSign, FolderOpen, Award, ShieldCheck, MessageSquare, BarChart3, Headphones, ChevronDown, ChevronUp } from "lucide-react"
+import { DesktopModeToggle } from "./desktop-mode-toggle"
 
 export function AdminSidebar({ 
   pendingVerifications,
@@ -91,6 +92,11 @@ export function AdminSidebar({
             </>
           )}
         </div>
+
+        {/* Desktop Mode Toggle at Bottom */}
+        <div className="absolute bottom-0 w-full p-6 border-t border-border">
+          <DesktopModeToggle />
+        </div>
       </aside>
 
       {/* Mobile Navigation — visible below lg */}
@@ -138,6 +144,9 @@ export function AdminSidebar({
                   })}
                 </>
               )}
+              <div className="p-4 border-t border-border">
+                <DesktopModeToggle />
+              </div>
             </div>
           </div>
         )}

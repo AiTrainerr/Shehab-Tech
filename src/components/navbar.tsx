@@ -6,6 +6,7 @@ import { useTheme } from "next-themes"
 import { Moon, Sun, Menu, X, LogOut, User, BadgeCheck } from "lucide-react"
 import { logoutUser } from "@/app/actions/logout"
 import { NotificationBell } from "@/components/notification-bell"
+import { DesktopModeToggle } from "./desktop-mode-toggle"
 
 export function Navbar({ user }: { user?: any }) {
   const userRole = user?.role
@@ -137,6 +138,7 @@ export function Navbar({ user }: { user?: any }) {
                 </button>
               </>
             )}
+            <DesktopModeToggle />
           </div>
         </div>
       </div>
@@ -224,7 +226,10 @@ export function Navbar({ user }: { user?: any }) {
                 )}
 
                 {/* Logout in mobile menu */}
-                <div className="pt-2 border-t border-border">
+                <div className="pt-2 border-t border-border space-y-2">
+                  <div className="px-3">
+                    <DesktopModeToggle />
+                  </div>
                   <button 
                     onClick={async (e) => { 
                       e.preventDefault(); 
