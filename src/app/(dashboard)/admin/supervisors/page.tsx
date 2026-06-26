@@ -60,6 +60,7 @@ export default async function SupervisorsPage() {
     const modName = `${mod.firstName} ${mod.lastName}`
     return {
       ...mod,
+      moderatorType: (mod.moderatorType as "INTERNAL" | "OUTSOURCED") || "INTERNAL",
       reviewedCount: reviewedMap[modName] || 0
     }
   })
