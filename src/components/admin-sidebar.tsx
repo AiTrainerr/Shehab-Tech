@@ -15,13 +15,15 @@ export function AdminSidebar({
   userRole?: string
   canReviewQC?: boolean
   canApproveApplications?: boolean
+  moderatorType?: string
 }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = React.useState(false)
 
   const isModerator = userRole === "MODERATOR"
-  const showApplications = !isModerator || canApproveApplications
-  const showQC = !isModerator || canReviewQC
+  const isQA = isModerator && moderatorType === "QA"
+  const showApplications = (!isModerator || canApproveApplications) && !isQA
+  const showQC = !isModerator || canReviewQC // QA inherently has canReviewQC = true
 
   const navItems = [
     ...(!isModerator ? [{ name: "Dashboard", href: "/admin", icon: Activity, exact: true }] : []),
@@ -30,11 +32,13 @@ export function AdminSidebar({
     ...(showApplications ? [{ name: "Applications", href: "/admin/applications", icon: FileText }] : []),
     ...(showQC ? [{ name: "Audio QC Panel", href: "/admin/qc", icon: ShieldCheck }] : []),
     ...(showQC ? [{ name: "Transcription QA", href: "/admin/transcription", icon: Headphones }] : []),
-    { name: "Comments", href: "/admin/comments", icon: MessageSquare },
+    ...(!isQA ? [{ name: "Comments", href: "/admin/comments", icon: MessageSquare }] : []),
     { name: "My Profile", href: "/member/profile", icon: BookOpen },
   ]
 
-  const managementItems = isModerator ? [] : [
+  const managementItems = isModerator 
+    ? (!isQA ? [{ name: "QA Management", href: "/admin/qa-management", icon: ShieldCheck }] : [])
+    : [
     { name: "Supervisors", href: "/admin/supervisors", icon: ShieldCheck },
     { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
     { name: "Skills", href: "/admin/skills", icon: Award },

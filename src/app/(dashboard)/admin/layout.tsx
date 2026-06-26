@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true, isApproved: true, canReviewQC: true, canApproveApplications: true }
+    select: { role: true, isApproved: true, canReviewQC: true, canApproveApplications: true, moderatorType: true }
   })
 
   if (!currentUser) {
@@ -37,6 +37,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         userRole={currentUser.role}
         canReviewQC={currentUser.canReviewQC}
         canApproveApplications={currentUser.canApproveApplications}
+        moderatorType={currentUser.moderatorType}
       />
       <div className="flex-1 w-full lg:pl-64 overflow-x-hidden pb-20 lg:pb-0">
         {children}

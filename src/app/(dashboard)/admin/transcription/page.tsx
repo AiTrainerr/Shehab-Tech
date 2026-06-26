@@ -15,7 +15,7 @@ export default async function AdminTranscriptionQueuePage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, canReviewQC: true, moderatorType: true, assignedProjects: { select: { id: true } } }
+    select: { id: true, role: true, assignedProjects: { select: { id: true } }, canReviewQC: true, moderatorType: true, teamLeaderId: true }
   })
 
   if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN" && !currentUser?.canReviewQC) {
@@ -29,6 +29,8 @@ export default async function AdminTranscriptionQueuePage() {
     
     if (currentUser.moderatorType === "OUTSOURCED") {
       whereClause.assignedTo = { teamLeaderId: currentUser.id }
+    } else if (currentUser.moderatorType === "QA") {
+      whereClause.assignedTo = { teamLeaderId: currentUser.teamLeaderId }
     } else {
       whereClause.assignedTo = { teamLeaderId: null }
     }

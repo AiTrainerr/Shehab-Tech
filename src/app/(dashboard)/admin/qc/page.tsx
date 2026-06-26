@@ -16,7 +16,7 @@ export default async function AdminQcPage() {
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, assignedProjects: { select: { id: true } }, canReviewQC: true, moderatorType: true }
+    select: { id: true, role: true, assignedProjects: { select: { id: true } }, canReviewQC: true, moderatorType: true, teamLeaderId: true }
   })
 
   if (currentUser?.role === "MODERATOR" && !currentUser.canReviewQC) {
@@ -32,6 +32,8 @@ export default async function AdminQcPage() {
     
     if (currentUser.moderatorType === "OUTSOURCED") {
       whereClause.user = { teamLeaderId: currentUser.id }
+    } else if (currentUser.moderatorType === "QA") {
+      whereClause.user = { teamLeaderId: currentUser.teamLeaderId }
     } else {
       whereClause.user = { teamLeaderId: null }
     }
