@@ -127,20 +127,14 @@ export default function Home() {
             </div>
 
             <div className="relative">
-              <div className="aspect-square glass rounded-[60px] border border-border shadow-2xl relative overflow-hidden flex items-center justify-center p-12">
-                <div className="w-full h-full glass rounded-[40px] border-white/10 p-10 flex flex-col gap-6 shadow-2xl animate-float">
-                  <div className="h-4 w-1/3 bg-primary/20 rounded-full" />
-                  <div className="h-12 w-full bg-card rounded-2xl" />
-                  <div className="h-32 w-full bg-primary/10 rounded-2xl" />
-                  <div className="flex gap-4">
-                    <div className="h-20 w-1/2 bg-card rounded-2xl" />
-                    <div className="h-20 w-1/2 bg-card rounded-2xl" />
-                  </div>
-                </div>
-              </div>
+              <img 
+                src="/hero-image.png" 
+                alt="AI Platform Services" 
+                className="w-full h-auto aspect-square object-cover rounded-[60px] shadow-2xl relative z-10 border border-border"
+              />
               {/* Decorative elements */}
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl" />
-              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-400/20 rounded-full blur-3xl" />
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl z-0" />
+              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-400/20 rounded-full blur-3xl z-0" />
             </div>
           </div>
         </div>

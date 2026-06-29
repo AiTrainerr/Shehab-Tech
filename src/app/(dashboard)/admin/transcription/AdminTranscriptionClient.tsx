@@ -20,6 +20,32 @@ export function AdminTranscriptionClient({ tasks }: { tasks: TranscriptionTaskDa
   const [loadingId, setLoadingId] = React.useState<string | null>(null)
   const [suspendLoadingId, setSuspendLoadingId] = React.useState<string | null>(null)
 
+  // Filtering State
+  const [filterProject, setFilterProject] = React.useState<string>("ALL")
+  const [filterStatus, setFilterStatus] = React.useState<string>("ALL")
+  const [searchUser, setSearchUser] = React.useState<string>("")
+
+  // Derived filter options
+  const uniqueProjects = React.useMemo(() => Array.from(new Set(tasks.map(t => t.project.title))), [tasks])
+  
+  // Filtered Tasks
+  const filteredTasks = React.useMemo(() => {
+    return tasks.filter(task => {
+      if (filterProject !== "ALL" && task.project.title !== filterProject) return false
+      if (filterStatus !== "ALL" && task.status !== filterStatus) return false
+      
+      if (searchUser) {
+        const query = searchUser.toLowerCase()
+        const user = task.assignedTo || task.qcAssignedTo
+        if (!user) return false
+        const fullName = `${user.firstName} ${user.lastName}`.toLowerCase()
+        if (!fullName.includes(query) && !user.email.toLowerCase().includes(query)) return false
+      }
+      
+      return true
+    })
+  }, [tasks, filterProject, filterStatus, searchUser])
+
   const handleUnassign = async (taskId: string) => {
     if (!confirm("Are you sure you want to unassign this task and return it to the queue?")) return
     setLoadingId(taskId)
@@ -37,27 +63,72 @@ export function AdminTranscriptionClient({ tasks }: { tasks: TranscriptionTaskDa
   }
 
   return (
-    <div className="glass rounded-2xl border border-border overflow-hidden animate-slide-up stagger-1">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border bg-card/30">
-              <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Project</th>
-              <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Freelancer / QC</th>
-              <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Duration / Segments</th>
-              <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Status</th>
-              <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {tasks.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-foreground/40">
-                  No transcription tasks available currently
-                </td>
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="glass rounded-2xl border border-border p-4 animate-slide-up flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <label className="block text-xs font-bold text-foreground/50 mb-1">Project</label>
+          <select 
+            value={filterProject} 
+            onChange={e => setFilterProject(e.target.value)}
+            className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none"
+          >
+            <option value="ALL">All Projects</option>
+            {uniqueProjects.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs font-bold text-foreground/50 mb-1">Status</label>
+          <select 
+            value={filterStatus} 
+            onChange={e => setFilterStatus(e.target.value)}
+            className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="AVAILABLE">AVAILABLE</option>
+            <option value="ASSIGNED">ASSIGNED</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="SUBMITTED">SUBMITTED</option>
+            <option value="UNDER_QC_REVIEW">UNDER_QC_REVIEW</option>
+            <option value="SUBMITTED_TO_QC">SUBMITTED_TO_QC</option>
+            <option value="APPROVED_BY_QC">APPROVED_BY_QC</option>
+            <option value="APPROVED">APPROVED</option>
+            <option value="REJECTED">REJECTED</option>
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs font-bold text-foreground/50 mb-1">Search Freelancer</label>
+          <input 
+            type="text" 
+            placeholder="Name or Email..."
+            value={searchUser}
+            onChange={e => setSearchUser(e.target.value)}
+            className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="glass rounded-2xl border border-border overflow-hidden animate-slide-up stagger-1">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-card/30">
+                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Project</th>
+                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Freelancer / QC</th>
+                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Duration / Segments</th>
+                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Status</th>
+                <th className="text-right px-6 py-4 font-bold text-foreground/50 text-xs uppercase tracking-wider">Actions</th>
               </tr>
-            ) : (
-              tasks.map((task) => {
+            </thead>
+            <tbody className="divide-y divide-border">
+              {filteredTasks.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-foreground/40">
+                    No transcription tasks match your filters
+                  </td>
+                </tr>
+              ) : (
+                filteredTasks.map((task) => {
                 // Determine who is currently working on it
                 let activeUser = task.assignedTo
                 let roleLabel = "Transcriber"
@@ -158,6 +229,7 @@ export function AdminTranscriptionClient({ tasks }: { tasks: TranscriptionTaskDa
             )}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
   )

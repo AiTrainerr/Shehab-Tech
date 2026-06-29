@@ -134,7 +134,8 @@ model Project {
   minDuration          Int?     // in seconds
   maxDuration          Int?     // in seconds
   hasScript            Boolean  @default(true)
-  scriptType           String   @default("STATIC") // STATIC, RANDOM, CATEGORY
+  scriptType           String   @default("STATIC") // STATIC, DYNAMIC_POOL, PRE_ASSIGNED
+  sentencesPerUser     Int?     // For DYNAMIC_POOL mode
   namingRule           String   @default("SEQUENCE") // TEXT, SEQUENCE
   requiredParticipants Int      @default(1)
   targetMales          Int      @default(0)
@@ -162,6 +163,12 @@ model ProjectSentence {
   text        String
   order       Int
   project     Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Advanced Distribution Fields
+  assignedEmail  String?
+  assignedUserId String?
+  completed      Boolean         @default(false)
+
   recordings  VoiceRecording[]
   createdAt   DateTime        @default(now())
 }

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { TranscriptionEditor, Segment } from "@/components/transcription-editor"
 import { ArrowLeft, Headphones, CheckCircle2, AlertCircle, ArrowRight, ShieldCheck } from "lucide-react"
 import { TranscriptionQAClientWrapper } from "./TranscriptionQAClientWrapper"
+import { AdminTranscriptionActions } from "./AdminTranscriptionActions"
 import Link from "next/link"
 
 export const dynamic = "force-dynamic"
@@ -86,6 +87,15 @@ export default async function AdminQATranscriptionPage({ params }: { params: Pro
               Last review by: {lastReview.moderator.firstName} ({lastReview.status})
             </span>
           )}
+          <div className="mt-2">
+            <AdminTranscriptionActions 
+              taskId={task.id}
+              projectId={task.projectId}
+              currentAudioUrl={task.audioFilePath}
+              currentSpeakerCount={task.speakerCount}
+              currentStatus={task.status}
+            />
+          </div>
         </div>
       </div>
 

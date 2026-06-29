@@ -2,8 +2,9 @@ import * as React from "react"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
-import { UsersGrowthChart, ProjectStatusPieChart, EarningsBarChart } from "@/components/admin-analytics-chart"
-import { Users, TrendingUp, DollarSign, Briefcase, BarChart3, Target, Award } from "lucide-react"
+import { UsersGrowthChart, ProjectStatusPieChart, EarningsBarChart, RecordingQCChart } from "@/components/admin-analytics-chart"
+import { Users, TrendingUp, DollarSign, Briefcase, BarChart3, Target, Award, List } from "lucide-react"
+import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
@@ -83,13 +84,24 @@ export default async function AdminAnalyticsPage() {
   )
 
   // ── KPI metrics ──
-  const [totalUsers, totalProjects, totalPaid, totalPending, verifiedUsers, avgRatingResult] = await Promise.all([
+  const [totalUsers, totalProjects, totalPaid, totalPending, verifiedUsers, avgRatingResult, recordingsByStatus, topProjects] = await Promise.all([
     prisma.user.count(),
     prisma.project.count(),
     prisma.application.count({ where: { status: "PAID" } }),
     prisma.application.count({ where: { status: "APPROVED" } }),
     prisma.user.count({ where: { verificationStatus: "VERIFIED" } }),
     prisma.user.aggregate({ _avg: { rating: true }, where: { rating: { gt: 0 } } }),
+    prisma.voiceRecording.groupBy({ by: ['status'], _count: { _all: true } }),
+    prisma.project.findMany({
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        _count: { select: { applications: true, sentences: true } }
+      },
+      take: 5,
+      orderBy: { applications: { _count: 'desc' } }
+    })
   ])
   const allPaidApps = await prisma.application.findMany({
     where: { status: "PAID" },
@@ -109,6 +121,27 @@ export default async function AdminAnalyticsPage() {
     { label: "مستخدمون موثّقون",        value: verifiedUsers.toLocaleString(), icon: Award,      color: "text-cyan-500 bg-cyan-500/10" },
     { label: "متوسط التقييم",           value: avgRating,                       icon: TrendingUp, color: "text-yellow-500 bg-yellow-500/10" },
   ]
+
+  // Translate Status for QC Chart
+  const STATUS_ARABIC: Record<string, string> = {
+    ACCEPTED: 'مقبول',
+    REJECTED: 'مرفوض',
+    PENDING: 'قيد المراجعة',
+    NEED_RE_RECORD: 'إعادة تسجيل'
+  }
+  
+  const STATUS_COLORS: Record<string, string> = {
+    ACCEPTED: '#22c55e',
+    REJECTED: '#ef4444',
+    PENDING: '#f59e0b',
+    NEED_RE_RECORD: '#8b5cf6'
+  }
+
+  const qcData = recordingsByStatus.map(r => ({
+    status: STATUS_ARABIC[r.status] || r.status,
+    count: r._count._all,
+    color: STATUS_COLORS[r.status] || '#6366f1'
+  }))
 
   return (
     <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
@@ -165,6 +198,53 @@ export default async function AdminAnalyticsPage() {
         <h2 className="text-lg font-bold mb-1">الأرباح الشهرية</h2>
         <p className="text-xs text-foreground/50 mb-4">آخر 6 أشهر (المدفوعات الفعلية)</p>
         <EarningsBarChart data={earningsRaw} />
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6 animate-slide-up stagger-4">
+        {/* QC Distribution */}
+        <div className="glass p-6 rounded-2xl border border-border">
+          <h2 className="text-lg font-bold mb-1">توزيع جودة التسجيلات (QC)</h2>
+          <p className="text-xs text-foreground/50 mb-4">عدد المقاطع حسب حالة المراجعة</p>
+          <RecordingQCChart data={qcData} />
+        </div>
+
+        {/* Top Active Projects */}
+        <div className="glass p-6 rounded-2xl border border-border overflow-hidden flex flex-col">
+          <h2 className="text-lg font-bold mb-1 flex items-center gap-2"><List className="w-5 h-5 text-primary" /> المشاريع الأكثر نشاطاً</h2>
+          <p className="text-xs text-foreground/50 mb-4">أعلى المشاريع من حيث التقديمات</p>
+          
+          <div className="flex-1 overflow-y-auto">
+            <table className="w-full text-right text-sm">
+              <thead className="text-foreground/50 border-b border-border">
+                <tr>
+                  <th className="pb-3 font-semibold px-4">عنوان المشروع</th>
+                  <th className="pb-3 font-semibold px-4 text-center">المتقدمين</th>
+                  <th className="pb-3 font-semibold px-4 text-center">الجمل</th>
+                  <th className="pb-3 font-semibold px-4 text-left">إجراء</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {topProjects.map(p => (
+                  <tr key={p.id} className="hover:bg-foreground/5 transition-colors">
+                    <td className="py-4 px-4 font-bold text-foreground truncate max-w-[150px]" title={p.title}>{p.title}</td>
+                    <td className="py-4 px-4 text-center font-medium">{p._count.applications}</td>
+                    <td className="py-4 px-4 text-center font-medium">{p._count.sentences}</td>
+                    <td className="py-4 px-4 text-left">
+                      <Link href={`/admin/projects/edit/${p.id}`} className="text-primary font-bold hover:underline">
+                        عرض
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+                {topProjects.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-8 text-center text-foreground/50">لا توجد مشاريع.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </main>
   )

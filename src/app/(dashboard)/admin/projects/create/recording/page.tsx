@@ -15,6 +15,7 @@ export default function CreateRecordingProjectPage() {
   const [langCount, setLangCount] = React.useState(1)
   const [imageCount, setImageCount] = React.useState(1)
   const [selectedCountries, setSelectedCountries] = React.useState<string[]>([])
+  const [scriptType, setScriptType] = React.useState("STATIC")
   
   // Interactive UI state options
   const [executionOption, setExecutionOption] = React.useState("INTERNAL")
@@ -252,13 +253,44 @@ export default function CreateRecordingProjectPage() {
               {hasScript && (
                 <>
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold">Script Type</label>
-                    <select name="scriptType" defaultValue="STATIC" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                      <option value="STATIC">Static script for all participants</option>
-                      <option value="RANDOM">Random script from pool</option>
-                      <option value="CATEGORY">Custom category-based script</option>
+                    <label className="text-sm font-semibold">Sentence Distribution Method</label>
+                    <select
+                      name="scriptType"
+                      value={scriptType}
+                      onChange={(e) => setScriptType(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                    >
+                      <option value="STATIC">Static: All users record the same file</option>
+                      <option value="DYNAMIC_POOL">Dynamic Pool (Auto-Chunking): Distribute sentences evenly across users</option>
+                      <option value="PRE_ASSIGNED">Pre-Assigned: Manual distribution via Email (Excel Upload)</option>
                     </select>
                   </div>
+                  
+                  {scriptType === "DYNAMIC_POOL" && (
+                    <div className="space-y-2 md:col-span-2 bg-primary/5 p-4 rounded-xl border border-primary/20">
+                      <label className="text-sm font-semibold text-primary">Sentences Per User (Quota)</label>
+                      <p className="text-xs text-foreground/60 mb-2">How many sentences should each freelancer record from the total pool?</p>
+                      <input
+                        name="sentencesPerUser"
+                        type="number"
+                        min="1"
+                        required
+                        className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                        placeholder="e.g. 50"
+                      />
+                    </div>
+                  )}
+
+                  {scriptType === "PRE_ASSIGNED" && (
+                    <div className="space-y-2 md:col-span-2 bg-orange-500/5 p-4 rounded-xl border border-orange-500/20">
+                      <label className="text-sm font-semibold text-orange-600">Manual Allocation Guidelines</label>
+                      <p className="text-xs text-foreground/80">
+                        You must upload an Excel file containing exactly two columns:<br/>
+                        1. <b>Sentence</b> (The text to be read)<br/>
+                        2. <b>Email</b> (The user email assigned to this sentence)
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-2 md:col-span-2">
                     <label className="text-sm font-semibold">Upload Script Mode</label>
@@ -276,13 +308,29 @@ export default function CreateRecordingProjectPage() {
                   {scriptMode === "file" ? (
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-semibold">Select Script File</label>
-                      <input name="scriptFile" type="file" accept=".xlsx,.xls,.csv,.txt" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" required />
-                      <p className="text-xs text-foreground/50">Supported formats: Excel (.xlsx, .xls), CSV (.csv), Plain Text (.txt)</p>
+                      <input
+                        name="scriptFile"
+                        type="file"
+                        accept={scriptType === "PRE_ASSIGNED" ? ".xlsx,.xls" : ".xlsx,.xls,.csv,.txt"}
+                        className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                        required
+                      />
+                      <p className="text-xs text-foreground/50">
+                        {scriptType === "PRE_ASSIGNED" 
+                          ? "Supported formats: Excel (.xlsx, .xls) ONLY for Pre-Assigned mode."
+                          : "Supported formats: Excel (.xlsx, .xls), CSV (.csv), Plain Text (.txt)"}
+                      </p>
                     </div>
                   ) : (
                     <div className="space-y-2 md:col-span-2">
                       <label className="text-sm font-semibold">Enter Sentences (one sentence per line)</label>
-                      <textarea name="manualScriptText" className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none" placeholder="Sentence 1&#10;Sentence 2&#10;Sentence 3..." required />
+                      <textarea
+                        name="manualScriptText"
+                        disabled={scriptType === "PRE_ASSIGNED"}
+                        className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none disabled:opacity-50"
+                        placeholder={scriptType === "PRE_ASSIGNED" ? "Manual input disabled for Pre-Assigned mode. Please upload an Excel file." : "Sentence 1\nSentence 2\nSentence 3..."}
+                        required={scriptType !== "PRE_ASSIGNED"}
+                      />
                     </div>
                   )}
                 </>

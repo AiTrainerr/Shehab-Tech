@@ -98,8 +98,9 @@ export async function registerUser(formData: FormData) {
     )
 
     const cookieStore = await cookies()
-    cookieStore.set("userId", authData.user.id, { httpOnly: true, path: "/" })
-    cookieStore.set("userRole", "MEMBER", { httpOnly: true, path: "/" })
+    const thirtyDays = 60 * 60 * 24 * 30;
+    cookieStore.set("userId", authData.user.id, { httpOnly: true, path: "/", maxAge: thirtyDays })
+    cookieStore.set("userRole", "MEMBER", { httpOnly: true, path: "/", maxAge: thirtyDays })
 
     return { success: true, userId: authData.user.id }
   } catch (error: any) {
@@ -148,10 +149,11 @@ export async function loginUser(formData: FormData) {
     // Set legacy session cookies for compatibility with current components
     // (Ideally we should use supabase.auth.getSession in middleware/components)
     const cookieStore = await cookies()
-    cookieStore.set("userId", authData.user.id, { httpOnly: true, path: "/" })
-    cookieStore.set("userRole", user?.role || "MEMBER", { httpOnly: true, path: "/" })
-    cookieStore.set("canReviewQC", String(user?.canReviewQC ?? false), { httpOnly: true, path: "/" })
-    cookieStore.set("canApproveApplications", String(user?.canApproveApplications ?? false), { httpOnly: true, path: "/" })
+    const thirtyDays = 60 * 60 * 24 * 30;
+    cookieStore.set("userId", authData.user.id, { httpOnly: true, path: "/", maxAge: thirtyDays })
+    cookieStore.set("userRole", user.role || "MEMBER", { httpOnly: true, path: "/", maxAge: thirtyDays })
+    cookieStore.set("canReviewQC", user.canReviewQC ? "true" : "false", { httpOnly: true, path: "/", maxAge: thirtyDays })
+    cookieStore.set("canApproveApplications", user.canApproveApplications ? "true" : "false", { httpOnly: true, path: "/", maxAge: thirtyDays })
 
     revalidatePath("/")
     return { success: true, role: user?.role || "MEMBER" }

@@ -66,6 +66,7 @@ export async function createProjectAction(formData: FormData) {
     const maxDuration = formData.get("maxDuration") ? parseInt(formData.get("maxDuration") as string) : null
     const hasScript = formData.get("hasScript") === "true"
     const scriptType = formData.get("scriptType") as string || "STATIC"
+    const sentencesPerUser = formData.get("sentencesPerUser") ? parseInt(formData.get("sentencesPerUser") as string) : null
     const isTranscriptionProject = formData.get("isTranscriptionProject") === "true"
     const workflowType = formData.get("workflowType") as string || "MOD_ONLY"
     const outputFormat = formData.get("outputFormat") as string || "WORD"
@@ -100,6 +101,7 @@ export async function createProjectAction(formData: FormData) {
           maxDuration,
           hasScript,
           scriptType,
+          sentencesPerUser,
           namingRule,
           requiredParticipants,
           targetMales,
@@ -113,13 +115,14 @@ export async function createProjectAction(formData: FormData) {
       })
 
       if (!isTranscriptionProject && hasScript) {
-        let sentences: string[] = []
+        // Can be either an array of strings (for STATIC/DYNAMIC_POOL) or array of objects (for PRE_ASSIGNED)
+        let parsedSentences: any[] = []
         const scriptMode = formData.get("scriptMode") as string // "file" or "manual"
 
-        if (scriptMode === "manual") {
+        if (scriptMode === "manual" && scriptType !== "PRE_ASSIGNED") {
           const manualScriptText = formData.get("manualScriptText") as string
           if (manualScriptText && manualScriptText.trim()) {
-            sentences = manualScriptText
+            parsedSentences = manualScriptText
               .split("\n")
               .map(s => s.trim())
               .filter(Boolean)
@@ -132,46 +135,70 @@ export async function createProjectAction(formData: FormData) {
 
             if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
               const workbook = XLSX.read(buffer, { type: "buffer" })
-              let allSentences: string[] = []
+              let allSentences: any[] = []
               
               for (const sheetName of workbook.SheetNames) {
                 const sheet = workbook.Sheets[sheetName]
-                const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
                 
-                const sheetSentences = rows
-                  .map((row: any[]) => {
-                    for (const cell of row) {
-                      if (cell !== undefined && cell !== null && String(cell).trim()) {
-                        return String(cell).trim()
+                if (scriptType === "PRE_ASSIGNED") {
+                  // For PRE_ASSIGNED, expect an array of objects/arrays with Sentence and Email
+                  const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+                  const sheetSentences = rows
+                    .map((row: any[]) => {
+                      if (row.length >= 2 && row[0] && row[1]) {
+                        return { text: String(row[0]).trim(), assignedEmail: String(row[1]).trim() }
                       }
-                    }
-                    return null
-                  })
-                  .filter(Boolean) as string[]
-                  
-                allSentences = [...allSentences, ...sheetSentences]
+                      return null
+                    })
+                    .filter(Boolean)
+                  allSentences = [...allSentences, ...sheetSentences]
+                } else {
+                  // Standard behavior
+                  const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+                  const sheetSentences = rows
+                    .map((row: any[]) => {
+                      for (const cell of row) {
+                        if (cell !== undefined && cell !== null && String(cell).trim()) {
+                          return String(cell).trim()
+                        }
+                      }
+                      return null
+                    })
+                    .filter(Boolean) as string[]
+                  allSentences = [...allSentences, ...sheetSentences]
+                }
               }
-              
-              sentences = allSentences
-            } else if (name.endsWith(".txt")) {
+              parsedSentences = allSentences
+            } else if (name.endsWith(".txt") && scriptType !== "PRE_ASSIGNED") {
               const text = buffer.toString("utf-8")
-              sentences = text
+              parsedSentences = text
                 .split("\n")
                 .map(s => s.trim())
                 .filter(Boolean)
             } else {
-              throw new Error("Unsupported script file format. Please upload XLSX, CSV, or TXT.")
+              throw new Error("Unsupported script file format for the chosen distribution method.")
             }
           }
         }
 
-        if (sentences.length > 0) {
+        if (parsedSentences.length > 0) {
           await tx.projectSentence.createMany({
-            data: sentences.map((text, i) => ({
-              projectId: proj.id,
-              text,
-              order: i + 1
-            }))
+            data: parsedSentences.map((item, i) => {
+              if (typeof item === 'string') {
+                return {
+                  projectId: proj.id,
+                  text: item,
+                  order: i + 1
+                }
+              } else {
+                return {
+                  projectId: proj.id,
+                  text: item.text,
+                  assignedEmail: item.assignedEmail,
+                  order: i + 1
+                }
+              }
+            })
           })
         } else {
           throw new Error("Script configuration enabled, but no sentences could be parsed or found.")
@@ -697,5 +724,60 @@ export async function submitApplicationProof(applicationId: string, proofUrl: st
   } catch (error: any) {
     console.error("Proof submission error:", error)
     return { success: false, error: "Failed to submit proof" }
+  }
+}
+
+export async function releaseIncompleteSentences(projectId: string) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    // Fetch user details for role validation
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    })
+    
+    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    // Find all sentences in this project that are assigned to someone
+    const assignedSentences = await prisma.projectSentence.findMany({
+      where: {
+        projectId,
+        assignedUserId: { not: null }
+      },
+      include: {
+        recordings: true
+      }
+    })
+
+    let releasedCount = 0
+
+    // For each sentence, check if there's any ACCEPTED or PENDING recording
+    for (const sentence of assignedSentences) {
+      const hasValidRecording = sentence.recordings.some(
+        r => r.status === "ACCEPTED" || r.status === "PENDING"
+      )
+
+      if (!hasValidRecording) {
+        // Release it back to the pool
+        await prisma.projectSentence.update({
+          where: { id: sentence.id },
+          data: { assignedUserId: null }
+        })
+        releasedCount++
+      }
+    }
+
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath(`/admin/projects/edit/${projectId}`)
+
+    return { success: true, releasedCount }
+  } catch (error: any) {
+    console.error("Release sentences error:", error)
+    return { success: false, error: "Failed to release sentences: " + error.message }
   }
 }

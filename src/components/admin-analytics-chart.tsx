@@ -11,6 +11,7 @@ import {
 interface DayData    { date: string; users: number; projects?: number }
 interface StatusData { name: string; value: number; color: string }
 interface EarningsData { month: string; earnings: number }
+interface QCData { status: string; count: number; color: string }
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────────
 function CustomTooltip({ active, payload, label }: any) {
@@ -102,6 +103,25 @@ export function EarningsBarChart({ data }: { data: EarningsData[] }) {
         <YAxis tick={{ fontSize: 11, fill: "var(--foreground)", opacity: 0.5 }} />
         <Tooltip content={<CustomTooltip />} />
         <Bar dataKey="earnings" name="أرباح ($)" fill="var(--primary)" radius={[6, 6, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
+
+// ─── QC Distribution Bar Chart ────────────────────────────────────────────────
+export function RecordingQCChart({ data }: { data: QCData[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={220}>
+      <BarChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+        <XAxis dataKey="status" tick={{ fontSize: 11, fill: "var(--foreground)", opacity: 0.5 }} />
+        <YAxis tick={{ fontSize: 11, fill: "var(--foreground)", opacity: 0.5 }} />
+        <Tooltip content={<CustomTooltip />} />
+        <Bar dataKey="count" name="تسجيلات" radius={[6, 6, 0, 0]}>
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.color} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   )

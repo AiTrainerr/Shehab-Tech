@@ -59,8 +59,8 @@ export function AdminSidebar({
   return (
     <>
       {/* Desktop Sidebar — visible lg+ */}
-      <aside className="w-64 border-r border-border bg-card hidden lg:block fixed left-0 top-[64px] h-[calc(100vh-64px)] overflow-y-auto z-40">
-        <div className="p-6">
+      <aside className="w-64 border-r border-border bg-card hidden lg:flex flex-col fixed left-0 top-[64px] h-[calc(100vh-64px)] z-40">
+        <div className="p-6 flex-1 overflow-y-auto pb-6">
           <div className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-4">Overview</div>
           <nav className="space-y-1">
             {navItems.map((item) => {
@@ -94,7 +94,7 @@ export function AdminSidebar({
         </div>
 
         {/* Desktop Mode Toggle at Bottom */}
-        <div className="absolute bottom-0 w-full p-6 border-t border-border">
+        <div className="w-full p-4 border-t border-border bg-card mt-auto shrink-0">
           <DesktopModeToggle />
         </div>
       </aside>

@@ -70,7 +70,7 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
 
         <div className="flex flex-col gap-3 min-w-[160px]">
           {!isModerator && (
-            <Link href={`/admin/projects/edit/${project.id}`} className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-bold bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors">
+            <Link href={project.isTranscriptionProject ? `/admin/projects/edit-transcription/${project.id}` : `/admin/projects/edit/${project.id}`} className="flex items-center justify-center gap-2 w-full px-3 py-2 text-sm font-bold bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors">
               <Edit2 className="w-4 h-4" /> Edit Details
             </Link>
           )}
