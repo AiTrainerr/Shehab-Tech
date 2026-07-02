@@ -16,6 +16,7 @@ type Sentence = {
 
 interface VoiceRecorderProps {
   projectId: string
+  speakerCode?: string
   applicationStatus: string
   audioFormat: string
   sampleRate: number
@@ -28,6 +29,7 @@ interface VoiceRecorderProps {
 
 export function VoiceRecorder({
   projectId,
+  speakerCode,
   applicationStatus,
   audioFormat,
   sampleRate,
@@ -311,6 +313,12 @@ export function VoiceRecorder({
             <p className="text-sm text-foreground/60 mt-1">
               Read the sentences one by one. The system validates specifications in real-time.
             </p>
+            {speakerCode && (
+              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/25 rounded-lg">
+                <span className="text-xs text-foreground/50 font-semibold">كودك:</span>
+                <span className="text-base font-black text-primary tracking-widest">{speakerCode}</span>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">

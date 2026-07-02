@@ -101,11 +101,25 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
         <div className="glass p-6 sm:p-8 rounded-2xl border border-border mb-6">
           <h1 className="text-2xl sm:text-3xl font-black text-foreground mb-2">{project.title}</h1>
           <p className="text-sm text-foreground/60">Follow the rules and read each sentence carefully.</p>
+
+          {application.speakerCode && (
+            <div className="mt-4 flex items-center gap-3 p-4 bg-primary/10 border border-primary/30 rounded-xl">
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
+                <Mic className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-foreground/50 font-semibold uppercase tracking-wider">كود المسجّل الخاص بك (Speaker Code)</p>
+                <p className="text-2xl font-black text-primary tracking-widest">{application.speakerCode}</p>
+                <p className="text-xs text-foreground/50 mt-0.5">هذا الكود هو اسم ملفك — احتفظ به للمراجعة والدفع</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {sentences.length > 0 ? (
           <VoiceRecorder
             projectId={id}
+            speakerCode={application.speakerCode || undefined}
             applicationStatus={application.status}
             audioFormat={project.audioFormat}
             sampleRate={project.sampleRate}

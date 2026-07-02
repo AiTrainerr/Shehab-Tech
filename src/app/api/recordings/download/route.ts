@@ -141,10 +141,13 @@ export async function GET(request: NextRequest) {
     // SPEAKER_ONLY => G0001
     let outerFolderName: string
     const zipNamingRule = (project as any).zipNamingRule || "FULL"
-    if (zipNamingRule === "ANONYMOUS") {
+    
+    // If the user has a batch speakerCode (like G0269), auto-use SPEAKER_ONLY
+    // because the speakerCode IS the filename - that's how the client identifies it
+    if (sequentialId !== "G_PENDING" && zipNamingRule === "SPEAKER_ONLY") {
+      outerFolderName = sequentialId  // => G0269
+    } else if (sequentialId !== "G_PENDING" && (project as any).zipNamingRule === "ANONYMOUS") {
       outerFolderName = `${sequentialId}_${ageFolderStr}_${genderForFolder}`
-    } else if (zipNamingRule === "SPEAKER_ONLY") {
-      outerFolderName = sequentialId
     } else {
       // FULL (default)
       outerFolderName = `${sequentialId}_${candidate.firstName}_${candidate.lastName}_${ageFolderStr}_${genderForFolder}`
