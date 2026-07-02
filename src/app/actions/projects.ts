@@ -277,8 +277,31 @@ export async function applyToProject(projectId: string, applicationType: "FREELA
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Not logged in" }
 
-    const project = await prisma.project.findUnique({ where: { id: projectId }, select: { title: true, autoApprove: true } })
+    const project = await prisma.project.findUnique({ where: { id: projectId } })
     if (!project) return { success: false, error: "Project not found" }
+
+    const applicant = await prisma.user.findUnique({ where: { id: user.id }, select: { firstName: true, lastName: true, gender: true } })
+    if (!applicant) return { success: false, error: "User profile not found" }
+
+    // Enforce Gender Targets
+    if ((project.targetMales > 0 && applicant.gender === 'male') || (project.targetFemales > 0 && applicant.gender === 'female')) {
+      const target = applicant.gender === 'male' ? project.targetMales : project.targetFemales;
+      
+      const currentCount = await prisma.application.count({
+        where: {
+          projectId,
+          status: { notIn: ['REJECTED'] },
+          user: { gender: applicant.gender }
+        }
+      });
+      
+      if (currentCount >= target) {
+        return { 
+          success: false, 
+          error: `عذراً، لقد اكتمل العدد المطلوب لـ ${applicant.gender === 'male' ? 'الذكور' : 'الإناث'} في هذا المشروع.` 
+        }
+      }
+    }
 
     const status = project.autoApprove ? "ACCEPTED" : "PENDING"
 
@@ -296,7 +319,6 @@ export async function applyToProject(projectId: string, applicationType: "FREELA
     }
     
     const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } })
-    const applicant = await prisma.user.findUnique({ where: { id: user.id }, select: { firstName: true, lastName: true } })
     
     if (admins.length > 0 && applicant) {
       await createManyNotifications(

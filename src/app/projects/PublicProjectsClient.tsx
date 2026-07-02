@@ -17,6 +17,10 @@ interface FormattedProject {
   durationUnit: string
   pricingModel: string
   executionOption: string
+  targetMales: number
+  targetFemales: number
+  currentMales: number
+  currentFemales: number
 }
 
 interface Props {
@@ -267,11 +271,29 @@ export function PublicProjectsClient({ initialProjects }: Props) {
                         <div className="flex items-center gap-1.5">
                           <MapPin className="w-4 h-4 text-orange-400" /> {countryLabel}
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Users className="w-4 h-4 text-purple-400" /> {p.applicationsCount} Applied
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5">
+                            <Users className="w-4 h-4 text-purple-400" /> {p.applicationsCount} Total Applied
+                          </div>
+                          {(p.targetMales > 0 || p.targetFemales > 0) && (
+                            <div className="flex items-center gap-3 text-xs mt-1 border-l-2 border-border pl-2">
+                              {p.targetMales > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                  <span>Males: {p.currentMales} / {p.targetMales} ({Math.max(0, p.targetMales - p.currentMales)} left)</span>
+                                </div>
+                              )}
+                              {p.targetFemales > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+                                  <span>Females: {p.currentFemales} / {p.targetFemales} ({Math.max(0, p.targetFemales - p.currentFemales)} left)</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                         {p.recordingDuration && (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 mt-auto">
                             <Briefcase className="w-4 h-4 text-teal-400" /> {p.recordingDuration} {p.durationUnit === "HOUR" ? "Hours" : "Sentences"}
                           </div>
                         )}
