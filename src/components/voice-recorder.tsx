@@ -285,10 +285,77 @@ export function VoiceRecorder({
         throw new Error(`Recording is too long (${durationSec.toFixed(1)}s). Maximum allowed is ${maxDuration}s.`)
       }
 
-      // Instead of client-side resampling (which causes memory crashes on iOS), 
-      // we upload the raw format directly. 
-      const finalBlob = localAudioBlob;
-      const fileExt = finalBlob.type.includes("mp4") || finalBlob.type.includes("m4a") ? "mp4" : "webm";
+      // Convert WEBM/MP4 to WAV matching project specs
+      let finalBlob = localAudioBlob;
+      let fileExt = "wav"; // Default to wav if conversion succeeds
+      
+      try {
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const arrayBuffer = await localAudioBlob.arrayBuffer();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        
+        // Target settings from project
+        const targetSampleRate = sampleRate || audioBuffer.sampleRate;
+        const targetChannels = parseInt(channels) || 1;
+        
+        // Resample using OfflineAudioContext
+        const offlineCtx = new OfflineAudioContext(
+          targetChannels,
+          audioBuffer.duration * targetSampleRate,
+          targetSampleRate
+        );
+        const source = offlineCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(offlineCtx.destination);
+        source.start(0);
+        
+        const resampledBuffer = await offlineCtx.startRendering();
+        audioCtx.close();
+        
+        // Encode to WAV
+        const numOfChan = resampledBuffer.numberOfChannels;
+        const length = resampledBuffer.length * numOfChan * 2 + 44;
+        const out = new ArrayBuffer(length);
+        const view = new DataView(out);
+        let pos = 0;
+        
+        const setUint16 = (data: number) => { view.setUint16(pos, data, true); pos += 2; };
+        const setUint32 = (data: number) => { view.setUint32(pos, data, true); pos += 4; };
+        
+        setUint32(0x46464952); // "RIFF"
+        setUint32(length - 8); // file length - 8
+        setUint32(0x45564157); // "WAVE"
+        setUint32(0x20746d66); // "fmt " chunk
+        setUint32(16); // length = 16
+        setUint16(1); // PCM (uncompressed)
+        setUint16(numOfChan);
+        setUint32(targetSampleRate);
+        setUint32(targetSampleRate * 2 * numOfChan); // avg. bytes/sec
+        setUint16(numOfChan * 2); // block-align
+        setUint16(16); // 16-bit
+        setUint32(0x61746164); // "data" - chunk
+        setUint32(length - pos - 4); // chunk length
+        
+        const channelData = [];
+        for(let i = 0; i < numOfChan; i++) channelData.push(resampledBuffer.getChannelData(i));
+        
+        let offset = 0;
+        while(pos < length) {
+          for(let i = 0; i < numOfChan; i++) {
+            let sample = Math.max(-1, Math.min(1, channelData[i][offset]));
+            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+            view.setInt16(pos, sample, true);
+            pos += 2;
+          }
+          offset++;
+        }
+        
+        finalBlob = new Blob([view], { type: "audio/wav" });
+      } catch (err) {
+        console.error("WAV conversion failed, falling back to raw recording:", err);
+        finalBlob = localAudioBlob;
+        fileExt = finalBlob.type.includes("mp4") || finalBlob.type.includes("m4a") ? "mp4" : "webm";
+      }
 
       const formData = new FormData()
       formData.append("audio", finalBlob, `recording_${activeSentence.id}.${fileExt}`)
