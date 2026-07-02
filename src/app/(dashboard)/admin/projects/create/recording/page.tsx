@@ -239,6 +239,21 @@ export default function CreateRecordingProjectPage() {
                 </select>
                 <p className="text-xs text-foreground/50">يتحكم في اسم مجلد وملف ZIP عند التحميل.</p>
               </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Task Time Limit (Hours)</label>
+                <input name="timeLimitHours" type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 24" />
+                <p className="text-xs text-foreground/50">How long freelancers have to record before task is released.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Enable Browser Noise Cancellation?</label>
+                <select name="enableNoiseCancellation" defaultValue="false" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="false">No (Raw Audio, Recommended)</option>
+                  <option value="true">Yes (Apply Noise Suppression)</option>
+                </select>
+                <p className="text-xs text-foreground/50">Also enforces a mandatory pre-recording noise test.</p>
+              </div>
 
             </div>
           </div>

@@ -127,6 +127,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
             channels={project.channels}
             minDuration={project.minDuration}
             maxDuration={project.maxDuration}
+            enableNoiseCancellation={project.enableNoiseCancellation}
             sentences={sentences.map((s: any) => ({
               id: s.id,
               text: s.text,

@@ -305,6 +305,31 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 <label className="text-sm font-semibold">Maximum Duration (seconds)</label>
                 <input name="maxDuration" defaultValue={project.maxDuration || ""} type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 60" />
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">ZIP Folder Naming Rule</label>
+                <select name="zipNamingRule" defaultValue={project.zipNamingRule || "FULL"} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="FULL">Full (G0001_Name_Age_Gender)</option>
+                  <option value="ANONYMOUS">Anonymous (G0001_Age_Gender) – بدون الاسم</option>
+                  <option value="SPEAKER_ONLY">Speaker ID Only (G0001) – الكود فقط</option>
+                </select>
+                <p className="text-xs text-foreground/50">يتحكم في اسم مجلد وملف ZIP عند التحميل.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Task Time Limit (Hours)</label>
+                <input name="timeLimitHours" defaultValue={project.timeLimitHours || ""} type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 24" />
+                <p className="text-xs text-foreground/50">How long freelancers have to record before task is released.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">Enable Browser Noise Cancellation?</label>
+                <select name="enableNoiseCancellation" defaultValue={project.enableNoiseCancellation?.toString() || "false"} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="false">No (Raw Audio, Recommended)</option>
+                  <option value="true">Yes (Apply Noise Suppression)</option>
+                </select>
+                <p className="text-xs text-foreground/50">Also enforces a mandatory pre-recording noise test.</p>
+              </div>
             </div>
           </div>
 

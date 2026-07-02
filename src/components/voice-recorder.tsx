@@ -24,6 +24,7 @@ interface VoiceRecorderProps {
   channels: string
   minDuration: number | null
   maxDuration: number | null
+  enableNoiseCancellation?: boolean
   sentences: Sentence[]
 }
 
@@ -37,6 +38,7 @@ export function VoiceRecorder({
   channels,
   minDuration,
   maxDuration,
+  enableNoiseCancellation = false,
   sentences
 }: VoiceRecorderProps) {
   // Start at the first sentence that is not yet successfully recorded, or 0
@@ -44,6 +46,11 @@ export function VoiceRecorder({
     const firstPendingIdx = sentences.findIndex(s => !s.recordings[0] || s.recordings[0].status === "REJECTED" || s.recordings[0].status === "NEED_RE_RECORD")
     return firstPendingIdx !== -1 ? firstPendingIdx : 0
   })
+
+  // Noise Test States
+  const [isNoiseTestPassed, setIsNoiseTestPassed] = React.useState(!enableNoiseCancellation)
+  const [isNoiseTesting, setIsNoiseTesting] = React.useState(false)
+  const [noiseTestWarning, setNoiseTestWarning] = React.useState<string | null>(null)
 
   const [recordingId, setRecordingId] = React.useState<string | null>(null)
   const [playingUrl, setPlayingUrl] = React.useState<string | null>(null)
@@ -119,6 +126,65 @@ export function VoiceRecorder({
     }
   }, [currentIndex])
 
+  const runNoiseTest = async () => {
+    setIsNoiseTesting(true)
+    setNoiseTestWarning(null)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { noiseSuppression: false, echoCancellation: false } })
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+      const audioCtx = new AudioContext()
+      const source = audioCtx.createMediaStreamSource(stream)
+      const analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 2048
+      source.connect(analyser)
+      
+      const bufferLength = analyser.frequencyBinCount
+      const dataArray = new Float32Array(bufferLength)
+      
+      let sumRms = 0
+      let samples = 0
+
+      // Listen for 3 seconds
+      const testDuration = 3000
+      const startTime = Date.now()
+
+      const checkAudio = () => {
+        if (Date.now() - startTime > testDuration) {
+          const avgRms = sumRms / samples
+          // A completely arbitrary threshold: ~0.05 is often noticeable background noise
+          // but varies heavily by mic gain. 0.05 is a safe starting point.
+          if (avgRms > 0.05) {
+            setNoiseTestWarning("Background noise is too high. Please move to a quieter environment to avoid rejection.")
+          } else {
+            setIsNoiseTestPassed(true)
+          }
+          
+          stream.getTracks().forEach(t => t.stop())
+          audioCtx.close()
+          setIsNoiseTesting(false)
+          return
+        }
+
+        analyser.getFloatTimeDomainData(dataArray)
+        let sumSq = 0
+        for (let i = 0; i < bufferLength; i++) {
+          sumSq += dataArray[i] * dataArray[i]
+        }
+        const rms = Math.sqrt(sumSq / bufferLength)
+        sumRms += rms
+        samples++
+        
+        requestAnimationFrame(checkAudio)
+      }
+      
+      checkAudio()
+    } catch (err: any) {
+      console.error("Noise test failed", err)
+      setNoiseTestWarning("Microphone access failed. Please allow microphone permissions.")
+      setIsNoiseTesting(false)
+    }
+  }
+
   const startRecording = async (sentenceId: string) => {
     // Clear any previous unsaved local recordings
     if (localAudioUrl) {
@@ -132,7 +198,12 @@ export function VoiceRecorder({
 
     try {
       // Simplify constraints for max iOS compatibility. We handle resampling later anyway.
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          noiseSuppression: enableNoiseCancellation,
+          echoCancellation: enableNoiseCancellation,
+        }
+      })
       
       if (typeof window.MediaRecorder === 'undefined') {
         throw new Error("Your browser/device does not support audio recording (MediaRecorder missing). Please update your iOS or use a different browser.")
@@ -290,6 +361,43 @@ export function VoiceRecorder({
 
   // Only lock if the whole application is UNDER_REVIEW or APPROVED, or the specific recording is ACCEPTED
   const isLocked = applicationStatus === "UNDER_REVIEW" || applicationStatus === "APPROVED" || applicationStatus === "ACCEPTED" || (savedRecord && savedRecord.status === "ACCEPTED")
+
+  if (!isNoiseTestPassed) {
+    return (
+      <div className="space-y-6" translate="no">
+        <div className="glass p-8 sm:p-12 rounded-3xl border border-border text-center max-w-2xl mx-auto">
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShieldAlert className="w-10 h-10 text-primary" />
+          </div>
+          <h2 className="text-2xl font-black mb-4">Environment Noise Test Required</h2>
+          <p className="text-foreground/70 mb-8 max-w-md mx-auto">
+            This project requires a mandatory background noise test before you can begin recording. This ensures your audio will not be rejected due to environmental noise.
+          </p>
+          
+          {noiseTestWarning && (
+            <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl mb-8 animate-in fade-in">
+              <p className="text-red-500 font-bold">{noiseTestWarning}</p>
+            </div>
+          )}
+
+          <button
+            onClick={runNoiseTest}
+            disabled={isNoiseTesting}
+            className="w-full sm:w-auto px-8 py-4 bg-primary text-primary-foreground font-bold rounded-2xl shadow-lg shadow-primary/25 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/30 transition-all disabled:opacity-50 disabled:hover:translate-y-0"
+          >
+            {isNoiseTesting ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Listening for 3 seconds... Please be quiet.
+              </span>
+            ) : (
+              "Run Environment Noise Test"
+            )}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6" translate="no">

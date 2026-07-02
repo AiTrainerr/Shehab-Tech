@@ -138,6 +138,8 @@ model Project {
   sentencesPerUser     Int?     // For DYNAMIC_POOL mode
   namingRule           String   @default("SEQUENCE") // TEXT, SEQUENCE
   zipNamingRule        String   @default("FULL")     // FULL, ANONYMOUS, SPEAKER_ONLY
+  timeLimitHours       Int?     // Time limit for recording before task is released
+  enableNoiseCancellation Boolean @default(false) // Whether to apply WebAudio noise suppression
   requiredParticipants Int      @default(1)
   targetMales          Int      @default(0)
   targetFemales        Int      @default(0)

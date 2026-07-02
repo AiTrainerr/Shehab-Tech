@@ -77,6 +77,9 @@ export async function createProjectAction(formData: FormData) {
     const pricingModel = formData.get("pricingModel") as string || "FIXED_PROJECT"
     const namingRule = formData.get("namingRule") as string || "SEQUENCE"
     const zipNamingRule = formData.get("zipNamingRule") as string || "FULL"
+    const timeLimitStr = formData.get("timeLimitHours") as string
+    const timeLimitHours = timeLimitStr ? parseInt(timeLimitStr) : null
+    const enableNoiseCancellation = formData.get("enableNoiseCancellation") === "true"
 
     const project = await prisma.$transaction(async (tx) => {
       const proj = await tx.project.create({
@@ -105,6 +108,8 @@ export async function createProjectAction(formData: FormData) {
           sentencesPerUser,
           namingRule,
           zipNamingRule,
+          timeLimitHours,
+          enableNoiseCancellation,
           requiredParticipants,
           targetMales,
           targetFemales,
@@ -359,6 +364,9 @@ export async function approveApplication(applicationId: string) {
     })
 
     if (!currentApp) return { success: false, error: "Application not found" }
+    
+    // Attempt to free any expired tasks before we assign one
+    await releaseExpiredApplications(currentApp.projectId);
 
     let newStatus = "ACCEPTED";
     if (currentApp.status === "FINAL_REVIEW") {
@@ -559,6 +567,9 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     const scriptType = formData.get("scriptType") as string || "STATIC"
     const namingRule = formData.get("namingRule") as string || "SEQUENCE"
     const zipNamingRule = formData.get("zipNamingRule") as string || "FULL"
+    const timeLimitStr = formData.get("timeLimitHours") as string
+    const timeLimitHours = timeLimitStr ? parseInt(timeLimitStr) : null
+    const enableNoiseCancellation = formData.get("enableNoiseCancellation") === "true"
 
     // Parse languages
     const langCount = parseInt(formData.get("langCount") as string) || 0
@@ -602,6 +613,8 @@ export async function updateProjectAction(projectId: string, formData: FormData)
           scriptType,
           namingRule,
           zipNamingRule,
+          timeLimitHours,
+          enableNoiseCancellation,
           requiredParticipants,
           targetMales,
           targetFemales
@@ -867,5 +880,54 @@ export async function uploadBatchScripts(projectId: string, data: { speakerCode:
   } catch (error: any) {
     console.error("Upload batch scripts error:", error)
     return { success: false, error: "Failed to upload scripts: " + error.message }
+  }
+}
+
+export async function releaseExpiredApplications(projectId: string) {
+  try {
+    const project = await prisma.project.findUnique({ 
+      where: { id: projectId },
+      select: { timeLimitHours: true } 
+    });
+    
+    if (!project || !project.timeLimitHours) return { success: true, count: 0 };
+    
+    const cutoffTime = new Date();
+    cutoffTime.setHours(cutoffTime.getHours() - project.timeLimitHours);
+
+    // Find applications that were APPROVED or ACCEPTED and haven't moved to SUBMITTED
+    // and their updatedAt is older than the time limit
+    const expiredApps = await prisma.application.findMany({
+      where: {
+        projectId,
+        status: { in: ["APPROVED", "ACCEPTED"] },
+        updatedAt: { lt: cutoffTime }
+      },
+      select: { id: true, userId: true, speakerCode: true }
+    });
+
+    if (expiredApps.length === 0) return { success: true, count: 0 };
+
+    // Release them
+    for (const app of expiredApps) {
+      await prisma.application.update({
+        where: { id: app.id },
+        data: { 
+          status: "REJECTED", // or EXPIRED if we add it, but REJECTED is fine to force them to reapply or fail
+          speakerCode: null
+        }
+      });
+      // Optionally notify
+      await createNotification(
+        app.userId,
+        "Task Expired ⏳",
+        `Your task for project has expired because you didn't complete it within ${project.timeLimitHours} hours.`
+      ).catch(() => {}); // silent fail if user lookup fails
+    }
+
+    return { success: true, count: expiredApps.length };
+  } catch (error) {
+    console.error("Release expired applications error:", error);
+    return { success: false, error: "Failed to release" };
   }
 }
