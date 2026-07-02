@@ -58,12 +58,19 @@ export default async function AdminApplicationsPage() {
   const userIds = Array.from(new Set(applicationsData.map(a => a.userId)));
 
   const sentencesCount = await prisma.projectSentence.groupBy({
-    by: ['projectId'],
+    by: ['projectId', 'speakerCode'],
     where: { projectId: { in: projectIds } },
     _count: { _all: true }
   });
   
-  const sentencesMap = Object.fromEntries(sentencesCount.map(s => [s.projectId, s._count._all]));
+  const sentencesMap = new Map();
+  const projectTotalSentences = new Map();
+  
+  sentencesCount.forEach(s => {
+    sentencesMap.set(`${s.projectId}_${s.speakerCode || 'null'}`, s._count._all);
+    const currentTotal = projectTotalSentences.get(s.projectId) || 0;
+    projectTotalSentences.set(s.projectId, currentTotal + s._count._all);
+  });
 
   const recordingsCounts = await prisma.$queryRaw<any[]>`
     SELECT r."userId", s."projectId", r.status, COUNT(r.id)::int as count
@@ -98,7 +105,12 @@ export default async function AdminApplicationsPage() {
     const reRecordCount = counts.reRecordCount;
     const acceptedCount = counts.acceptedCount;
 
-    const totalSentences = sentencesMap[app.projectId] || 0;
+    let totalSentences = 0;
+    if (app.speakerCode) {
+      totalSentences = sentencesMap.get(`${app.projectId}_${app.speakerCode}`) || 0;
+    } else {
+      totalSentences = projectTotalSentences.get(app.projectId) || 0;
+    }
     
     let reviewCategory = "WORKING";
 

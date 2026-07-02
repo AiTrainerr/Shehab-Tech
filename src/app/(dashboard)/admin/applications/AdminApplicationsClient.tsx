@@ -306,7 +306,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                     )
                   )}
 
-                  {(app.status === 'WORKING' || app.status === 'UNDER_REVIEW') && (
+                  {(app.status === 'WORKING' || app.status === 'UNDER_REVIEW' || app.status === 'ACCEPTED') && (
                     <button
                       onClick={async () => {
                         if (!confirm("هل أنت متأكد من تحرير التاسك وحذف كل تسجيلات هذا المستخدم؟ (سيتلقى إشعاراً بالرفض)")) return;
