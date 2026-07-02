@@ -955,16 +955,17 @@ export async function getBatchCodesStatus(projectId: string) {
     
     const apps = await prisma.application.findMany({
       where: { projectId, speakerCode: { in: codes } },
-      select: { speakerCode: true, status: true, user: { select: { email: true, name: true } } }
+      select: { speakerCode: true, status: true, user: { select: { email: true, firstName: true, lastName: true } } }
     })
     
     const data = codes.map(code => {
       // Prioritize active apps
       const codeApps = apps.filter(a => a.speakerCode === code)
       const app = codeApps.find(a => a.status !== "REJECTED") || codeApps[0]
+      const fullName = app ? `${app.user.firstName} ${app.user.lastName || ''}`.trim() : null
       return {
         speakerCode: code,
-        assignedUser: app ? (app.user.name || app.user.email) : null,
+        assignedUser: app ? (fullName || app.user.email) : null,
         status: app ? app.status : 'UNASSIGNED'
       }
     })
