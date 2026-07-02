@@ -475,9 +475,9 @@ export function VoiceRecorder({
                     ملاحظة هامة:
                   </p>
                   <p className="text-red-600 font-semibold mt-1">
-                    {activeSentence.speed.trim() === '慢' && "يُرجى قراءة هذه الجملة بسرعة بطيئة (أبطأ من العادي بقليل)."}
+                    {activeSentence.speed.trim() === '慢' && "يُرجى قراءة هذه الجملة بسرعة بطيئة (أبطأ من العادي)."}
                     {activeSentence.speed.trim() === '正常' && "يُرجى قراءة هذه الجملة بسرعة عادية (سرعة التحدث اليومية)."}
-                    {activeSentence.speed.trim() === '快' && "يُرجى قراءة هذه الجملة بسرعة (أسرع من العادي بقليل)."}
+                    {activeSentence.speed.trim() === '快' && "يُرجى قراءة هذه الجملة بسرعة (أسرع من العادي)."}
                     {!['慢', '正常', '快'].includes(activeSentence.speed.trim()) && `يُرجى قراءة هذه الجملة بالسرعة المطلوبة: ${activeSentence.speed}`}
                   </p>
                 </div>
