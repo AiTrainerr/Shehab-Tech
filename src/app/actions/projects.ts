@@ -376,7 +376,8 @@ export async function approveApplication(applicationId: string) {
     }
     let speakerCode = currentApp.speakerCode;
 
-    if (newStatus === "APPROVED" && !speakerCode) {
+    // We assign a speaker code as soon as they are ACCEPTED to start working
+    if (newStatus === "ACCEPTED" && !speakerCode) {
       // 1. Check if the project uses batch scripts with speaker codes
       const batchSentences = await prisma.projectSentence.findMany({
         where: { projectId: currentApp.projectId, speakerCode: { not: null } },
