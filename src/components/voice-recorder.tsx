@@ -360,7 +360,7 @@ export function VoiceRecorder({
   }
 
   // Only lock if the whole application is UNDER_REVIEW or APPROVED, or the specific recording is ACCEPTED
-  const isLocked = applicationStatus === "UNDER_REVIEW" || applicationStatus === "APPROVED" || applicationStatus === "ACCEPTED" || (savedRecord && savedRecord.status === "ACCEPTED")
+  const isLocked = applicationStatus === "UNDER_REVIEW" || applicationStatus === "APPROVED" || (savedRecord && savedRecord.status === "ACCEPTED")
 
   if (!isNoiseTestPassed) {
     return (
