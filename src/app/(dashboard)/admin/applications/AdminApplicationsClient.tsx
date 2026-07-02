@@ -313,6 +313,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                         setLoading(app.id);
                         const res = await rejectApplication(app.id, "تم الرفض بسبب عدم إكمال التاسك");
                         if (!res.success) alert(res.error);
+                        else window.location.reload();
                         setLoading(null);
                       }}
                       disabled={loading === app.id}
