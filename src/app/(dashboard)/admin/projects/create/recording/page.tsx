@@ -48,7 +48,8 @@ export default function CreateRecordingProjectPage() {
         <form action={async (formData) => {
           const res = await createProjectAction(formData)
           if (res.success) {
-            router.push("/admin")
+            // Redirect to edit page so admin can upload batch CSV files right away
+            router.push(`/admin/projects/edit/${res.projectId}`)
           } else {
             alert(res.error || "Something went wrong")
           }
@@ -345,6 +346,19 @@ export default function CreateRecordingProjectPage() {
                   )}
                 </>
               )}
+            </div>
+            
+            <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-xl flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                <Globe className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h4 className="font-bold text-primary text-sm">Advanced Batch Upload (Multiple CSVs)</h4>
+                <p className="text-xs text-foreground/70 mt-1">
+                  Want to upload multiple scripts for different freelancers (e.g. G0269, G0270) at once? 
+                  You will be automatically redirected to the Advanced Batch Upload page immediately after clicking "Save & Continue".
+                </p>
+              </div>
             </div>
           </div>
 
