@@ -931,3 +931,84 @@ export async function releaseExpiredApplications(projectId: string) {
     return { success: false, error: "Failed to release" };
   }
 }
+
+export async function getBatchCodesStatus(projectId: string) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    // Check if admin
+    const currentUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    const sentences = await prisma.projectSentence.findMany({
+      where: { projectId, speakerCode: { not: null } },
+      select: { speakerCode: true },
+      distinct: ['speakerCode']
+    })
+    
+    const codes = sentences.map(s => s.speakerCode as string)
+    
+    const apps = await prisma.application.findMany({
+      where: { projectId, speakerCode: { in: codes } },
+      select: { speakerCode: true, status: true, user: { select: { email: true, name: true } } }
+    })
+    
+    const data = codes.map(code => {
+      // Prioritize active apps
+      const codeApps = apps.filter(a => a.speakerCode === code)
+      const app = codeApps.find(a => a.status !== "REJECTED") || codeApps[0]
+      return {
+        speakerCode: code,
+        assignedUser: app ? (app.user.name || app.user.email) : null,
+        status: app ? app.status : 'UNASSIGNED'
+      }
+    })
+    
+    // Sort by status, UNASSIGNED first, then others
+    data.sort((a, b) => {
+      if (a.status === 'UNASSIGNED' && b.status !== 'UNASSIGNED') return -1;
+      if (a.status !== 'UNASSIGNED' && b.status === 'UNASSIGNED') return 1;
+      return a.speakerCode.localeCompare(b.speakerCode);
+    });
+
+    return { success: true, data }
+  } catch (error: any) {
+    console.error("Get batch codes status error:", error)
+    return { success: false, error: "Failed to get batch codes status" }
+  }
+}
+
+export async function deleteBatchCode(projectId: string, speakerCode: string) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    // Check if admin
+    const currentUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+    
+    const activeApp = await prisma.application.findFirst({
+       where: { projectId, speakerCode, status: { notIn: ["REJECTED"] } }
+    })
+    
+    if (activeApp) {
+      return { success: false, error: "Cannot delete code while it is actively assigned to a user. Please reject or cancel their application first." }
+    }
+    
+    await prisma.projectSentence.deleteMany({
+       where: { projectId, speakerCode }
+    })
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Delete batch code error:", error)
+    return { success: false, error: "Failed to delete batch code" }
+  }
+}
