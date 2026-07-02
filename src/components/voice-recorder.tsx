@@ -730,7 +730,7 @@ export function VoiceRecorder({
                 }}
                 className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black border transition-all ${bgClass}`}
               >
-                {s.order}
+                {idx + 1}
               </button>
             )
           })}
