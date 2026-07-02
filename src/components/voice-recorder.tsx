@@ -299,10 +299,11 @@ export function VoiceRecorder({
         const targetSampleRate = sampleRate || audioBuffer.sampleRate;
         const targetChannels = parseInt(channels) || 1;
         
-        // Resample using OfflineAudioContext
+        // Resample using OfflineAudioContext (length must be an integer!)
+        const lengthInFrames = Math.max(1, Math.ceil(audioBuffer.duration * targetSampleRate));
         const offlineCtx = new OfflineAudioContext(
           targetChannels,
-          audioBuffer.duration * targetSampleRate,
+          lengthInFrames,
           targetSampleRate
         );
         const source = offlineCtx.createBufferSource();
