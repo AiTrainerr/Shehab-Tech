@@ -137,6 +137,7 @@ model Project {
   scriptType           String   @default("STATIC") // STATIC, DYNAMIC_POOL, PRE_ASSIGNED
   sentencesPerUser     Int?     // For DYNAMIC_POOL mode
   namingRule           String   @default("SEQUENCE") // TEXT, SEQUENCE
+  zipNamingRule        String   @default("FULL")     // FULL, ANONYMOUS, SPEAKER_ONLY
   requiredParticipants Int      @default(1)
   targetMales          Int      @default(0)
   targetFemales        Int      @default(0)
@@ -168,6 +169,10 @@ model ProjectSentence {
   assignedEmail  String?
   assignedUserId String?
   completed      Boolean         @default(false)
+  
+  speakerCode    String?
+  audioId        String?
+  speed          String?
 
   recordings  VoiceRecording[]
   createdAt   DateTime        @default(now())

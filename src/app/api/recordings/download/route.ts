@@ -48,19 +48,19 @@ export async function GET(request: NextRequest) {
     })
     if (!loggedInUser) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
-    const targetUserId = request.nextUrl.searchParams.get("userId") || userIdFromCookie
-
-    // Authorization check
+    // Only admins and moderators can download - freelancers (MEMBER) cannot
     const isAllowed = 
-      targetUserId === userIdFromCookie || 
       loggedInUser.role === "ADMIN" || 
       loggedInUser.role === "SUPER_ADMIN" || 
       loggedInUser.role === "QC_REVIEWER" || 
       (loggedInUser.role === "MODERATOR" && loggedInUser.canReviewQC);
 
     if (!isAllowed) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 })
+      return NextResponse.json({ error: "Access denied. Only admins can download recordings." }, { status: 403 })
     }
+
+    const targetUserId = request.nextUrl.searchParams.get("userId") || userIdFromCookie
+
 
     // Get candidate details
     const candidate = await prisma.user.findUnique({
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     // Get project settings
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { title: true, namingRule: true, audioFormat: true }
+      select: { title: true, namingRule: true, audioFormat: true, zipNamingRule: true }
     })
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 })
 
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       return candidateName
     }
 
-    // Build the outer folder name: GXXXX_FirstName_LastName_Age_Gender
+    // Build the outer folder name based on zipNamingRule
     let genderForFolder = "N-A"
     if (candidate.gender) {
       const g = candidate.gender.toLowerCase()
@@ -135,7 +135,20 @@ export async function GET(request: NextRequest) {
 
     const sequentialId = appRecord?.speakerCode || "G_PENDING"
 
-    const outerFolderName = `${sequentialId}_${candidate.firstName}_${candidate.lastName}_${ageFolderStr}_${genderForFolder}`
+    // zipNamingRule controls the folder naming:
+    // FULL         => G0001_FirstName_LastName_Age_Gender
+    // ANONYMOUS    => G0001_Age_Gender  (no name)
+    // SPEAKER_ONLY => G0001
+    let outerFolderName: string
+    const zipNamingRule = (project as any).zipNamingRule || "FULL"
+    if (zipNamingRule === "ANONYMOUS") {
+      outerFolderName = `${sequentialId}_${ageFolderStr}_${genderForFolder}`
+    } else if (zipNamingRule === "SPEAKER_ONLY") {
+      outerFolderName = sequentialId
+    } else {
+      // FULL (default)
+      outerFolderName = `${sequentialId}_${candidate.firstName}_${candidate.lastName}_${ageFolderStr}_${genderForFolder}`
+    }
 
     // Download each audio file and add to ZIP inside the outer folder
     await Promise.all(
@@ -153,11 +166,15 @@ export async function GET(request: NextRequest) {
           const ext = targetFormat.toLowerCase()
           let innerFilename = ""
           
-          if (project.namingRule === "TEXT") {
+          // Priority: audioId from batch scripts > TEXT naming > SEQUENCE
+          if (sentence.audioId) {
+            // Use the Audio ID from the batch script as the filename (e.g., N0001.wav)
+            innerFilename = getUniqueFilename(sentence.audioId, ext)
+          } else if (project.namingRule === "TEXT") {
             const baseName = cleanFilename(sentence.text).slice(0, 80)
             innerFilename = getUniqueFilename(baseName, ext)
           } else {
-            // SEQUENCE
+            // SEQUENCE fallback
             innerFilename = `${sentence.order}.${ext}`
           }
 

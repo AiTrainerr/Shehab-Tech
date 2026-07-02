@@ -76,6 +76,7 @@ export async function createProjectAction(formData: FormData) {
     const durationUnit = formData.get("durationUnit") as string || "HOUR"
     const pricingModel = formData.get("pricingModel") as string || "FIXED_PROJECT"
     const namingRule = formData.get("namingRule") as string || "SEQUENCE"
+    const zipNamingRule = formData.get("zipNamingRule") as string || "FULL"
 
     const project = await prisma.$transaction(async (tx) => {
       const proj = await tx.project.create({
@@ -103,6 +104,7 @@ export async function createProjectAction(formData: FormData) {
           scriptType,
           sentencesPerUser,
           namingRule,
+          zipNamingRule,
           requiredParticipants,
           targetMales,
           targetFemales,
@@ -367,23 +369,56 @@ export async function approveApplication(applicationId: string) {
     let speakerCode = currentApp.speakerCode;
 
     if (newStatus === "APPROVED" && !speakerCode) {
-      const lastApp = await prisma.application.findFirst({
-        where: {
-          projectId: currentApp.projectId,
-          speakerCode: { not: null }
-        },
-        orderBy: { speakerCode: 'desc' }
+      // 1. Check if the project uses batch scripts with speaker codes
+      const batchSentences = await prisma.projectSentence.findMany({
+        where: { projectId: currentApp.projectId, speakerCode: { not: null } },
+        select: { speakerCode: true },
+        distinct: ['speakerCode']
       });
-      
-      let nextNumber = 1;
-      if (lastApp && lastApp.speakerCode) {
-        const match = lastApp.speakerCode.match(/G(\d+)/);
-        if (match) {
-          nextNumber = parseInt(match[1]) + 1;
+
+      if (batchSentences.length > 0) {
+        // Find an unassigned speakerCode from the uploaded batch scripts
+        const allBatchCodes = batchSentences.map(s => s.speakerCode as string);
+        
+        // Find all speakerCodes already assigned to APPROVED applications in this project
+        const assignedApps = await prisma.application.findMany({
+          where: { 
+            projectId: currentApp.projectId,
+            speakerCode: { not: null }
+          },
+          select: { speakerCode: true }
+        });
+        const assignedCodes = assignedApps.map(a => a.speakerCode as string);
+        
+        // Pick the first available code
+        const availableCode = allBatchCodes.find(code => !assignedCodes.includes(code));
+        
+        if (availableCode) {
+          speakerCode = availableCode;
+        } else {
+          // Fallback if all batch codes are exhausted (should rarely happen if admin uploaded enough)
+          speakerCode = `NO_CODE_AVAILABLE_TEMP_${Date.now()}`;
         }
+      } else {
+        // Legacy sequential generation fallback if no batch scripts exist
+        const lastApp = await prisma.application.findFirst({
+          where: {
+            projectId: currentApp.projectId,
+            speakerCode: { not: null }
+          },
+          orderBy: { speakerCode: 'desc' }
+        });
+        
+        let nextNumber = 1;
+        if (lastApp && lastApp.speakerCode) {
+          const match = lastApp.speakerCode.match(/G(\d+)/);
+          if (match) {
+            nextNumber = parseInt(match[1]) + 1;
+          }
+        }
+        
+        speakerCode = `G${nextNumber.toString().padStart(4, '0')}`;
       }
-      
-      speakerCode = `G${nextNumber.toString().padStart(4, '0')}`;
     }
 
     const application = await prisma.application.update({
@@ -523,6 +558,7 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     const hasScript = formData.get("hasScript") === "true"
     const scriptType = formData.get("scriptType") as string || "STATIC"
     const namingRule = formData.get("namingRule") as string || "SEQUENCE"
+    const zipNamingRule = formData.get("zipNamingRule") as string || "FULL"
 
     // Parse languages
     const langCount = parseInt(formData.get("langCount") as string) || 0
@@ -565,6 +601,7 @@ export async function updateProjectAction(projectId: string, formData: FormData)
           hasScript,
           scriptType,
           namingRule,
+          zipNamingRule,
           requiredParticipants,
           targetMales,
           targetFemales
@@ -779,5 +816,56 @@ export async function releaseIncompleteSentences(projectId: string) {
   } catch (error: any) {
     console.error("Release sentences error:", error)
     return { success: false, error: "Failed to release sentences: " + error.message }
+  }
+}
+
+export async function uploadBatchScripts(projectId: string, data: { speakerCode: string, audioId: string, text: string, speed: string }[]) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    // Check if admin
+    const currentUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    const project = await prisma.project.findUnique({ where: { id: projectId } })
+    if (!project) return { success: false, error: "Project not found" }
+
+    await prisma.$transaction(async (tx) => {
+      // First, get the current max order
+      const lastSentence = await tx.projectSentence.findFirst({
+        where: { projectId },
+        orderBy: { order: 'desc' }
+      })
+      let currentOrder = lastSentence?.order || 0
+
+      // Create new sentences
+      const sentencesToCreate = data.map(item => {
+        currentOrder++
+        return {
+          projectId,
+          text: item.text,
+          speakerCode: item.speakerCode,
+          audioId: item.audioId,
+          speed: item.speed,
+          order: currentOrder
+        }
+      })
+
+      await tx.projectSentence.createMany({
+        data: sentencesToCreate
+      })
+    })
+
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath(`/admin/projects/edit/${projectId}`)
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("Upload batch scripts error:", error)
+    return { success: false, error: "Failed to upload scripts: " + error.message }
   }
 }

@@ -33,7 +33,13 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
 
   let sentences: any[] = []
 
-  if (project.scriptType === "STATIC") {
+  if (application.speakerCode) {
+    sentences = await prisma.projectSentence.findMany({
+      where: { projectId: id, speakerCode: application.speakerCode },
+      orderBy: { order: "asc" },
+      include: { recordings: { where: { userId } } }
+    })
+  } else if (project.scriptType === "STATIC") {
     sentences = await prisma.projectSentence.findMany({
       where: { projectId: id },
       orderBy: { order: "asc" },
@@ -111,6 +117,8 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
               id: s.id,
               text: s.text,
               order: s.order,
+              audioId: s.audioId,
+              speed: s.speed,
               recordings: s.recordings.map((r: any) => ({
                 fileUrl: r.fileUrl,
                 expiresAt: r.expiresAt,

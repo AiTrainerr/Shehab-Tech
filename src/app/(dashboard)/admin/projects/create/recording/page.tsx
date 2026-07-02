@@ -229,6 +229,16 @@ export default function CreateRecordingProjectPage() {
                 <input name="targetFemales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 50" />
               </div>
 
+              <div className="space-y-2">
+                <label className="text-sm font-semibold">ZIP Folder Naming Rule</label>
+                <select name="zipNamingRule" defaultValue="FULL" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                  <option value="FULL">Full (G0001_Name_Age_Gender)</option>
+                  <option value="ANONYMOUS">Anonymous (G0001_Age_Gender) – بدون الاسم</option>
+                  <option value="SPEAKER_ONLY">Speaker ID Only (G0001) – الكود فقط</option>
+                </select>
+                <p className="text-xs text-foreground/50">يتحكم في اسم مجلد وملف ZIP عند التحميل.</p>
+              </div>
+
             </div>
           </div>
 

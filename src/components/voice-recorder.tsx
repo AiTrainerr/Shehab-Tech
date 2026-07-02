@@ -9,6 +9,8 @@ type Sentence = {
   id: string
   text: string
   order: number
+  audioId?: string
+  speed?: string
   recordings: { fileUrl: string; expiresAt: Date; status?: string; rejectionReason?: string | null }[]
 }
 
@@ -315,16 +317,6 @@ export function VoiceRecorder({
               <p className="text-2xl font-black text-primary">{totalRecorded}<span className="text-foreground/40 text-lg">/{totalSentences}</span></p>
               <p className="text-xs text-foreground/50">Completed</p>
             </div>
-            {allDone && (
-              <button
-                onClick={downloadZip}
-                disabled={downloading}
-                className="flex items-center gap-2 px-5 py-2.5 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 transition-all shadow-lg shadow-green-500/20 disabled:opacity-60"
-              >
-                {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                {downloading ? "Preparing..." : `Download ZIP (${totalRecorded})`}
-              </button>
-            )}
           </div>
         </div>
 
@@ -341,17 +333,40 @@ export function VoiceRecorder({
 
       {/* Active Sentence Visual Wizard Card */}
       <div className="glass p-6 sm:p-10 rounded-3xl border border-border relative overflow-hidden bg-card/40">
-        <div className="absolute top-4 right-6 text-sm font-bold text-foreground/40">
-          Sentence {currentIndex + 1} of {totalSentences}
+        <div className="absolute top-4 right-6 text-sm font-bold text-foreground/40 flex items-center gap-3">
+          {activeSentence.audioId && (
+            <span className="px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg">
+              ID: {activeSentence.audioId}
+            </span>
+          )}
+          <span>Sentence {currentIndex + 1} of {totalSentences}</span>
         </div>
 
         <div className="space-y-8 mt-4 text-center">
           {/* Large Sentence Text */}
           <div className="py-4">
             <p className="text-xs text-foreground/40 font-bold uppercase tracking-widest mb-2">Please read the following text:</p>
-            <h2 className="text-2xl sm:text-3xl font-black text-foreground leading-relaxed whitespace-pre-line">
+            <h2 className="text-2xl sm:text-4xl font-black text-foreground leading-relaxed whitespace-pre-line px-4" dir="auto">
               "{activeSentence.text}"
             </h2>
+            
+            {/* Speed Instructions */}
+            {activeSentence.speed && (
+              <div className="mt-6 flex justify-center">
+                <div className="px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-xl max-w-md mx-auto animate-pulse">
+                  <p className="text-red-600 font-extrabold text-lg flex items-center justify-center gap-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    ملاحظة هامة:
+                  </p>
+                  <p className="text-red-600 font-semibold mt-1">
+                    {activeSentence.speed.trim() === '慢' && "يُرجى قراءة هذه الجملة بسرعة بطيئة (أبطأ من العادي بقليل)."}
+                    {activeSentence.speed.trim() === '正常' && "يُرجى قراءة هذه الجملة بسرعة عادية (سرعة التحدث اليومية)."}
+                    {activeSentence.speed.trim() === '快' && "يُرجى قراءة هذه الجملة بسرعة (أسرع من العادي بقليل)."}
+                    {!['慢', '正常', '快'].includes(activeSentence.speed.trim()) && `يُرجى قراءة هذه الجملة بالسرعة المطلوبة: ${activeSentence.speed}`}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Locked / Uploaded Status Alert */}
@@ -636,34 +651,9 @@ export function VoiceRecorder({
               <div className="p-4 bg-green-500/20 rounded-xl text-green-600 font-bold flex items-center justify-center gap-2">
                 <Check className="w-5 h-5" /> Successfully submitted to Admin!
               </div>
-
-              <div className="p-6 glass border border-border rounded-xl">
-                <h4 className="font-bold mb-2">Need to send files via WhatsApp?</h4>
-                <p className="text-sm text-foreground/60 mb-4">
-                  Step 1: Download your files as a ZIP.<br/>
-                  Step 2: Send a message to the Admin via WhatsApp and attach the ZIP manually.
-                </p>
-
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <button
-                    onClick={() => {
-                      window.open(`/api/recordings/download?projectId=${projectId}`, '_blank')
-                    }}
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-card border border-border hover:border-primary/50 text-foreground font-bold rounded-xl transition-all"
-                  >
-                    <Download className="w-4 h-4" /> Download ZIP
-                  </button>
-
-                  <a
-                    href="https://wa.me/?text=Hello!%20I%20have%20finished%20my%20recordings%20for%20the%20project.%20I%20will%20attach%20the%20ZIP%20file%20below."
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] text-white font-bold rounded-xl hover:bg-[#20bd5a] transition-all"
-                  >
-                    <Send className="w-4 h-4" /> Share on WhatsApp
-                  </a>
-                </div>
-              </div>
+              <p className="text-sm text-foreground/60">
+                Your recordings have been submitted. The admin will review them shortly.
+              </p>
             </div>
           )}
         </div>
