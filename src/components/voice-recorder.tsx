@@ -202,6 +202,7 @@ export function VoiceRecorder({
         audio: {
           noiseSuppression: enableNoiseCancellation,
           echoCancellation: enableNoiseCancellation,
+          autoGainControl: false, // Prevents background noise (like AC) from being amplified during silence
         }
       })
       
@@ -306,7 +307,20 @@ export function VoiceRecorder({
         );
         const source = offlineCtx.createBufferSource();
         source.buffer = audioBuffer;
-        source.connect(offlineCtx.destination);
+        
+        if (enableNoiseCancellation) {
+          // Smart AC/Hum removal: High-pass filter at 85Hz completely kills low-frequency rumble
+          // without affecting human speech intelligibility.
+          const highpass = offlineCtx.createBiquadFilter();
+          highpass.type = "highpass";
+          highpass.frequency.value = 85; 
+          
+          source.connect(highpass);
+          highpass.connect(offlineCtx.destination);
+        } else {
+          source.connect(offlineCtx.destination);
+        }
+        
         source.start(0);
         
         const resampledBuffer = await offlineCtx.startRendering();
