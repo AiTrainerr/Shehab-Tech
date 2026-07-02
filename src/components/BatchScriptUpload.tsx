@@ -3,6 +3,7 @@
 import * as React from "react"
 import { UploadCloud, Loader2, CheckCircle, X, FileSpreadsheet, ChevronDown, ChevronUp } from "lucide-react"
 import Papa from "papaparse"
+import * as XLSX from "xlsx"
 import { uploadBatchScripts } from "@/app/actions/projects"
 import { useRouter } from "next/navigation"
 
@@ -32,48 +33,73 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
     const results: ParsedFile[] = []
     let pending = files.length
 
-    files.forEach((file) => {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (result) => {
-          const data = result.data as any[]
-          const mapped = data.map((row: any) => {
-            const keys = Object.keys(row)
-            return {
-              speakerCode: row["Speaker ID"] || row["录音人id"] || row[keys[0]] || "",
-              audioId:     row["Audio ID"]   || row["音频id"]   || row[keys[1]] || "",
-              text:        row["Text"]       || row["Script"]   || row["录音文本"] || row[keys[2]] || "",
-              speed:       row["Speed"]      || row["语速"]     || row[keys[3]] || "正常"
-            }
-          }).filter(item => item.speakerCode && item.text)
-
-          // Detect speakerCode from first row or from filename (strip extension)
-          const detectedSpeakerCode = mapped[0]?.speakerCode || file.name.replace(/\.[^/.]+$/, "")
-
-          results.push({
-            file,
-            speakerCode: detectedSpeakerCode,
-            rows: mapped,
-            error: mapped.length === 0 ? "Could not parse rows. Check column headers." : undefined
-          })
-
-          pending--
-          if (pending === 0) {
-            // Sort by speakerCode
-            results.sort((a, b) => a.speakerCode.localeCompare(b.speakerCode))
-            setParsedFiles(results)
-            setExpandedIndex(0)
-          }
-        },
-        error: (err: any) => {
-          results.push({ file, speakerCode: file.name, rows: [], error: err.message })
-          pending--
-          if (pending === 0) {
-            setParsedFiles(results)
-          }
+    const processMappedRows = (file: File, data: any[]) => {
+      const mapped = data.map((row: any) => {
+        const keys = Object.keys(row)
+        return {
+          speakerCode: row["Speaker ID"] || row["录音人id"] || row[keys[0]] || "",
+          audioId:     row["Audio ID"]   || row["音频id"]   || row[keys[1]] || "",
+          text:        row["Text"]       || row["Script"]   || row["录音文本"] || row[keys[2]] || "",
+          speed:       row["Speed"]      || row["语速"]     || row[keys[3]] || "正常"
         }
+      }).filter(item => item.speakerCode && item.text)
+
+      const detectedSpeakerCode = mapped[0]?.speakerCode || file.name.replace(/\.[^/.]+$/, "")
+      
+      results.push({
+        file,
+        speakerCode: detectedSpeakerCode,
+        rows: mapped,
+        error: mapped.length === 0 ? "Could not parse rows. Check column headers." : undefined
       })
+      checkDone()
+    }
+
+    const checkDone = () => {
+      pending--
+      if (pending === 0) {
+        results.sort((a, b) => a.speakerCode.localeCompare(b.speakerCode))
+        setParsedFiles(results)
+        setExpandedIndex(0)
+      }
+    }
+
+    files.forEach((file) => {
+      const isExcel = file.name.match(/\.(xlsx|xls)$/i);
+      if (isExcel) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const data = new Uint8Array(evt.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            processMappedRows(file, jsonData);
+          } catch (err: any) {
+            results.push({ file, speakerCode: file.name, rows: [], error: "Excel parsing error: " + err.message })
+            checkDone()
+          }
+        };
+        reader.onerror = () => {
+          results.push({ file, speakerCode: file.name, rows: [], error: "Failed to read Excel file." })
+          checkDone()
+        }
+        reader.readAsArrayBuffer(file);
+      } else {
+        // Assume CSV
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (result) => {
+            processMappedRows(file, result.data);
+          },
+          error: (err: any) => {
+            results.push({ file, speakerCode: file.name, rows: [], error: err.message })
+            checkDone()
+          }
+        })
+      }
     })
   }
 
@@ -115,14 +141,14 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
       {/* Header */}
       <div>
         <h3 className="text-xl font-black flex items-center gap-2">
-          <UploadCloud className="w-5 h-5 text-primary" /> رفع ملفات المتقدمين (Batch CSV)
+          <UploadCloud className="w-5 h-5 text-primary" /> رفع ملفات المتقدمين (Batch Excel/CSV)
         </h3>
         <p className="text-sm text-foreground/70 mt-1">
           ارفع جميع ملفاتك دفعةً واحدة. كل ملف = متقدم واحد (Speaker ID).
           عند الموافقة على أي متقدم، يُخصَّص له كوده تلقائياً.
         </p>
         <p className="text-xs text-foreground/50 mt-1">
-          <b>أعمدة CSV المطلوبة:</b> Speaker ID (录音人id) — Audio ID (音频id) — Text (录音文本) — Speed (语速)
+          <b>الأعمدة المطلوبة:</b> Speaker ID (录音人id) — Audio ID (音频id) — Text (录音文本) — Speed (语速)
         </p>
       </div>
 
@@ -131,10 +157,10 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
         <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/30 rounded-2xl cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all bg-background/50">
           <UploadCloud className="w-8 h-8 text-primary/40 mb-2" />
           <p className="text-sm font-bold text-foreground/60">اسحب الملفات هنا أو اضغط للاختيار</p>
-          <p className="text-xs text-foreground/40 mt-1">يدعم اختيار ملفات متعددة في آن واحد (.csv)</p>
+          <p className="text-xs text-foreground/40 mt-1">يدعم اختيار ملفات إكسل (XLSX, XLS) و CSV متعددة في آن واحد</p>
           <input
             type="file"
-            accept=".csv"
+            accept=".csv, .xlsx, .xls"
             multiple
             className="hidden"
             onChange={handleFilesChange}
