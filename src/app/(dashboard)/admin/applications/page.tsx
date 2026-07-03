@@ -39,7 +39,7 @@ export default async function AdminApplicationsPage() {
   const applicationsData = await prisma.application.findMany({
     where: whereClause,
     include: {
-      project: { select: { id: true, title: true, pricingModel: true, workflowType: true } },
+      project: { select: { id: true, title: true, pricingModel: true, workflowType: true, sentencesPerUser: true, scriptType: true } },
       user: { select: { id: true, firstName: true, lastName: true, email: true, ranking: true, verificationStatus: true } }
     },
     orderBy: { createdAt: "desc" }
@@ -65,11 +65,17 @@ export default async function AdminApplicationsPage() {
   
   const sentencesMap = new Map();
   const projectTotalSentences = new Map();
+  const projectBatchSize = new Map();
   
   sentencesCount.forEach(s => {
     sentencesMap.set(`${s.projectId}_${s.speakerCode || 'null'}`, s._count._all);
     const currentTotal = projectTotalSentences.get(s.projectId) || 0;
     projectTotalSentences.set(s.projectId, currentTotal + s._count._all);
+    
+    // For STATIC projects, the size of one batch (speakerCode group) is the expected total sentences per user
+    if (s.speakerCode && !projectBatchSize.has(s.projectId)) {
+      projectBatchSize.set(s.projectId, s._count._all);
+    }
   });
 
   const assignedSentencesCount = await prisma.projectSentence.groupBy({
@@ -125,6 +131,10 @@ export default async function AdminApplicationsPage() {
       const assignedCount = assignedMap.get(`${app.projectId}_${app.userId}`);
       if (assignedCount && assignedCount > 0) {
         totalSentences = assignedCount;
+      } else if (app.project.sentencesPerUser && app.project.sentencesPerUser > 0) {
+        totalSentences = app.project.sentencesPerUser;
+      } else if (projectBatchSize.has(app.projectId)) {
+        totalSentences = projectBatchSize.get(app.projectId);
       } else {
         totalSentences = projectTotalSentences.get(app.projectId) || 0;
       }
