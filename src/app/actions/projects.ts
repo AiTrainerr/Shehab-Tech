@@ -1063,3 +1063,36 @@ export async function deleteBatchCode(projectId: string, speakerCode: string) {
     return { success: false, error: "Failed to delete batch code" }
   }
 }
+
+export async function addTranscriptionTasks(projectId: string, tasks: { audioFilePath: string }[]) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    const currentUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+    
+    if (tasks.length > 0) {
+      const data = tasks.map(t => ({
+        projectId,
+        audioFilePath: t.audioFilePath,
+        speakerCount: 1,
+        status: "AVAILABLE"
+      }))
+      await prisma.transcriptionTask.createMany({ data })
+    }
+    
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath("/admin/projects/edit-transcription/" + projectId)
+    revalidatePath("/admin/projects")
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Add transcription tasks error:", error)
+    return { success: false, error: "Failed to add transcription tasks" }
+  }
+}
+

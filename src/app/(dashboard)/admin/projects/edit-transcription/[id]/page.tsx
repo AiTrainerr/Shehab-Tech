@@ -3,8 +3,8 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Save, Plus, Trash2, Globe, FileText, Headphones, X } from "lucide-react"
-import { updateProjectAction } from "@/app/actions/projects"
+import { ArrowLeft, Save, Plus, Trash2, Globe, FileText, Headphones, X, Loader2, UploadCloud, FileAudio } from "lucide-react"
+import { updateProjectAction, addTranscriptionTasks } from "@/app/actions/projects"
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia", "Democratic Republic of the Congo", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
@@ -21,6 +21,87 @@ export default function EditTranscriptionProjectPage({ params }: { params: Promi
   const [selectedCountries, setSelectedCountries] = React.useState<string[]>([])
   const [countrySearch, setCountrySearch] = React.useState("")
   const [showDropdown, setShowDropdown] = React.useState(false)
+
+  const [isUploading, setIsUploading] = React.useState(false)
+  const [uploadProgress, setUploadProgress] = React.useState(0)
+  const [uploadStatus, setUploadStatus] = React.useState("")
+
+  const handleAdditionalUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setIsUploading(true)
+    setUploadStatus("Starting upload...")
+    setUploadProgress(0)
+
+    try {
+      const audioFiles = Array.from(files)
+      const uploadedAudio: { url: string, name: string }[] = []
+
+      for (let i = 0; i < audioFiles.length; i++) {
+        const file = audioFiles[i]
+        const signRes = await fetch("/api/cloudinary/sign", { method: "POST" })
+        if (!signRes.ok) throw new Error("Failed to get upload signature")
+        const { timestamp, signature, folder, apiKey, cloudName } = await signRes.json()
+
+        const url = await new Promise<string>((resolve, reject) => {
+          const xhr = new XMLHttpRequest()
+          xhr.open("POST", `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, true)
+          
+          xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+              const fileProgress = event.loaded / event.total
+              const overallProgress = Math.round(((i + fileProgress) / audioFiles.length) * 100)
+              setUploadProgress(overallProgress)
+            }
+          }
+          
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              const res = JSON.parse(xhr.responseText)
+              if (res.secure_url) resolve(res.secure_url)
+              else reject(new Error("Failed to get secure URL from Cloudinary"))
+            } else {
+              reject(new Error(`Cloudinary upload failed with status ${xhr.status}`))
+            }
+          }
+          
+          xhr.onerror = () => reject(new Error("Network Error"))
+          
+          const uploadData = new FormData()
+          uploadData.append("file", file)
+          uploadData.append("api_key", apiKey)
+          uploadData.append("timestamp", timestamp.toString())
+          uploadData.append("signature", signature)
+          uploadData.append("folder", folder)
+          
+          xhr.send(uploadData)
+        })
+        
+        uploadedAudio.push({ url, name: file.name })
+      }
+
+      setUploadStatus("Saving to database...")
+      setUploadProgress(100)
+
+      const tasksToCreate = uploadedAudio.map(a => ({ audioFilePath: a.url }))
+      const res = await addTranscriptionTasks(id, tasksToCreate)
+      
+      if (res.success) {
+        alert("Files added successfully!")
+        router.refresh()
+      } else {
+        alert("Failed to save files: " + res.error)
+      }
+    } catch (err: any) {
+      console.error(err)
+      alert("Error uploading files: " + err.message)
+    } finally {
+      setIsUploading(false)
+      // Reset input
+      e.target.value = ''
+    }
+  }
 
   React.useEffect(() => {
     fetch(`/api/projects/${id}`)
@@ -94,16 +175,58 @@ export default function EditTranscriptionProjectPage({ params }: { params: Promi
         <ArrowLeft className="w-4 h-4" /> Back to Projects
       </Link>
 
-      <div className="mb-8 flex flex-wrap items-center gap-4 justify-between">
-        <div>
-          <h1 className="text-3xl font-black text-foreground flex items-center gap-3">
-            <FileText className="w-8 h-8 text-primary" /> Edit Transcription Project
-          </h1>
-          <p className="text-foreground/70">Update the transcription project configuration.</p>
+        <div className="mb-8 flex flex-wrap items-center gap-4 justify-between">
+          <div>
+            <h1 className="text-3xl font-black text-foreground flex items-center gap-3">
+              <FileText className="w-8 h-8 text-primary" /> Edit Transcription Project
+            </h1>
+            <p className="text-foreground/70">Update the transcription project configuration.</p>
+          </div>
         </div>
-      </div>
 
-      <form action={async (formData) => {
+        {isUploading && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="glass p-8 rounded-3xl border border-primary/20 shadow-2xl shadow-primary/10 max-w-sm w-full mx-4 flex flex-col items-center text-center">
+              <div className="relative mb-6">
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse"></div>
+                <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-2">Uploading Files...</h3>
+              <p className="text-sm text-foreground/70 mb-6">{uploadStatus}</p>
+              
+              <div className="w-full bg-background border border-border rounded-full h-3 overflow-hidden">
+                <div 
+                  className="bg-primary h-full transition-all duration-300 ease-out rounded-full"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+              <p className="text-xs font-bold text-primary mt-3">{uploadProgress}%</p>
+            </div>
+          </div>
+        )}
+
+        <section className="glass p-8 rounded-[32px] border border-border mb-8 bg-primary/5">
+          <div className="flex items-center gap-4 justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2"><UploadCloud className="w-5 h-5 text-primary" /> Add More Audio Files</h2>
+              <p className="text-sm text-foreground/70">Upload additional audio files to this project. Each file creates a new transcription task.</p>
+            </div>
+            <div className="relative">
+              <input 
+                type="file" 
+                accept="audio/*,video/*" 
+                multiple 
+                onChange={handleAdditionalUpload}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              />
+              <div className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl shadow-xl shadow-primary/30 hover:-translate-y-0.5 active:scale-95 transition-all pointer-events-none">
+                <Plus className="w-5 h-5" /> Select Files
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <form action={async (formData) => {
         try {
           formData.append("projectId", project.id)
           formData.append("reqCountry", JSON.stringify(selectedCountries))
