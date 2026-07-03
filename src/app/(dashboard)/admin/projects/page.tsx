@@ -29,9 +29,38 @@ export default async function AdminProjectsPage() {
     include: {
       _count: { select: { applications: true } },
       applications: {
-        where: { status: "ACCEPTED" }, // Or whatever status means "working on it"
-        include: { user: { select: { firstName: true, lastName: true } } }
+        where: { status: { in: ["ACCEPTED", "WORKING", "UNDER_REVIEW", "APPROVED", "PAID"] } },
+        include: { user: { select: { firstName: true, lastName: true, gender: true } } }
       }
+    }
+  })
+
+  // Get distinct files (speakerCodes) per project
+  const sentencesGroupBy = await prisma.projectSentence.groupBy({
+    by: ['projectId', 'speakerCode'],
+    _count: true
+  })
+  
+  const filesCountMap: Record<string, number> = {}
+  for (const group of sentencesGroupBy) {
+    if (group.speakerCode) {
+      filesCountMap[group.projectId] = (filesCountMap[group.projectId] || 0) + 1
+    }
+  }
+
+  const enrichedProjects = projects.map(p => {
+    let activeMales = 0
+    let activeFemales = 0
+    p.applications.forEach(app => {
+      if (app.user?.gender?.toUpperCase() === "MALE") activeMales++
+      else if (app.user?.gender?.toUpperCase() === "FEMALE") activeFemales++
+    })
+    
+    return {
+      ...p,
+      activeMales,
+      activeFemales,
+      uploadedFilesCount: filesCountMap[p.id] || 0
     }
   })
 
@@ -62,7 +91,7 @@ export default async function AdminProjectsPage() {
             )}
           </div>
         ) : (
-          <AdminProjectsClient initialProjects={projects} />
+          <AdminProjectsClient initialProjects={enrichedProjects} />
         )}
       </div>
     </main>

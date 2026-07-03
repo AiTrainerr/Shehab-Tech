@@ -112,7 +112,15 @@ export default async function AdminDashboard() {
     recentProjects = await prisma.project.findMany({
       select: {
         id: true, title: true, status: true,
-        _count: { select: { applications: true } }
+        targetMales: true, targetFemales: true, requiredParticipants: true,
+        _count: { select: { applications: true } },
+        applications: {
+          where: { status: { in: ["ACCEPTED", "WORKING", "UNDER_REVIEW", "APPROVED", "PAID"] } },
+          select: { user: { select: { gender: true } } }
+        },
+        sentences: {
+          select: { speakerCode: true }
+        }
       },
       take: 4,
       orderBy: { createdAt: "desc" }
@@ -259,7 +267,16 @@ export default async function AdminDashboard() {
                   )}
                 </div>
               ) : (
-                recentProjects.map((proj) => (
+                recentProjects.map((proj) => {
+                  let activeMales = 0
+                  let activeFemales = 0
+                  proj.applications?.forEach(app => {
+                    if (app.user?.gender?.toUpperCase() === "MALE") activeMales++
+                    else if (app.user?.gender?.toUpperCase() === "FEMALE") activeFemales++
+                  })
+                  const uniqueFiles = new Set(proj.sentences?.filter(s => s.speakerCode).map(s => s.speakerCode)).size
+
+                  return (
                   <div key={proj.id} className="p-4 bg-background rounded-xl border border-border">
                     <div className="flex justify-between items-center mb-2">
                       <h4 className="font-semibold text-sm truncate flex-1 mr-2">{proj.title}</h4>
@@ -267,9 +284,27 @@ export default async function AdminDashboard() {
                         {proj.status}
                       </span>
                     </div>
-                    <p className="text-xs text-foreground/60">{proj._count.applications} applicants</p>
+                    
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs">
+                      <div className="flex items-center gap-1.5 text-foreground/70">
+                        <Users className="w-3.5 h-3.5" /> 
+                        <span><b className="text-foreground">{proj._count.applications}</b> Total</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-foreground/70">
+                        <FileText className="w-3.5 h-3.5" /> 
+                        <span><b className="text-foreground">{uniqueFiles}</b>/<span className="opacity-70">{proj.requiredParticipants || 0}</span> Files</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-blue-500/80">
+                        <span className="w-2 h-2 rounded-full bg-blue-500/50"></span>
+                        <span><b className="text-blue-500">{activeMales}</b>/<span className="opacity-70">{proj.targetMales || 0}</span> M</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-pink-500/80">
+                        <span className="w-2 h-2 rounded-full bg-pink-500/50"></span>
+                        <span><b className="text-pink-500">{activeFemales}</b>/<span className="opacity-70">{proj.targetFemales || 0}</span> F</span>
+                      </div>
+                    </div>
                   </div>
-                ))
+                )})
               )}
             </div>
           </div>

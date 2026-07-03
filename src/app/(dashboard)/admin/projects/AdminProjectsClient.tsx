@@ -61,10 +61,29 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
           </div>
           <p className="text-foreground/70 text-sm mb-4 line-clamp-2">{project.description}</p>
           
-          <div className="flex flex-wrap gap-4 text-sm font-semibold text-foreground/60">
+          <div className="flex flex-wrap gap-4 text-sm font-semibold text-foreground/60 mb-4">
             <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {new Date(project.createdAt).toLocaleDateString()}</span>
-            <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {project._count.applications} Applicants</span>
+            <span className="flex items-center gap-1.5"><Users className="w-4 h-4" /> {project._count.applications} Total Applicants</span>
             <span className="flex items-center gap-1.5 text-primary">Price: ${Number(project.price).toFixed(2)}</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-background border border-border p-3 rounded-xl flex flex-col justify-center">
+              <span className="text-xs text-foreground/50 uppercase font-bold mb-1">Uploaded Files</span>
+              <span className="font-black text-lg">{project.uploadedFilesCount} <span className="text-sm font-normal text-foreground/50">/ {project.requiredParticipants || 0}</span></span>
+            </div>
+            <div className="bg-background border border-border p-3 rounded-xl flex flex-col justify-center">
+              <span className="text-xs text-foreground/50 uppercase font-bold mb-1">Remaining Files</span>
+              <span className="font-black text-lg text-primary">{Math.max(0, (project.requiredParticipants || 0) - project.uploadedFilesCount)}</span>
+            </div>
+            <div className="bg-blue-500/5 border border-blue-500/20 p-3 rounded-xl flex flex-col justify-center">
+              <span className="text-xs text-blue-500/70 uppercase font-bold mb-1">Males Assigned</span>
+              <span className="font-black text-lg text-blue-500">{project.activeMales || 0} <span className="text-sm font-normal opacity-50">/ {project.targetMales || 0}</span></span>
+            </div>
+            <div className="bg-pink-500/5 border border-pink-500/20 p-3 rounded-xl flex flex-col justify-center">
+              <span className="text-xs text-pink-500/70 uppercase font-bold mb-1">Females Assigned</span>
+              <span className="font-black text-lg text-pink-500">{project.activeFemales || 0} <span className="text-sm font-normal opacity-50">/ {project.targetFemales || 0}</span></span>
+            </div>
           </div>
         </div>
 
