@@ -503,6 +503,15 @@ export async function rejectApplication(applicationId: string, reason?: string) 
       }
     })
 
+    // ✅ Release the sentences assigned to this user so the file is available for someone else
+    await prisma.projectSentence.updateMany({
+      where: {
+        projectId: application.projectId,
+        assignedUserId: application.userId
+      },
+      data: { assignedUserId: null }
+    })
+
     // Delete the application completely
     await prisma.application.delete({
       where: { id: applicationId }
