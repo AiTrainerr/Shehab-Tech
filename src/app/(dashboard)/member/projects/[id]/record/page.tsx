@@ -40,11 +40,55 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
       include: { recordings: { where: { userId } } }
     })
   } else if (project.scriptType === "STATIC") {
-    sentences = await prisma.projectSentence.findMany({
-      where: { projectId: id },
-      orderBy: { order: "asc" },
-      include: { recordings: { where: { userId } } }
-    })
+    // Check if sentencesPerUser is defined to assign a unique slice per user
+    const perUser = project.sentencesPerUser || project.recordingDuration
+
+    if (perUser && perUser > 0) {
+      // Check if user already has assigned sentences (assignedUserId)
+      const existing = await prisma.projectSentence.findMany({
+        where: { projectId: id, assignedUserId: userId },
+        orderBy: { order: "asc" },
+        include: { recordings: { where: { userId } } }
+      })
+
+      if (existing.length > 0) {
+        sentences = existing
+      } else {
+        // Assign a unique slice: find unassigned sentences
+        const unassigned = await prisma.projectSentence.findMany({
+          where: { projectId: id, assignedUserId: null },
+          orderBy: { order: "asc" },
+          take: perUser
+        })
+
+        if (unassigned.length > 0) {
+          const ids = unassigned.map((s: any) => s.id)
+          await prisma.projectSentence.updateMany({
+            where: { id: { in: ids } },
+            data: { assignedUserId: userId }
+          })
+          sentences = await prisma.projectSentence.findMany({
+            where: { projectId: id, assignedUserId: userId },
+            orderBy: { order: "asc" },
+            include: { recordings: { where: { userId } } }
+          })
+        } else {
+          // All assigned already — fallback: just show their already-assigned
+          sentences = await prisma.projectSentence.findMany({
+            where: { projectId: id, assignedUserId: userId },
+            orderBy: { order: "asc" },
+            include: { recordings: { where: { userId } } }
+          })
+        }
+      }
+    } else {
+      // No perUser limit — show all (backwards compatible)
+      sentences = await prisma.projectSentence.findMany({
+        where: { projectId: id },
+        orderBy: { order: "asc" },
+        include: { recordings: { where: { userId } } }
+      })
+    }
   } else if (project.scriptType === "PRE_ASSIGNED") {
     sentences = await prisma.projectSentence.findMany({
       where: { projectId: id, assignedEmail: userObj.email },
@@ -70,7 +114,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
 
       if (unassigned.length > 0) {
         // Lock them to this user
-        const unassignedIds = unassigned.map(s => s.id)
+        const unassignedIds = unassigned.map((s: any) => s.id)
         await prisma.projectSentence.updateMany({
           where: { id: { in: unassignedIds } },
           data: { assignedUserId: userId }
