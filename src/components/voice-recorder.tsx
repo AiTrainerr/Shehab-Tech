@@ -197,12 +197,14 @@ export function VoiceRecorder({
     chunksRef.current = []
 
     try {
-      // Simplify constraints for max iOS compatibility. We handle resampling later anyway.
+      // Simplify constraints for max iOS compatibility, but enforce high quality like Easy Voice Recorder
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
-          noiseSuppression: enableNoiseCancellation,
-          echoCancellation: enableNoiseCancellation,
+          noiseSuppression: true, // Enforce hardware noise suppression
+          echoCancellation: true, // Enforce echo cancellation
           autoGainControl: false, // Prevents background noise (like AC) from being amplified during silence
+          sampleRate: sampleRate || 44100,
+          channelCount: channels === "STEREO" ? 2 : 1
         }
       })
       
