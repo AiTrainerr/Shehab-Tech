@@ -72,6 +72,19 @@ export default async function AdminApplicationsPage() {
     projectTotalSentences.set(s.projectId, currentTotal + s._count._all);
   });
 
+  const assignedSentencesCount = await prisma.projectSentence.groupBy({
+    by: ['projectId', 'assignedUserId'],
+    where: { projectId: { in: projectIds }, assignedUserId: { in: userIds, not: null } },
+    _count: { _all: true }
+  });
+  
+  const assignedMap = new Map();
+  assignedSentencesCount.forEach(s => {
+    if (s.assignedUserId) {
+      assignedMap.set(`${s.projectId}_${s.assignedUserId}`, s._count._all);
+    }
+  });
+
   const recordingsCounts = await prisma.$queryRaw<any[]>`
     SELECT r."userId", s."projectId", r.status, COUNT(r.id)::int as count
     FROM "VoiceRecording" r
@@ -109,7 +122,12 @@ export default async function AdminApplicationsPage() {
     if (app.speakerCode) {
       totalSentences = sentencesMap.get(`${app.projectId}_${app.speakerCode}`) || 0;
     } else {
-      totalSentences = projectTotalSentences.get(app.projectId) || 0;
+      const assignedCount = assignedMap.get(`${app.projectId}_${app.userId}`);
+      if (assignedCount && assignedCount > 0) {
+        totalSentences = assignedCount;
+      } else {
+        totalSentences = projectTotalSentences.get(app.projectId) || 0;
+      }
     }
     
     let reviewCategory = "WORKING";
