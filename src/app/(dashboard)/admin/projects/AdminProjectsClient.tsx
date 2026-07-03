@@ -74,7 +74,7 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
             </div>
             <div className="bg-background border border-border p-3 rounded-xl flex flex-col justify-center">
               <span className="text-xs text-foreground/50 uppercase font-bold mb-1">Remaining Files</span>
-              <span className="font-black text-lg text-primary">{Math.max(0, (project.requiredParticipants || 0) - project.uploadedFilesCount)}</span>
+              <span className="font-black text-lg text-primary">{Math.max(0, (project.uploadedFilesCount || 0) - ((project.activeMales || 0) + (project.activeFemales || 0)))}</span>
             </div>
             <div className="bg-blue-500/5 border border-blue-500/20 p-3 rounded-xl flex flex-col justify-center">
               <span className="text-xs text-blue-500/70 uppercase font-bold mb-1">Males Assigned</span>
