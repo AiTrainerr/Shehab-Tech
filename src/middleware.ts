@@ -30,6 +30,9 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // ✅ This call REFRESHES the session automatically if the access token has expired.
+  // The Supabase SSR client will use the refresh token to get a new access token
+  // and write it back to cookies via setAll above — keeping the user logged in.
   const { data: { user } } = await supabase.auth.getUser()
 
   // ─── DELETED ACCOUNT DETECTION ──────────────────────────────────────────
