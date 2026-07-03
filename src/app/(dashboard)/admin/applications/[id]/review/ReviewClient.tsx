@@ -152,16 +152,21 @@ export function ReviewClient({ application, sentences }: { application: any; sen
 
       {/* Sentences List */}
       <div className="space-y-3">
-        {sentences.map((s) => {
+        {sentences.map((s, index) => {
           const recording = s.recordings[0]
           if (!recording) {
             return (
-              <div key={s.id} className="glass p-5 rounded-2xl border border-border flex items-center gap-4 opacity-60">
+              <div key={s.id} className="glass p-5 rounded-2xl border border-border flex flex-col md:flex-row items-start md:items-center gap-4 opacity-60">
                 <div className="w-10 h-10 shrink-0 bg-border text-foreground/40 font-black rounded-xl flex items-center justify-center text-sm">
-                  {s.order}
+                  {index + 1}
                 </div>
-                <p className="flex-1 text-sm text-foreground/70">{s.text}</p>
-                <div className="flex items-center gap-2 text-xs text-yellow-500 bg-yellow-500/10 px-3 py-1.5 rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-foreground/70">{s.text}</p>
+                  {s.speakerCode && (
+                    <p className="text-xs text-foreground/40 mt-1">File: {s.speakerCode}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-yellow-500 bg-yellow-500/10 px-3 py-1.5 rounded-lg shrink-0">
                   <AlertTriangle className="w-3.5 h-3.5" /> Not recorded
                 </div>
               </div>
@@ -192,12 +197,15 @@ export function ReviewClient({ application, sentences }: { application: any; sen
                   isNeedReRecord ? "bg-yellow-500/20 text-yellow-600" :
                   "bg-primary/10 text-primary"
                 }`}>
-                  {s.order}
+                  {index + 1}
                 </div>
 
                 {/* Sentence Text + Play */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground mb-2 leading-relaxed">{s.text}</p>
+                  <p className="text-sm font-medium text-foreground mb-1 leading-relaxed">{s.text}</p>
+                  {s.speakerCode && (
+                    <p className="text-xs text-foreground/40 mb-2">File: {s.speakerCode}</p>
+                  )}
                   <audio
                     src={recording.fileUrl}
                     controls
