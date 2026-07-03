@@ -202,7 +202,7 @@ export function VoiceRecorder({
         audio: {
           noiseSuppression: true, // Enforce hardware noise suppression
           echoCancellation: true, // Enforce echo cancellation
-          autoGainControl: false, // Prevents background noise (like AC) from being amplified during silence
+          autoGainControl: true, // Enabled to fix low volume, might cause slight background hiss during silence
           sampleRate: sampleRate === 44100 ? 48000 : (sampleRate || 48000), // Enforce 48000Hz
           channelCount: channels === "STEREO" ? 2 : 1
         }
