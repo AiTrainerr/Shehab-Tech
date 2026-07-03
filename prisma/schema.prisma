@@ -149,6 +149,7 @@ model Project {
   workflowType           String  @default("MOD_ONLY") // MOD_ONLY, MOD_AND_QC
   outputFormat           String  @default("WORD") // WORD, EXCEL, JSON, SRT
   allowFreelancerDownload Boolean @default(false)
+  customFileNaming       String?
 
   skills          ProjectSkill[]
   applications    Application[]

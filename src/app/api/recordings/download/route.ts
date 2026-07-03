@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     // Get project settings
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { title: true, namingRule: true, audioFormat: true, zipNamingRule: true }
+      select: { title: true, namingRule: true, audioFormat: true, zipNamingRule: true, customFileNaming: true }
     })
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 })
 
@@ -169,8 +169,17 @@ export async function GET(request: NextRequest) {
           const ext = targetFormat.toLowerCase()
           let innerFilename = ""
           
-          // Priority: audioId from batch scripts > TEXT naming > SEQUENCE
-          if (sentence.audioId) {
+          // Priority: customFileNaming > audioId from batch scripts > TEXT naming > SEQUENCE
+          if (project.customFileNaming) {
+            let customName = project.customFileNaming
+            customName = customName.replace(/\[speakerCode\]/g, sequentialId)
+            customName = customName.replace(/\[audioId\]/g, sentence.audioId || "NA")
+            customName = customName.replace(/\[gender\]/g, genderForFolder)
+            customName = customName.replace(/\[age\]/g, ageFolderStr)
+            customName = customName.replace(/\[order\]/g, sentence.order.toString())
+            customName = customName.replace(/\[text\]/g, cleanFilename(sentence.text).slice(0, 30))
+            innerFilename = getUniqueFilename(cleanFilename(customName), ext)
+          } else if (sentence.audioId) {
             // Use the Audio ID from the batch script as the filename (e.g., N0001.wav)
             innerFilename = getUniqueFilename(sentence.audioId, ext)
           } else if (project.namingRule === "TEXT") {

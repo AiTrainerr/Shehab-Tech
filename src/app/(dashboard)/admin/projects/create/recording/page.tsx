@@ -21,6 +21,19 @@ export default function CreateRecordingProjectPage() {
   const [executionOption, setExecutionOption] = React.useState("INTERNAL")
   const [hasScript, setHasScript] = React.useState(true)
   const [scriptMode, setScriptMode] = React.useState("file")
+  
+  const [customNaming, setCustomNaming] = React.useState("")
+  const namingVariables = [
+    { label: "Speaker Code", value: "[speakerCode]" },
+    { label: "Audio ID (N001)", value: "[audioId]" },
+    { label: "Gender", value: "[gender]" },
+    { label: "Age", value: "[age]" },
+    { label: "Sentence Order", value: "[order]" },
+    { label: "Sentence Text", value: "[text]" }
+  ]
+  const appendVariable = (val: string) => {
+    setCustomNaming(prev => prev + (prev && !prev.endsWith('_') ? '_' : '') + val)
+  }
 
   const addCountry = (country: string) => {
     if (!selectedCountries.includes(country)) {
@@ -238,6 +251,34 @@ export default function CreateRecordingProjectPage() {
                   <option value="SPEAKER_ONLY">Speaker ID Only (G0001) – الكود فقط</option>
                 </select>
                 <p className="text-xs text-foreground/50">يتحكم في اسم مجلد وملف ZIP عند التحميل.</p>
+              </div>
+
+              <div className="space-y-3 md:col-span-2 p-4 bg-primary/5 rounded-xl border border-primary/20">
+                <label className="text-sm font-bold text-primary">Custom Audio File Naming Format (Optional)</label>
+                <p className="text-xs text-foreground/70 mb-2">Build your own audio file naming format. If left empty, default behavior is used.</p>
+                <input 
+                  type="text" 
+                  name="customFileNaming" 
+                  value={customNaming}
+                  onChange={(e) => setCustomNaming(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none font-mono text-sm" 
+                  placeholder="e.g. [speakerCode]_[gender]_[order]" 
+                />
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {namingVariables.map(v => (
+                    <button 
+                      key={v.value} 
+                      type="button" 
+                      onClick={() => appendVariable(v.value)}
+                      className="px-2 py-1 text-xs font-semibold bg-background border border-border rounded hover:bg-primary/10 hover:border-primary/50 transition-colors"
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                  <button type="button" onClick={() => setCustomNaming("")} className="px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded transition-colors ml-auto">
+                    Clear
+                  </button>
+                </div>
               </div>
               
               <div className="space-y-2">

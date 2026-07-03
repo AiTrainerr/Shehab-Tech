@@ -80,6 +80,7 @@ export async function createProjectAction(formData: FormData) {
     const timeLimitStr = formData.get("timeLimitHours") as string
     const timeLimitHours = timeLimitStr ? parseInt(timeLimitStr) : null
     const enableNoiseCancellation = formData.get("enableNoiseCancellation") === "true"
+    const customFileNaming = formData.get("customFileNaming") as string || null
 
     const project = await prisma.$transaction(async (tx) => {
       const proj = await tx.project.create({
@@ -108,6 +109,7 @@ export async function createProjectAction(formData: FormData) {
           sentencesPerUser,
           namingRule,
           zipNamingRule,
+          customFileNaming,
           timeLimitHours,
           enableNoiseCancellation,
           requiredParticipants,
@@ -602,6 +604,7 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     const timeLimitStr = formData.get("timeLimitHours") as string
     const timeLimitHours = timeLimitStr ? parseInt(timeLimitStr) : null
     const enableNoiseCancellation = formData.get("enableNoiseCancellation") === "true"
+    const customFileNaming = formData.get("customFileNaming") as string || null
 
     // Parse languages
     const langCount = parseInt(formData.get("langCount") as string) || 0
@@ -645,6 +648,7 @@ export async function updateProjectAction(projectId: string, formData: FormData)
           scriptType,
           namingRule,
           zipNamingRule,
+          customFileNaming,
           timeLimitHours,
           enableNoiseCancellation,
           requiredParticipants,
