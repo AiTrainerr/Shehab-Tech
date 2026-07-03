@@ -51,7 +51,7 @@ export default async function AdminProjectsPage() {
   const enrichedProjects = projects.map(p => {
     let activeMales = 0
     let activeFemales = 0
-    p.applications.forEach(app => {
+    p.applications.forEach((app: any) => {
       if (app.user?.gender?.toUpperCase() === "MALE") activeMales++
       else if (app.user?.gender?.toUpperCase() === "FEMALE") activeFemales++
     })

@@ -270,11 +270,11 @@ export default async function AdminDashboard() {
                 recentProjects.map((proj) => {
                   let activeMales = 0
                   let activeFemales = 0
-                  proj.applications?.forEach(app => {
+                  proj.applications?.forEach((app: any) => {
                     if (app.user?.gender?.toUpperCase() === "MALE") activeMales++
                     else if (app.user?.gender?.toUpperCase() === "FEMALE") activeFemales++
                   })
-                  const uniqueFiles = new Set(proj.sentences?.filter(s => s.speakerCode).map(s => s.speakerCode)).size
+                  const uniqueFiles = new Set(proj.sentences?.filter((s: any) => s.speakerCode).map((s: any) => s.speakerCode)).size
 
                   return (
                   <div key={proj.id} className="p-4 bg-background rounded-xl border border-border">
