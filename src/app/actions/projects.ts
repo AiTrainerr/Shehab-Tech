@@ -891,7 +891,7 @@ export async function uploadBatchScripts(projectId: string, data: { speakerCode:
       })
       let currentOrder = lastSentence?.order || 0
 
-      // Check for duplicate speaker codes
+      let filteredData = data;
       const incomingCodes = Array.from(new Set(data.map(item => item.speakerCode).filter(Boolean)));
       if (incomingCodes.length > 0) {
         const existingCodes = await tx.projectSentence.findMany({
@@ -904,13 +904,17 @@ export async function uploadBatchScripts(projectId: string, data: { speakerCode:
         });
         
         if (existingCodes.length > 0) {
-          const dupes = existingCodes.map(c => c.speakerCode).join(", ");
-          throw new Error(`الملفات التي تحمل الأكواد التالية موجودة بالفعل ومرفوعة مسبقاً: ${dupes} (يرجى إزالتها والمحاولة مرة أخرى)`);
+          const dupes = new Set(existingCodes.map(c => c.speakerCode));
+          filteredData = data.filter(item => !dupes.has(item.speakerCode));
         }
       }
 
+      if (filteredData.length === 0) {
+        return; // Nothing new to create
+      }
+
       // Create new sentences
-      const sentencesToCreate = data.map(item => {
+      const sentencesToCreate = filteredData.map(item => {
         currentOrder++
         return {
           projectId,
