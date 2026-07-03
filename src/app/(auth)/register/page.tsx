@@ -200,6 +200,7 @@ export default function RegisterPage() {
                       <option value="SA">Saudi Arabia</option>
                       <option value="AE">United Arab Emirates</option>
                       <option value="JO">Jordan</option>
+                      <option value="PS">Palestine</option>
                       <option value="LB">Lebanon</option>
                       <option value="DZ">Algeria</option>
                       <option value="MA">Morocco</option>
