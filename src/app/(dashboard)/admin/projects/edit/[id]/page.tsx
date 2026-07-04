@@ -27,6 +27,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   // Options toggles
   const [executionOption, setExecutionOption] = React.useState("INTERNAL")
   const [hasScript, setHasScript] = React.useState(true)
+  const [scriptType, setScriptType] = React.useState("STATIC")
   const [updateScript, setUpdateScript] = React.useState(false)
   const [scriptMode, setScriptMode] = React.useState("file")
   const [sentenceCount, setSentenceCount] = React.useState(0)
@@ -53,6 +54,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
         setLanguages(proj.languages || [])
         setExecutionOption(proj.executionOption || "INTERNAL")
         setHasScript(proj.hasScript !== false)
+        setScriptType(proj.scriptType || "STATIC")
         setSentenceCount(data.sentenceCount || 0)
         setCustomNaming(proj.customFileNaming || "")
 
@@ -141,6 +143,12 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           formData.append("reqCountry", selectedCountries.length > 0 ? JSON.stringify(selectedCountries) : "")
           formData.append("updateScript", updateScript.toString())
           formData.append("hasScript", hasScript.toString())
+          if (!formData.has("scriptType")) {
+            formData.append("scriptType", scriptType)
+          }
+          if (!formData.has("sentencesPerUser") && project.sentencesPerUser) {
+            formData.append("sentencesPerUser", project.sentencesPerUser.toString())
+          }
           if (customNaming) {
             formData.append("customFileNaming", customNaming)
           }
@@ -397,6 +405,47 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             )}
 
             <div className="space-y-4 bg-primary/5 p-5 border border-primary/20 rounded-2xl mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pb-4 border-b border-primary/10">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">Display Script to Freelancers?</label>
+                  <select
+                    value={hasScript.toString()}
+                    onChange={(e) => setHasScript(e.target.value === "true")}
+                    className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                  >
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                </div>
+
+                {hasScript && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">Script Type</label>
+                    <select name="scriptType" value={scriptType} onChange={(e) => setScriptType(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
+                      <option value="STATIC">Static script for all participants</option>
+                      <option value="DYNAMIC_POOL">Dynamic Pool (Auto-Chunking)</option>
+                      <option value="PRE_ASSIGNED">Pre-Assigned: Manual distribution via Email (Excel Upload)</option>
+                    </select>
+                  </div>
+                )}
+
+                {hasScript && scriptType === "DYNAMIC_POOL" && (
+                  <div className="space-y-2 md:col-span-2 bg-primary/5 p-4 rounded-xl border border-primary/20">
+                    <label className="text-sm font-semibold text-primary">Sentences Per User (Quota)</label>
+                    <p className="text-xs text-foreground/60 mb-2">How many sentences should each freelancer record from the total pool?</p>
+                    <input
+                      name="sentencesPerUser"
+                      type="number"
+                      min="1"
+                      defaultValue={project.sentencesPerUser || ""}
+                      className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
+                      placeholder="e.g. 80"
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -410,43 +459,20 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 </div>
               </label>
 
-              {updateScript && (
+              {updateScript && hasScript && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t border-primary/25">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold">Display Script to Freelancers?</label>
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-semibold">Upload Script Mode</label>
                     <select
-                      value={hasScript.toString()}
-                      onChange={(e) => setHasScript(e.target.value === "true")}
+                      value={scriptMode}
+                      onChange={(e) => setScriptMode(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
                     >
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
+                      <option value="file">Upload File (Excel, CSV, TXT)</option>
+                      <option value="manual">Manual Input</option>
                     </select>
+                    <input type="hidden" name="scriptMode" value={scriptMode} />
                   </div>
-
-                  {hasScript && (
-                    <>
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold">Script Type</label>
-                        <select name="scriptType" defaultValue={project.scriptType || "STATIC"} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                          <option value="STATIC">Static script for all participants</option>
-                          <option value="RANDOM">Random script from pool</option>
-                          <option value="CATEGORY">Custom category-based script</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-semibold">Upload Script Mode</label>
-                        <select
-                          value={scriptMode}
-                          onChange={(e) => setScriptMode(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
-                        >
-                          <option value="file">Upload File (Excel, CSV, TXT)</option>
-                          <option value="manual">Manual Input</option>
-                        </select>
-                        <input type="hidden" name="scriptMode" value={scriptMode} />
-                      </div>
 
                       {scriptMode === "file" ? (
                         <div className="space-y-2 md:col-span-2">

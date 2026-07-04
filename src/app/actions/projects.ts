@@ -599,6 +599,8 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     const requiredParticipants = targetMales + targetFemales
     const hasScript = formData.get("hasScript") === "true"
     const scriptType = formData.get("scriptType") as string || "STATIC"
+    const sentencesPerUserStr = formData.get("sentencesPerUser") as string
+    const sentencesPerUser = sentencesPerUserStr ? parseInt(sentencesPerUserStr) : null
     const namingRule = formData.get("namingRule") as string || "SEQUENCE"
     const zipNamingRule = formData.get("zipNamingRule") as string || "FULL"
     const timeLimitStr = formData.get("timeLimitHours") as string
@@ -646,6 +648,7 @@ export async function updateProjectAction(projectId: string, formData: FormData)
           maxDuration,
           hasScript,
           scriptType,
+          sentencesPerUser,
           namingRule,
           zipNamingRule,
           customFileNaming,
