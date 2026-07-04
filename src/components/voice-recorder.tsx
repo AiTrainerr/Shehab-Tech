@@ -200,10 +200,10 @@ export function VoiceRecorder({
       // Simplify constraints for max iOS compatibility, but enforce high quality like Easy Voice Recorder
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
-          noiseSuppression: true, // Enforce hardware noise suppression
-          echoCancellation: true, // Enforce echo cancellation
-          autoGainControl: true, // Enabled to fix low volume, might cause slight background hiss during silence
-          sampleRate: sampleRate === 44100 ? 48000 : (sampleRate || 48000), // Enforce 48000Hz
+          noiseSuppression: !!enableNoiseCancellation, // Only enable if strictly required by project setting, otherwise false (RAW)
+          echoCancellation: false, // Strict AI RAW requirement
+          autoGainControl: false, // Strict AI RAW requirement
+          sampleRate: sampleRate || 48000,
           channelCount: channels === "STEREO" ? 2 : 1
         }
       })
