@@ -115,8 +115,8 @@ export default async function AdminDashboard() {
         targetMales: true, targetFemales: true, requiredParticipants: true,
         _count: { select: { applications: true } },
         applications: {
-          where: { status: { in: ["ACCEPTED", "WORKING", "UNDER_REVIEW", "APPROVED", "PAID"] } },
-          select: { user: { select: { gender: true } } }
+          where: { status: { in: ["ACCEPTED", "WORKING", "UNDER_REVIEW", "APPROVED", "COMPLETED", "PAID"] } },
+          select: { status: true, user: { select: { gender: true } } }
         },
         sentences: {
           select: { speakerCode: true }
@@ -268,39 +268,50 @@ export default async function AdminDashboard() {
                 </div>
               ) : (
                 recentProjects.map((proj) => {
-                  let activeMales = 0
-                  let activeFemales = 0
+                  let workingMales = 0
+                  let workingFemales = 0
+                  let finishedMales = 0
+                  let finishedFemales = 0
+                  
                   proj.applications?.forEach((app: any) => {
-                    if (app.user?.gender?.toUpperCase() === "MALE") activeMales++
-                    else if (app.user?.gender?.toUpperCase() === "FEMALE") activeFemales++
+                    const g = app.user?.gender?.toUpperCase() || ""
+                    const isMale = g === "MALE" || g === "ذكر"
+                    const isFemale = g === "FEMALE" || g === "أنثى" || g === "انثى"
+
+                    if (["APPROVED", "COMPLETED", "PAID"].includes(app.status)) {
+                      if (isMale) finishedMales++
+                      else if (isFemale) finishedFemales++
+                    } else {
+                      if (isMale) workingMales++
+                      else if (isFemale) workingFemales++
+                    }
                   })
+
                   const uniqueFiles = new Set(proj.sentences?.filter((s: any) => s.speakerCode).map((s: any) => s.speakerCode)).size
+                  const totalActive = workingMales + workingFemales + finishedMales + finishedFemales
+                  const unassignedCount = Math.max(0, uniqueFiles - totalActive)
 
                   return (
                   <div key={proj.id} className="p-4 bg-background rounded-xl border border-border">
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center mb-3">
                       <h4 className="font-semibold text-sm truncate flex-1 mr-2">{proj.title}</h4>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded shrink-0 ${proj.status === "OPEN" ? "text-green-500 bg-green-500/10" : proj.status === "IN_PROGRESS" ? "text-yellow-500 bg-yellow-500/10" : "text-foreground/50 bg-foreground/5"}`}>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded shrink-0 uppercase tracking-wider ${proj.status === "OPEN" ? "text-green-500 bg-green-500/10" : proj.status === "IN_PROGRESS" ? "text-yellow-500 bg-yellow-500/10" : "text-foreground/50 bg-foreground/5"}`}>
                         {proj.status}
                       </span>
                     </div>
                     
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs">
-                      <div className="flex items-center gap-1.5 text-foreground/70">
-                        <Users className="w-3.5 h-3.5" /> 
-                        <span><b className="text-foreground">{proj._count.applications}</b> Total</span>
+                    <div className="flex flex-col gap-2.5 mt-2 text-xs">
+                      <div className="flex justify-between items-center text-foreground/70 border-b border-border/50 pb-1.5">
+                        <span className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" /> Total Files: <b className="text-foreground">{uniqueFiles}</b></span>
+                        <span className="text-primary font-bold">Unassigned: {unassignedCount}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-foreground/70">
-                        <FileText className="w-3.5 h-3.5" /> 
-                        <span><b className="text-foreground">{uniqueFiles}</b>/<span className="opacity-70">{proj.requiredParticipants || 0}</span> Files</span>
+                      <div className="flex justify-between items-center text-blue-500/80 bg-blue-500/5 p-2 rounded-lg border border-blue-500/10">
+                        <span className="font-semibold">Working: <b className="text-blue-500">{workingMales + workingFemales}</b></span>
+                        <span className="text-[10px] font-bold uppercase opacity-80">M:{workingMales} | F:{workingFemales}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-blue-500/80">
-                        <span className="w-2 h-2 rounded-full bg-blue-500/50"></span>
-                        <span><b className="text-blue-500">{activeMales}</b>/<span className="opacity-70">{proj.targetMales || 0}</span> M</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-pink-500/80">
-                        <span className="w-2 h-2 rounded-full bg-pink-500/50"></span>
-                        <span><b className="text-pink-500">{activeFemales}</b>/<span className="opacity-70">{proj.targetFemales || 0}</span> F</span>
+                      <div className="flex justify-between items-center text-green-600/80 bg-green-500/5 p-2 rounded-lg border border-green-500/10">
+                        <span className="font-semibold">Finished: <b className="text-green-600">{finishedMales + finishedFemales}</b></span>
+                        <span className="text-[10px] font-bold uppercase opacity-80">M:{finishedMales} | F:{finishedFemales}</span>
                       </div>
                     </div>
                   </div>
