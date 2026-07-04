@@ -87,7 +87,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
 
   const handleDownloadAll = async () => {
     // Only download completed/approved apps from the CURRENT filtered list
-    const toDownload = filtered.filter(app => ['APPROVED', 'COMPLETED', 'PAID'].includes(app.status));
+    const toDownload = filtered.filter(app => ['APPROVED', 'COMPLETED', 'PAID', 'FINAL_REVIEW'].includes(app.status));
     
     if (toDownload.length === 0) {
       alert("No approved or completed applications found in the current search/filter.");
@@ -129,7 +129,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
           onClick={handleDownloadAll}
           className="w-full sm:w-auto px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
         >
-          <FileText className="w-4 h-4" /> Download Approved/Completed ({filtered.filter(app => ['APPROVED', 'COMPLETED', 'PAID'].includes(app.status)).length})
+          <FileText className="w-4 h-4" /> Download Approved/Completed ({filtered.filter(app => ['APPROVED', 'COMPLETED', 'PAID', 'FINAL_REVIEW'].includes(app.status)).length})
         </button>
       </div>
 
