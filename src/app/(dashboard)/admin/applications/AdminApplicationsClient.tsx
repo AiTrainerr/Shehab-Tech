@@ -112,6 +112,47 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     }
   }
 
+  const stats = React.useMemo(() => {
+    const s = {
+      all: { m: 0, f: 0, total: 0 },
+      pending: { m: 0, f: 0, total: 0 },
+      working: { m: 0, f: 0, total: 0 },
+      completed: { m: 0, f: 0, total: 0 },
+      rejected: { m: 0, f: 0, total: 0 },
+    }
+
+    applications.forEach(a => {
+      if (projectFilter !== "ALL" && a.project.id !== projectFilter) return;
+
+      const g = a.user?.gender?.toUpperCase() || ""
+      const isMale = g === "MALE" || g === "ذكر"
+      const isFemale = g === "FEMALE" || g === "أنثى" || g === "انثى"
+
+      s.all.total++
+      if (isMale) s.all.m++
+      if (isFemale) s.all.f++
+
+      if (a.status === "PENDING") {
+        s.pending.total++
+        if (isMale) s.pending.m++
+        if (isFemale) s.pending.f++
+      } else if (a.status === "APPROVED" || a.status === "WORKING" || a.status === "ACCEPTED" || a.status === "UNDER_REVIEW") {
+        s.working.total++
+        if (isMale) s.working.m++
+        if (isFemale) s.working.f++
+      } else if (a.status === "COMPLETED" || a.status === "FINAL_REVIEW" || a.status === "PAID") {
+        s.completed.total++
+        if (isMale) s.completed.m++
+        if (isFemale) s.completed.f++
+      } else if (a.status === "REJECTED") {
+        s.rejected.total++
+        if (isMale) s.rejected.m++
+        if (isFemale) s.rejected.f++
+      }
+    })
+    return s
+  }, [applications, projectFilter])
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card p-4 rounded-2xl border border-border">
@@ -142,11 +183,11 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             onChange={(e) => setStatusFilter(e.target.value)}
             className="w-full bg-background border border-border rounded-xl px-4 py-2 outline-none focus:border-primary font-semibold"
           >
-            <option value="ALL">All Applicants</option>
-            <option value="PENDING">Pending Approval (Needs Action)</option>
-            <option value="APPROVED">Approved / Working</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="REJECTED">Rejected</option>
+            <option value="ALL">All Applicants ({stats.all.total}) - M: {stats.all.m} | F: {stats.all.f}</option>
+            <option value="PENDING">Pending Approval ({stats.pending.total}) - M: {stats.pending.m} | F: {stats.pending.f}</option>
+            <option value="APPROVED">Approved / Working ({stats.working.total}) - M: {stats.working.m} | F: {stats.working.f}</option>
+            <option value="COMPLETED">Completed ({stats.completed.total}) - M: {stats.completed.m} | F: {stats.completed.f}</option>
+            <option value="REJECTED">Rejected ({stats.rejected.total}) - M: {stats.rejected.m} | F: {stats.rejected.f}</option>
           </select>
         </div>
 
