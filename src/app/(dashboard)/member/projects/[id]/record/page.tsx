@@ -152,54 +152,6 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
               </div>
             </div>
           )}
-
-          <div className="mt-6 bg-red-500/5 border border-red-500/20 rounded-xl p-5">
-            <h3 className="text-red-500 font-bold flex items-center gap-2 mb-4 text-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-              تعليمات هامة جداً لتسجيل الأصوات (مشروع تدريب الذكاء الاصطناعي)
-            </h3>
-            
-            <div className="space-y-4 text-sm text-foreground/80 leading-relaxed font-medium">
-              <div>
-                <h4 className="font-bold text-foreground flex items-center gap-2 mb-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary"></span> 1. ممنوع أي معالجة صوتية بعد التسجيل:
-                </h4>
-                <ul className="list-disc list-inside ml-4 space-y-1 text-foreground/70">
-                  <li>ممنوع تطبيق Noise Reduction أو Noise Gate.</li>
-                  <li>ممنوع Normalization أو ضبط مستوى الصوت تلقائياً.</li>
-                  <li>ممنوع أي EQ أو فلاتر أو Compression.</li>
-                  <li className="text-red-500/80 font-bold">المطلوب هو الصوت الخام تماماً كما التقطه الميكروفون، حتى لو كان هناك ضوضاء خلفية بسيطة (هذا مطلوب فعلياً لتدريب الذكاء الاصطناعي).</li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-foreground flex items-center gap-2 mb-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary"></span> 2. التصدير المباشر:
-                </h4>
-                <ul className="list-disc list-inside ml-4 text-foreground/70">
-                  <li>يجب أن يتصدر الملف مباشرة بصيغة WAV (PCM) من برنامج التسجيل الأساسي.</li>
-                  <li>عدم استخدام أي برامج تحويل أو معالجة إضافية (مثل FFmpeg) إلا إذا كان التحويل لتغيير الصيغة فقط وبدون أي معالجة للصوت.</li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-foreground flex items-center gap-2 mb-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary"></span> 3. القص (Trimming) إن احتاج الأمر:
-                </h4>
-                <ul className="list-disc list-inside ml-4 space-y-1 text-foreground/70">
-                  <li>إذا احتجت حذف صمت زائد في البداية أو النهاية، يُترك هامش بسيط وطبيعي (ثانية أو ثانيتين).</li>
-                  <li>عدم اقتصاص الحدود بدقة شديدة لمحاولة إزالة كل الضوضاء المحيطة.</li>
-                </ul>
-              </div>
-
-              <div>
-                <h4 className="font-bold text-foreground flex items-center gap-2 mb-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary"></span> 4. الشفافية:
-                </h4>
-                <p className="ml-4 text-foreground/70">في حال احتجت لأي خطوة معالجة لسبب ضروري، <strong>يجب توضيحها لنا صراحة قبل التسليم</strong> حتى نتمكن من إبلاغ العميل بدقة بما تم تطبيقه على البيانات.</p>
-              </div>
-            </div>
-          </div>
         </div>
 
         {sentences.length > 0 ? (
