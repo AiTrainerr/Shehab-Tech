@@ -85,6 +85,33 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     return true;
   })
 
+  const handleDownloadAll = async () => {
+    // Only download completed/approved apps from the CURRENT filtered list
+    const toDownload = filtered.filter(app => ['APPROVED', 'COMPLETED', 'PAID'].includes(app.status));
+    
+    if (toDownload.length === 0) {
+      alert("No approved or completed applications found in the current search/filter.");
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to download ${toDownload.length} ZIP files? This will download them one by one to your computer.`)) return;
+
+    for (let i = 0; i < toDownload.length; i++) {
+      const app = toDownload[i];
+      const url = `/api/recordings/download?projectId=${app.project.id}&userId=${app.user.id}`;
+      
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = ""; // Filename is provided by the server
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // Wait 2 seconds between each download to prevent browser crashing or getting blocked
+      await new Promise(res => setTimeout(res, 2000));
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card p-4 rounded-2xl border border-border">
@@ -98,6 +125,12 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:border-primary outline-none"
           />
         </div>
+        <button 
+          onClick={handleDownloadAll}
+          className="w-full sm:w-auto px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+        >
+          <FileText className="w-4 h-4" /> Download Approved/Completed ({filtered.filter(app => ['APPROVED', 'COMPLETED', 'PAID'].includes(app.status)).length})
+        </button>
       </div>
 
 
