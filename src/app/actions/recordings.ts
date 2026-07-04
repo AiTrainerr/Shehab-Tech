@@ -388,7 +388,7 @@ export async function cleanupExpiredRecordings() {
     })
 
     for (const rec of expired) {
-      await deleteFromCloudinary(rec.publicId)
+      await deleteFromCloudinary(rec.publicId, rec.fileUrl)
       await prisma.voiceRecording.update({
         where: { id: rec.id },
         data: { movedToCloud: true }

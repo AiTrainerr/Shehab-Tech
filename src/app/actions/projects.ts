@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { uploadToSupabase } from "@/lib/storage"
 import * as XLSX from "xlsx"
 import { createNotification, createManyNotifications } from "@/app/actions/notifications"
+import { deleteFromCloudinary } from "@/lib/cloudinary"
 
 export async function createProjectAction(formData: FormData) {
   try {
@@ -498,10 +499,20 @@ export async function rejectApplication(applicationId: string, reason?: string) 
       select: { id: true }
     })
     
-    await prisma.voiceRecording.deleteMany({
+    const recordingsToDelete = await prisma.voiceRecording.findMany({
       where: {
         userId: application.userId,
         sentenceId: { in: projectSentences.map(s => s.id) }
+      }
+    })
+
+    for (const rec of recordingsToDelete) {
+      await deleteFromCloudinary(rec.publicId, rec.fileUrl)
+    }
+
+    await prisma.voiceRecording.deleteMany({
+      where: {
+        id: { in: recordingsToDelete.map(r => r.id) }
       }
     })
 

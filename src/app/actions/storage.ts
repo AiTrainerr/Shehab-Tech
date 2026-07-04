@@ -25,25 +25,29 @@ async function fetchCloudinaryUsage(cloudName: string, apiKey: string, apiSecret
 
 export async function getStorageStats() {
   try {
-    const [recordingsUsage, transcriptionsUsage] = await Promise.all([
-      fetchCloudinaryUsage(
-        process.env.CLOUDINARY_CLOUD_NAME!,
-        process.env.CLOUDINARY_API_KEY!,
-        process.env.CLOUDINARY_API_SECRET!
-      ),
-      fetchCloudinaryUsage(
-        process.env.CLOUDINARY_TRANSCRIPTION_CLOUD_NAME!,
-        process.env.CLOUDINARY_TRANSCRIPTION_API_KEY!,
-        process.env.CLOUDINARY_TRANSCRIPTION_API_SECRET!
-      ),
-    ])
+    let accounts: { cloudName: string, apiKey: string, apiSecret: string }[] = [];
+    if (process.env.CLOUDINARY_ACCOUNTS) {
+      accounts = JSON.parse(process.env.CLOUDINARY_ACCOUNTS);
+    } else {
+      accounts = [{
+        cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
+        apiKey: process.env.CLOUDINARY_API_KEY!,
+        apiSecret: process.env.CLOUDINARY_API_SECRET!
+      }];
+    }
 
-    const recordingsCreditsUsed = recordingsUsage?.credits?.usage || 0
-    const transcriptionsCreditsUsed = transcriptionsUsage?.credits?.usage || 0
+    let totalCreditsUsed = 0;
+    
+    await Promise.all(accounts.map(async (acc) => {
+      const usage = await fetchCloudinaryUsage(acc.cloudName, acc.apiKey, acc.apiSecret);
+      if (usage && usage.credits && usage.credits.usage) {
+        totalCreditsUsed += usage.credits.usage;
+      }
+    }));
 
-    // 1 Credit ≈ 1 GB
-    const recUsedBytes = recordingsCreditsUsed * 1024 * 1024 * 1024
-    const transUsedBytes = transcriptionsCreditsUsed * 1024 * 1024 * 1024
+    // Each free account has 25 Credits
+    const TOTAL_STORAGE_LIMIT_BYTES = accounts.length * 25 * 1024 * 1024 * 1024;
+    const recUsedBytes = totalCreditsUsed * 1024 * 1024 * 1024;
 
     return {
       recordings: {
@@ -53,10 +57,10 @@ export async function getStorageStats() {
         percentageUsed: (recUsedBytes / TOTAL_STORAGE_LIMIT_BYTES) * 100
       },
       transcriptions: {
-        totalBytes: TOTAL_STORAGE_LIMIT_BYTES,
-        usedBytes: transUsedBytes,
-        remainingBytes: Math.max(0, TOTAL_STORAGE_LIMIT_BYTES - transUsedBytes),
-        percentageUsed: (transUsedBytes / TOTAL_STORAGE_LIMIT_BYTES) * 100
+        totalBytes: 25 * 1024 * 1024 * 1024,
+        usedBytes: 0, // Mocked for now to avoid confusion, or can be separated if needed
+        remainingBytes: 25 * 1024 * 1024 * 1024,
+        percentageUsed: 0
       }
     }
   } catch (error) {
