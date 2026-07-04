@@ -50,13 +50,28 @@ export async function fetchCloudinaryUsage(cloudName: string, apiKey: string, ap
   }
 }
 
+export async function getCloudinaryAccountsFromDB(): Promise<CloudinaryAccount[]> {
+  try {
+    const { prisma } = await import("@/lib/prisma");
+    const setting = await prisma.systemSetting.findUnique({ where: { key: "CLOUDINARY_ACCOUNTS" } });
+    if (setting && setting.value) {
+      return JSON.parse(setting.value);
+    }
+  } catch (e) {
+    console.error("Failed to fetch CLOUDINARY_ACCOUNTS from DB", e);
+  }
+  return accounts; // Fallback to process.env accounts
+}
+
 export async function getActiveCloudinaryAccount(): Promise<CloudinaryAccount> {
-  if (accounts.length === 0) throw new Error("No Cloudinary accounts configured");
-  if (accounts.length === 1) return accounts[0];
+  const currentAccounts = await getCloudinaryAccountsFromDB();
+  
+  if (currentAccounts.length === 0) throw new Error("No Cloudinary accounts configured");
+  if (currentAccounts.length === 1) return currentAccounts[0];
 
   const LIMIT = 24.5 * 1024 * 1024 * 1024; // 24.5 GB limit per account (out of 25GB)
 
-  for (const acc of accounts) {
+  for (const acc of currentAccounts) {
     let usage = USAGE_CACHE.get(acc.cloudName);
     if (!usage || Date.now() > usage.expiresAt) {
       const data = await fetchCloudinaryUsage(acc.cloudName, acc.apiKey, acc.apiSecret);
@@ -72,7 +87,7 @@ export async function getActiveCloudinaryAccount(): Promise<CloudinaryAccount> {
   }
 
   // If all full, return the last one
-  return accounts[accounts.length - 1];
+  return currentAccounts[currentAccounts.length - 1];
 }
 
 export async function uploadAudioToCloudinary(
@@ -103,12 +118,13 @@ export async function uploadAudioToCloudinary(
 
 export async function deleteFromCloudinary(publicId: string, fileUrl?: string) {
   try {
-    let targetAccount = accounts[0];
+    const currentAccounts = await getCloudinaryAccountsFromDB();
+    let targetAccount = currentAccounts[0];
 
     if (fileUrl) {
       const match = fileUrl.match(/res\.cloudinary\.com\/([^\/]+)\//);
       if (match && match[1]) {
-        const found = accounts.find(a => a.cloudName === match[1]);
+        const found = currentAccounts.find(a => a.cloudName === match[1]);
         if (found) targetAccount = found;
       }
     }

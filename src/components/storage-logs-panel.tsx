@@ -3,6 +3,7 @@
 import * as React from "react"
 import { ShieldAlert, Trash2, BellRing, Database, Clock, Terminal, User, Globe } from "lucide-react"
 import { adminExecuteCleanup, checkAndTriggerStorageWarning } from "@/app/actions/storage"
+import { setSystemSetting } from "@/app/actions/settings"
 
 type AuditLogEntry = {
   id: string
@@ -29,16 +30,35 @@ type DualStorageStats = {
 interface StorageLogsPanelProps {
   initialStats: DualStorageStats
   initialLogs: AuditLogEntry[]
+  initialAccountsJson: string
 }
 
-export function StorageLogsPanel({ initialStats, initialLogs }: StorageLogsPanelProps) {
+export function StorageLogsPanel({ initialStats, initialLogs, initialAccountsJson }: StorageLogsPanelProps) {
   const [stats, setStats] = React.useState<DualStorageStats>(initialStats)
   const [logs, setLogs] = React.useState<AuditLogEntry[]>(initialLogs)
+  const [accountsJson, setAccountsJson] = React.useState(initialAccountsJson)
   const [loading, setLoading] = React.useState(false)
   const [showCleanupModal, setShowCleanupModal] = React.useState(false)
   const [cleanupReason, setCleanupReason] = React.useState("")
 
   const toGB = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(2)
+
+  const handleSaveAccounts = async () => {
+    try {
+      const parsed = JSON.parse(accountsJson)
+      if (!Array.isArray(parsed)) throw new Error("Must be a JSON array")
+      setLoading(true)
+      const res = await setSystemSetting("CLOUDINARY_ACCOUNTS", accountsJson)
+      setLoading(false)
+      if (res.success) {
+        alert("Cloudinary accounts saved successfully!")
+      } else {
+        alert(res.error || "Failed to save")
+      }
+    } catch (e: any) {
+      alert("Invalid JSON format: " + e.message)
+    }
+  }
 
   const handleTriggerWarning = async () => {
     setLoading(true)
@@ -69,6 +89,29 @@ export function StorageLogsPanel({ initialStats, initialLogs }: StorageLogsPanel
 
   return (
     <div className="space-y-8">
+      {/* Cloudinary Accounts Pool */}
+      <div className="glass p-6 rounded-2xl border border-border">
+        <h2 className="text-xl font-bold flex items-center gap-2 mb-4">
+          <Database className="w-5 h-5 text-primary" /> Cloudinary Storage Pool (Multi-Account Failover)
+        </h2>
+        <p className="text-sm text-foreground/70 mb-4">
+          Paste the JSON array of Cloudinary accounts here. The system will automatically rotate between them to balance storage limits.
+        </p>
+        <textarea
+          value={accountsJson}
+          onChange={(e) => setAccountsJson(e.target.value)}
+          className="w-full h-32 p-4 rounded-xl bg-background border border-border outline-none focus:border-primary font-mono text-sm mb-4"
+          placeholder='[{"cloudName":"...", "apiKey":"...", "apiSecret":"..."}]'
+        />
+        <button
+          onClick={handleSaveAccounts}
+          disabled={loading}
+          className="px-6 py-2.5 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/95 transition-all text-sm disabled:opacity-50"
+        >
+          {loading ? "Saving..." : "Save Accounts Configuration"}
+        </button>
+      </div>
+
       {/* Storage Gauges Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         

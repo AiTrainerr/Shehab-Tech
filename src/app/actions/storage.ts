@@ -22,19 +22,11 @@ async function fetchCloudinaryUsage(cloudName: string, apiKey: string, apiSecret
     return null
   }
 }
+import { getCloudinaryAccountsFromDB } from "@/lib/cloudinary"
 
 export async function getStorageStats() {
   try {
-    let accounts: { cloudName: string, apiKey: string, apiSecret: string }[] = [];
-    if (process.env.CLOUDINARY_ACCOUNTS) {
-      accounts = JSON.parse(process.env.CLOUDINARY_ACCOUNTS);
-    } else {
-      accounts = [{
-        cloudName: process.env.CLOUDINARY_CLOUD_NAME!,
-        apiKey: process.env.CLOUDINARY_API_KEY!,
-        apiSecret: process.env.CLOUDINARY_API_SECRET!
-      }];
-    }
+    const accounts = await getCloudinaryAccountsFromDB();
 
     let totalCreditsUsed = 0;
     

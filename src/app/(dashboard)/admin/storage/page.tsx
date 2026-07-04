@@ -4,12 +4,14 @@ import { ArrowLeft } from "lucide-react"
 import { getStorageStats } from "@/app/actions/storage"
 import { getAuditLogs } from "@/app/actions/audit"
 import { StorageLogsPanel } from "@/components/storage-logs-panel"
+import { getSystemSetting } from "@/app/actions/settings"
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminStoragePage() {
   const stats = await getStorageStats()
   const logs = await getAuditLogs()
+  const initialAccountsJson = await getSystemSetting("CLOUDINARY_ACCOUNTS") || "[]"
 
   return (
     <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
@@ -24,7 +26,7 @@ export default async function AdminStoragePage() {
           </p>
         </div>
 
-        <StorageLogsPanel initialStats={stats} initialLogs={logs} />
+        <StorageLogsPanel initialStats={stats} initialLogs={logs} initialAccountsJson={initialAccountsJson} />
       </div>
     </div>
   )
