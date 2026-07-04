@@ -67,22 +67,32 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
             <span className="flex items-center gap-1.5 text-primary">Price: ${Number(project.price).toFixed(2)}</span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Total Files */}
             <div className="bg-background border border-border p-3 rounded-xl flex flex-col justify-center">
-              <span className="text-xs text-foreground/50 uppercase font-bold mb-1">Uploaded Files</span>
+              <span className="text-xs text-foreground/50 uppercase font-bold mb-1">Total Files</span>
               <span className="font-black text-lg">{project.uploadedFilesCount} <span className="text-sm font-normal text-foreground/50">/ {project.requiredParticipants || 0}</span></span>
             </div>
+            {/* Unassigned */}
             <div className="bg-background border border-border p-3 rounded-xl flex flex-col justify-center">
-              <span className="text-xs text-foreground/50 uppercase font-bold mb-1">Remaining Files</span>
-              <span className="font-black text-lg text-primary">{Math.max(0, (project.uploadedFilesCount || 0) - ((project.activeMales || 0) + (project.activeFemales || 0)))}</span>
+              <span className="text-xs text-foreground/50 uppercase font-bold mb-1">Not Claimed (Unassigned)</span>
+              <span className="font-black text-lg text-primary">{project.unassignedCount}</span>
             </div>
+            {/* Working */}
             <div className="bg-blue-500/5 border border-blue-500/20 p-3 rounded-xl flex flex-col justify-center">
-              <span className="text-xs text-blue-500/70 uppercase font-bold mb-1">Males Assigned</span>
-              <span className="font-black text-lg text-blue-500">{project.activeMales || 0} <span className="text-sm font-normal opacity-50">/ {project.targetMales || 0}</span></span>
+              <span className="text-xs text-blue-500/70 uppercase font-bold mb-1">Working (In Progress)</span>
+              <div className="flex items-baseline gap-2">
+                <span className="font-black text-lg text-blue-500">{project.workingMales + project.workingFemales}</span>
+                <span className="text-[10px] font-bold text-blue-500/60 uppercase">M: {project.workingMales} | F: {project.workingFemales}</span>
+              </div>
             </div>
-            <div className="bg-pink-500/5 border border-pink-500/20 p-3 rounded-xl flex flex-col justify-center">
-              <span className="text-xs text-pink-500/70 uppercase font-bold mb-1">Females Assigned</span>
-              <span className="font-black text-lg text-pink-500">{project.activeFemales || 0} <span className="text-sm font-normal opacity-50">/ {project.targetFemales || 0}</span></span>
+            {/* Finished */}
+            <div className="bg-green-500/5 border border-green-500/20 p-3 rounded-xl flex flex-col justify-center">
+              <span className="text-xs text-green-600/70 uppercase font-bold mb-1">Finished (Completed)</span>
+              <div className="flex items-baseline gap-2">
+                <span className="font-black text-lg text-green-600">{project.finishedMales + project.finishedFemales}</span>
+                <span className="text-[10px] font-bold text-green-600/60 uppercase">M: {project.finishedMales} | F: {project.finishedFemales}</span>
+              </div>
             </div>
           </div>
         </div>

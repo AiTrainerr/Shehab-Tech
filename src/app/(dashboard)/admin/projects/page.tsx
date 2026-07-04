@@ -49,18 +49,38 @@ export default async function AdminProjectsPage() {
   }
 
   const enrichedProjects = projects.map(p => {
-    let activeMales = 0
-    let activeFemales = 0
+    let workingMales = 0
+    let workingFemales = 0
+    let finishedMales = 0
+    let finishedFemales = 0
+
     p.applications.forEach((app: any) => {
-      if (app.user?.gender?.toUpperCase() === "MALE") activeMales++
-      else if (app.user?.gender?.toUpperCase() === "FEMALE") activeFemales++
+      const g = app.user?.gender?.toUpperCase() || ""
+      const isMale = g === "MALE" || g === "ذكر"
+      const isFemale = g === "FEMALE" || g === "أنثى" || g === "انثى"
+
+      if (["APPROVED", "COMPLETED", "PAID"].includes(app.status)) {
+        if (isMale) finishedMales++
+        else if (isFemale) finishedFemales++
+      } else {
+        if (isMale) workingMales++
+        else if (isFemale) workingFemales++
+      }
     })
+
+    const totalActive = workingMales + workingFemales + finishedMales + finishedFemales
+    const uploadedFilesCount = filesCountMap[p.id] || 0
+    const unassignedCount = Math.max(0, uploadedFilesCount - totalActive)
     
     return {
       ...p,
-      activeMales,
-      activeFemales,
-      uploadedFilesCount: filesCountMap[p.id] || 0
+      workingMales,
+      workingFemales,
+      finishedMales,
+      finishedFemales,
+      totalActive,
+      uploadedFilesCount,
+      unassignedCount
     }
   })
 
