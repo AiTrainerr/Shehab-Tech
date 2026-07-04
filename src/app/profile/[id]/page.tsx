@@ -160,6 +160,33 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
             </h3>
             
             <div className="grid md:grid-cols-2 gap-8">
+              {/* Contact Info (Only for Admin) */}
+              <div className="space-y-4 md:col-span-2">
+                <h4 className="font-semibold text-foreground/80 border-b border-orange-500/10 pb-2">Admin Only: Contact & Personal Details</h4>
+                <div className="flex flex-wrap gap-6 text-sm">
+                  <div className="space-y-1">
+                    <span className="text-foreground/50 text-xs uppercase font-bold tracking-wider">Email</span>
+                    <p className="font-semibold">{user.email}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-foreground/50 text-xs uppercase font-bold tracking-wider">Phone</span>
+                    <p className="font-semibold text-primary">{user.phone || "Not provided"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-foreground/50 text-xs uppercase font-bold tracking-wider">WhatsApp</span>
+                    <p className="font-semibold text-green-500">{user.whatsapp || "Not provided"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-foreground/50 text-xs uppercase font-bold tracking-wider">Gender</span>
+                    <p className="font-semibold">{user.gender || "Not provided"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-foreground/50 text-xs uppercase font-bold tracking-wider">Age</span>
+                    <p className="font-semibold">{user.age || "Not provided"}</p>
+                  </div>
+                </div>
+              </div>
+
               {/* Documents */}
               <div className="space-y-4">
                 <h4 className="font-semibold text-foreground/80">Submitted Documents</h4>

@@ -40,7 +40,7 @@ export default async function AdminApplicationsPage() {
     where: whereClause,
     include: {
       project: { select: { id: true, title: true, pricingModel: true, workflowType: true, sentencesPerUser: true, scriptType: true } },
-      user: { select: { id: true, firstName: true, lastName: true, email: true, ranking: true, verificationStatus: true } }
+      user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, gender: true, ranking: true, verificationStatus: true } }
     },
     orderBy: { createdAt: "desc" }
   })

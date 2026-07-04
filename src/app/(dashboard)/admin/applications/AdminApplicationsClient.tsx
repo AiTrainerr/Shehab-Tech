@@ -20,7 +20,7 @@ interface Application {
   proofUrl?: string | null
   projectRole?: string
   project: { id: string; title: string; pricingModel: string; workflowType?: string }
-  user: { id: string; firstName: string; lastName: string; email: string; ranking: string; verificationStatus: string }
+  user: { id: string; firstName: string; lastName: string; email: string; phone?: string | null; gender?: string | null; ranking: string; verificationStatus: string }
 }
 
 type TabType = "ALL" | "READY_FIRST" | "READY_FIXED" | "NEEDS_FIX" | "WORKING" | "COMPLETED";
@@ -282,9 +282,13 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg shrink-0">
                   {app.user.firstName[0]}
                 </div>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="font-bold text-sm truncate">{app.user.firstName} {app.user.lastName}</p>
-                  <p className="text-xs text-foreground/50 truncate">{app.user.email}</p>
+                  <div className="flex flex-col mt-0.5 space-y-0.5">
+                    <p className="text-[11px] text-foreground/50 truncate"><span className="opacity-70">Email:</span> {app.user.email}</p>
+                    <p className="text-[11px] text-foreground/50 truncate"><span className="opacity-70">Phone:</span> {app.user.phone || "N/A"}</p>
+                    <p className="text-[11px] text-foreground/50 truncate"><span className="opacity-70">Gender:</span> {app.user.gender || "N/A"}</p>
+                  </div>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
