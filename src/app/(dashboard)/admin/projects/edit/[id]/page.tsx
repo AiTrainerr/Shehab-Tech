@@ -486,8 +486,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                           <textarea name="manualScriptText" className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none" placeholder="Sentence 1&#10;Sentence 2..." required />
                         </div>
                       )}
-                    </>
-                  )}
                 </div>
               )}
             </div>
