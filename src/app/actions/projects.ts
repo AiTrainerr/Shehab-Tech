@@ -403,70 +403,61 @@ export async function approveApplication(applicationId: string) {
 
     // We assign a speaker code as soon as they are ACCEPTED to start working
     if (newStatus === "ACCEPTED" && !speakerCode) {
-      // 1. Check if the project uses batch scripts with speaker codes
-      const batchSentences = await prisma.projectSentence.findMany({
-        where: { projectId: currentApp.projectId, speakerCode: { not: null } },
-        select: { speakerCode: true },
-        distinct: ['speakerCode']
-      });
+      speakerCode = await prisma.$transaction(async (tx) => {
+        // Lock the project row to serialize parallel approvals
+        await tx.$executeRaw`SELECT id FROM "Project" WHERE id = ${currentApp.projectId} FOR UPDATE`;
 
-      if (batchSentences.length > 0) {
-        // Find an unassigned speakerCode from the uploaded batch scripts
-        const allBatchCodes = batchSentences.map(s => s.speakerCode as string);
-        
-        // Find all speakerCodes already assigned to APPROVED applications in this project
-        const assignedApps = await prisma.application.findMany({
-          where: { 
-            projectId: currentApp.projectId,
-            speakerCode: { not: null }
-          },
-          select: { speakerCode: true }
-        });
-        
-        // Also find speakerCodes that are currently locked by users in ProjectSentence
-        const assignedSentences = await prisma.projectSentence.findMany({
-          where: {
-            projectId: currentApp.projectId,
-            assignedUserId: { not: null },
-            speakerCode: { not: null }
-          },
-          select: { speakerCode: true }
+        const batchSentences = await tx.projectSentence.findMany({
+          where: { projectId: currentApp.projectId, speakerCode: { not: null } },
+          select: { speakerCode: true },
+          distinct: ['speakerCode']
         });
 
-        const assignedCodes = [
-          ...assignedApps.map(a => a.speakerCode as string),
-          ...assignedSentences.map(s => s.speakerCode as string)
-        ];
-        
-        // Pick the first available code
-        const availableCode = allBatchCodes.find(code => !assignedCodes.includes(code));
-        
-        if (availableCode) {
-          speakerCode = availableCode;
+        if (batchSentences.length > 0) {
+          const allBatchCodes = batchSentences.map(s => s.speakerCode);
+          const assignedApps = await tx.application.findMany({
+            where: {
+              projectId: currentApp.projectId,
+              speakerCode: { not: null }
+            },
+            select: { speakerCode: true }
+          });
+
+          const assignedSentences = await tx.projectSentence.findMany({
+            where: {
+              projectId: currentApp.projectId,
+              assignedUserId: { not: null },
+              speakerCode: { not: null }
+            },
+            select: { speakerCode: true }
+          });
+
+          const assignedCodes = [
+            ...assignedApps.map(a => a.speakerCode),
+            ...assignedSentences.map(s => s.speakerCode)
+          ];
+
+          const availableCode = allBatchCodes.find(code => !assignedCodes.includes(code));
+          return availableCode || `NO_CODE_AVAILABLE_TEMP_${Date.now()}`;
         } else {
-          // Fallback if all batch codes are exhausted (should rarely happen if admin uploaded enough)
-          speakerCode = `NO_CODE_AVAILABLE_TEMP_${Date.now()}`;
-        }
-      } else {
-        // Legacy sequential generation fallback if no batch scripts exist
-        const lastApp = await prisma.application.findFirst({
-          where: {
-            projectId: currentApp.projectId,
-            speakerCode: { not: null }
-          },
-          orderBy: { speakerCode: 'desc' }
-        });
-        
-        let nextNumber = 1;
-        if (lastApp && lastApp.speakerCode) {
-          const match = lastApp.speakerCode.match(/G(\d+)/);
-          if (match) {
-            nextNumber = parseInt(match[1]) + 1;
+          const lastApp = await tx.application.findFirst({
+            where: {
+              projectId: currentApp.projectId,
+              speakerCode: { not: null }
+            },
+            orderBy: { speakerCode: 'desc' }
+          });
+
+          let nextNumber = 1;
+          if (lastApp && lastApp.speakerCode) {
+            const match = lastApp.speakerCode.match(/G(\d+)/);
+            if (match) {
+              nextNumber = parseInt(match[1]) + 1;
+            }
           }
+          return `G${nextNumber.toString().padStart(4, '0')}`;
         }
-        
-        speakerCode = `G${nextNumber.toString().padStart(4, '0')}`;
-      }
+      });
     }
 
     const application = await prisma.application.update({
