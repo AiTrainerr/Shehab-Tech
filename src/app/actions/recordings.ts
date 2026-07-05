@@ -178,13 +178,25 @@ export async function uploadVoiceRecording(
     const folderName = `shehab-tech/recordings/${user.id}_${dbUser.firstName}_${dbUser.lastName}_${ageStr}_${genderStr}`
     
     // Extract correct extension from MIME type to help Cloudinary parse it
-    let ext = "webm"
+    // IMPORTANT: We use 'weba' instead of 'webm' because 'webm' triggers Cloudinary's strict video validation
+    // which fails for audio-only WebM files from Android browsers.
+    let ext = "weba"
     if (audioFile.type.includes("mp4")) ext = "m4a"
     else if (audioFile.type.includes("wav")) ext = "wav"
     else if (audioFile.type.includes("ogg")) ext = "ogg"
     
     // File name: FirstName_LastName_Sentence_Order.ext
     const filename = `${dbUser.firstName}_${dbUser.lastName}_Sentence_${sentence.order}.${ext}`
+
+    // Check if recording already exists to prevent Cloudinary storage leaks
+    const existingRecording = await prisma.voiceRecording.findUnique({
+      where: { sentenceId_userId: { sentenceId, userId: user.id } },
+      select: { publicId: true, fileUrl: true }
+    });
+
+    if (existingRecording && existingRecording.publicId) {
+      await deleteFromCloudinary(existingRecording.publicId, existingRecording.fileUrl);
+    }
 
     const { url, publicId } = await uploadAudioToCloudinary(buffer, filename, folderName)
 
