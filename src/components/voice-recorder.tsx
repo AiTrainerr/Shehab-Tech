@@ -717,11 +717,7 @@ export function VoiceRecorder({
 
                 {!isLocked && (
                   <button
-                    onClick={() => {
-                      if (confirm("Are you sure you want to re-record this sentence? Your old recording will be overwritten upon upload.")) {
-                        startRecording(activeSentence.id)
-                      }
-                    }}
+                    onClick={() => startRecording(activeSentence.id)}
                     className="w-full py-3 border border-dashed border-red-500/40 text-red-500 font-bold rounded-xl hover:bg-red-500/5 transition-colors flex items-center justify-center gap-2"
                   >
                     <RotateCcw className="w-4 h-4" /> Re-record
