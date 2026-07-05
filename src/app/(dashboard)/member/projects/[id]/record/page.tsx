@@ -36,7 +36,18 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
   if (application.speakerCode) {
     // Speaker-code based: user already has a dedicated speaker code
     
-    // Ensure the sentences are locked to this user
+    // Safety Check: If the user was previously assigned to a DIFFERENT speakerCode, 
+    // release those old sentences to prevent locking mismatches.
+    await prisma.projectSentence.updateMany({
+      where: { 
+        projectId: id, 
+        assignedUserId: userId,
+        speakerCode: { not: application.speakerCode }
+      },
+      data: { assignedUserId: null }
+    })
+
+    // Ensure the new sentences are locked to this user
     await prisma.projectSentence.updateMany({
       where: { projectId: id, speakerCode: application.speakerCode, assignedUserId: null },
       data: { assignedUserId: userId }
