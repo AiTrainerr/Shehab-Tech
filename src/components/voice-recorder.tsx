@@ -1,9 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { Mic, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2, ShieldAlert, ChevronLeft, ChevronRight, UploadCloud, Volume2, Lock, X } from "lucide-react"
+import { Mic, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2, ShieldAlert, ChevronLeft, ChevronRight, UploadCloud, Volume2, Lock, X, Send } from "lucide-react"
+// @ts-ignore
+import fixWebmDuration from "fix-webm-duration"
 import { uploadVoiceRecording, submitAllRecordings, generateProjectZipUrl } from "@/app/actions/recordings"
-import { Send } from "lucide-react"
 
 type Sentence = {
   id: string
@@ -253,10 +254,22 @@ export function VoiceRecorder({
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
 
         const rawBlob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/mp4" })
-        const url = URL.createObjectURL(rawBlob)
-        setLocalAudioBlob(rawBlob)
-        setLocalAudioUrl(url)
-        setRecordingId(null) // State transitions directly from Recording -> Review
+        const durationMs = recordingTime * 1000;
+        
+        // Fix WebM duration for Android/Chrome to prevent Cloudinary upload rejection
+        if (rawBlob.type.includes("webm") && durationMs > 0) {
+          fixWebmDuration(rawBlob, durationMs, (fixedBlob: Blob) => {
+            const url = URL.createObjectURL(fixedBlob)
+            setLocalAudioBlob(fixedBlob)
+            setLocalAudioUrl(url)
+            setRecordingId(null) // State transitions directly from Recording -> Review
+          });
+        } else {
+          const url = URL.createObjectURL(rawBlob)
+          setLocalAudioBlob(rawBlob)
+          setLocalAudioUrl(url)
+          setRecordingId(null) // State transitions directly from Recording -> Review
+        }
       }
 
       recorder.start()
