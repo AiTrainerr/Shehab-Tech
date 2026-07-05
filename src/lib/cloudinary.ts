@@ -100,7 +100,7 @@ export async function uploadAudioToCloudinary(
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        resource_type: "video", // Cloudinary uses "video" for audio files
+        resource_type: "auto", // Automatically detect format using the provided filename extension
         folder,
         public_id: filename,
         cloud_name: activeAccount.cloudName,

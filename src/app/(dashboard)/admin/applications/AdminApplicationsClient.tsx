@@ -4,8 +4,6 @@ import * as React from "react"
 import Link from "next/link"
 import { Check, X, Search, FileText, User, BadgeCheck, Mic2, Download } from "lucide-react"
 import { approveApplication, rejectApplication } from "@/app/actions/projects"
-import * as XLSX from "xlsx"
-
 interface Application {
   id: string
   status: string
@@ -114,34 +112,100 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     }
   }
 
-  const handleExportExcel = () => {
-    // Only download completed/approved apps from the CURRENT filtered list, or ALL filtered?
-    // Let's export ALL filtered users to Excel.
+  const handleExportExcel = async () => {
     if (filtered.length === 0) {
       alert("No data to export.");
       return;
     }
 
-    const data = filtered.map(app => ({
-      "Project": app.project.title,
-      "Name": `${app.user.firstName} ${app.user.lastName}`,
-      "Email": app.user.email,
-      "Phone": app.user.phone || '',
-      "Speaker Code": app.speakerCode || '',
-      "Gender": app.user.gender || '',
-      "Status": app.status,
-      "Total Sentences": app.totalSentences || 0,
-      "Recorded (Valid)": app.recordedCount || 0,
-      "Accepted": app.acceptedCount || 0,
-      "Need Re-record": app.reRecordCount || 0,
-      "Rejected": app.rejectedCount || 0,
-      "Pending (Empty)": app.pendingCount || 0
-    }));
+    try {
+      const ExcelJS = (await import('exceljs')).default || await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Applications');
 
-    const worksheet = XLSX.utils.json_to_sheet(data);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Applications");
-    XLSX.writeFile(workbook, "Applications_Report.xlsx");
+      worksheet.columns = [
+        { header: 'Project', key: 'project', width: 25 },
+        { header: 'Name', key: 'name', width: 25 },
+        { header: 'Email', key: 'email', width: 30 },
+        { header: 'Phone', key: 'phone', width: 15 },
+        { header: 'Speaker Code', key: 'speakerCode', width: 15 },
+        { header: 'Gender', key: 'gender', width: 10 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Total Sentences', key: 'totalSentences', width: 15 },
+        { header: 'Recorded (Valid)', key: 'recorded', width: 18 },
+        { header: 'Accepted', key: 'accepted', width: 12 },
+        { header: 'Need Re-record', key: 'needRerecord', width: 15 },
+        { header: 'Rejected', key: 'rejected', width: 12 },
+        { header: 'Pending (Empty)', key: 'pending', width: 18 },
+      ];
+
+      filtered.forEach(app => {
+        worksheet.addRow({
+          project: app.project.title,
+          name: `${app.user.firstName} ${app.user.lastName}`,
+          email: app.user.email,
+          phone: app.user.phone || '',
+          speakerCode: app.speakerCode || '',
+          gender: app.user.gender || '',
+          status: app.status,
+          totalSentences: app.totalSentences || 0,
+          recorded: app.recordedCount || 0,
+          accepted: app.acceptedCount || 0,
+          needRerecord: app.reRecordCount || 0,
+          rejected: app.rejectedCount || 0,
+          pending: app.pendingCount || 0
+        });
+      });
+
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF002060' }
+        };
+        cell.font = {
+          color: { argb: 'FFFFFFFF' },
+          bold: true
+        };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        row.eachCell((cell, colNumber) => {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          };
+
+          if ((colNumber === 11 || colNumber === 12) && typeof cell.value === 'number' && cell.value > 0) {
+            cell.font = { color: { argb: 'FFFF0000' } };
+          }
+        });
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "Applications_Report.xlsx";
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error generating Excel:", err);
+      alert("Failed to generate Excel file.");
+    }
   };
 
   const stats = React.useMemo(() => {

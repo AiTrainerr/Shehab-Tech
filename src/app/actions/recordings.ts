@@ -177,8 +177,14 @@ export async function uploadVoiceRecording(
     const genderStr = dbUser.gender ? dbUser.gender : 'N-A'
     const folderName = `shehab-tech/recordings/${user.id}_${dbUser.firstName}_${dbUser.lastName}_${ageStr}_${genderStr}`
     
-    // File name: FirstName_LastName_Sentence_Order
-    const filename = `${dbUser.firstName}_${dbUser.lastName}_Sentence_${sentence.order}`
+    // Extract correct extension from MIME type to help Cloudinary parse it
+    let ext = "webm"
+    if (audioFile.type.includes("mp4")) ext = "m4a"
+    else if (audioFile.type.includes("wav")) ext = "wav"
+    else if (audioFile.type.includes("ogg")) ext = "ogg"
+    
+    // File name: FirstName_LastName_Sentence_Order.ext
+    const filename = `${dbUser.firstName}_${dbUser.lastName}_Sentence_${sentence.order}.${ext}`
 
     const { url, publicId } = await uploadAudioToCloudinary(buffer, filename, folderName)
 
