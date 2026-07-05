@@ -2,8 +2,9 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Check, X, Search, FileText, User, BadgeCheck, Mic2 } from "lucide-react"
+import { Check, X, Search, FileText, User, BadgeCheck, Mic2, Download } from "lucide-react"
 import { approveApplication, rejectApplication } from "@/app/actions/projects"
+import * as XLSX from "xlsx"
 
 interface Application {
   id: string
@@ -16,6 +17,7 @@ interface Application {
   pendingCount?: number
   reRecordCount?: number
   acceptedCount?: number
+  rejectedCount?: number
   speakerCode?: string | null
   proofUrl?: string | null
   projectRole?: string
@@ -112,6 +114,36 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     }
   }
 
+  const handleExportExcel = () => {
+    // Only download completed/approved apps from the CURRENT filtered list, or ALL filtered?
+    // Let's export ALL filtered users to Excel.
+    if (filtered.length === 0) {
+      alert("No data to export.");
+      return;
+    }
+
+    const data = filtered.map(app => ({
+      "Project": app.project.title,
+      "Name": `${app.user.firstName} ${app.user.lastName}`,
+      "Email": app.user.email,
+      "Phone": app.user.phone || '',
+      "Speaker Code": app.speakerCode || '',
+      "Gender": app.user.gender || '',
+      "Status": app.status,
+      "Total Sentences": app.totalSentences || 0,
+      "Recorded (Valid)": app.recordedCount || 0,
+      "Accepted": app.acceptedCount || 0,
+      "Need Re-record": app.reRecordCount || 0,
+      "Rejected": app.rejectedCount || 0,
+      "Pending (Empty)": app.pendingCount || 0
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Applications");
+    XLSX.writeFile(workbook, "Applications_Report.xlsx");
+  };
+
   const stats = React.useMemo(() => {
     const s = {
       all: { m: 0, f: 0, total: 0 },
@@ -166,12 +198,20 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:border-primary outline-none"
           />
         </div>
-        <button 
-          onClick={handleDownloadAll}
-          className="w-full sm:w-auto px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
-        >
-          <FileText className="w-4 h-4" /> Download Approved/Completed ({filtered.filter(app => ['APPROVED', 'COMPLETED', 'PAID', 'FINAL_REVIEW'].includes(app.status)).length})
-        </button>
+        <div className="flex w-full sm:w-auto gap-2">
+          <button 
+            onClick={handleExportExcel}
+            className="w-full sm:w-auto px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+          >
+            <Download className="w-4 h-4" /> Export Excel
+          </button>
+          <button 
+            onClick={handleDownloadAll}
+            className="w-full sm:w-auto px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+          >
+            <FileText className="w-4 h-4" /> Audio ZIPs ({filtered.filter(app => ['APPROVED', 'COMPLETED', 'PAID', 'FINAL_REVIEW'].includes(app.status)).length})
+          </button>
+        </div>
       </div>
 
 

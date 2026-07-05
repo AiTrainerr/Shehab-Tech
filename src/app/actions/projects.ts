@@ -422,7 +422,21 @@ export async function approveApplication(applicationId: string) {
           },
           select: { speakerCode: true }
         });
-        const assignedCodes = assignedApps.map(a => a.speakerCode as string);
+        
+        // Also find speakerCodes that are currently locked by users in ProjectSentence
+        const assignedSentences = await prisma.projectSentence.findMany({
+          where: {
+            projectId: currentApp.projectId,
+            assignedUserId: { not: null },
+            speakerCode: { not: null }
+          },
+          select: { speakerCode: true }
+        });
+
+        const assignedCodes = [
+          ...assignedApps.map(a => a.speakerCode as string),
+          ...assignedSentences.map(s => s.speakerCode as string)
+        ];
         
         // Pick the first available code
         const availableCode = allBatchCodes.find(code => !assignedCodes.includes(code));

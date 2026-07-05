@@ -35,6 +35,13 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
 
   if (application.speakerCode) {
     // Speaker-code based: user already has a dedicated speaker code
+    
+    // Ensure the sentences are locked to this user
+    await prisma.projectSentence.updateMany({
+      where: { projectId: id, speakerCode: application.speakerCode, assignedUserId: null },
+      data: { assignedUserId: userId }
+    })
+    
     sentences = await prisma.projectSentence.findMany({
       where: { projectId: id, speakerCode: application.speakerCode },
       orderBy: { order: "asc" },
@@ -69,6 +76,13 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
           where: { projectId: id, speakerCode: firstUnassignedGroup.speakerCode },
           data: { assignedUserId: userId }
         })
+        
+        // IMPORTANT: Sync the application speakerCode so they don't lose it
+        await prisma.application.update({
+          where: { id: application.id },
+          data: { speakerCode: firstUnassignedGroup.speakerCode }
+        })
+        
         sentences = await prisma.projectSentence.findMany({
           where: { projectId: id, speakerCode: firstUnassignedGroup.speakerCode },
           orderBy: { order: "asc" },

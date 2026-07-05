@@ -702,16 +702,18 @@ export function VoiceRecorder({
                   )}
                 </div>
 
-                <button
-                  onClick={() => playRecording(savedRecord.url)}
-                  className="w-full py-3 bg-card border border-border hover:border-primary/30 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                >
-                  {playingUrl === savedRecord.url ? (
-                    <><Square className="w-4 h-4 text-primary" /> Stop Playback</>
-                  ) : (
-                    <><Play className="w-4 h-4 text-primary" /> Play Uploaded Audio</>
-                  )}
-                </button>
+                {savedRecord.status !== 'NEED_RE_RECORD' && (
+                  <button
+                    onClick={() => playRecording(savedRecord.url)}
+                    className="w-full py-3 bg-card border border-border hover:border-primary/30 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                  >
+                    {playingUrl === savedRecord.url ? (
+                      <><Square className="w-4 h-4 text-primary" /> Stop Playback</>
+                    ) : (
+                      <><Play className="w-4 h-4 text-primary" /> Play Uploaded Audio</>
+                    )}
+                  </button>
+                )}
 
                 {!isLocked && (
                   <button

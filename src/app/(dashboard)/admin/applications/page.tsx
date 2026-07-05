@@ -103,26 +103,30 @@ export default async function AdminApplicationsPage() {
   recordingsCounts.forEach(r => {
     const key = `${r.userId}_${r.projectId}`;
     if (!recordingsMap.has(key)) {
-      recordingsMap.set(key, { recordedCount: 0, pendingCount: 0, reRecordCount: 0, acceptedCount: 0 });
+      recordingsMap.set(key, { recordedCount: 0, pendingCount: 0, reRecordCount: 0, acceptedCount: 0, rejectedCount: 0 });
     }
     const counts = recordingsMap.get(key);
     
     // Prisma raw count returns a BigInt or Number depending on driver, so we parse it safely
     const amount = Number(r.count);
-    counts.recordedCount += amount;
+    if (r.status !== 'NEED_RE_RECORD' && r.status !== 'REJECTED') {
+      counts.recordedCount += amount;
+    }
     if (r.status === 'PENDING') counts.pendingCount += amount;
     if (r.status === 'NEED_RE_RECORD') counts.reRecordCount += amount;
     if (r.status === 'ACCEPTED') counts.acceptedCount += amount;
+    if (r.status === 'REJECTED') counts.rejectedCount += amount;
   });
 
   const applications = applicationsData.map((app) => {
     const key = `${app.userId}_${app.projectId}`;
-    const counts = recordingsMap.get(key) || { recordedCount: 0, pendingCount: 0, reRecordCount: 0, acceptedCount: 0 };
+    const counts = recordingsMap.get(key) || { recordedCount: 0, pendingCount: 0, reRecordCount: 0, acceptedCount: 0, rejectedCount: 0 };
     
     const recordedCount = counts.recordedCount;
     const pendingCount = counts.pendingCount;
     const reRecordCount = counts.reRecordCount;
     const acceptedCount = counts.acceptedCount;
+    const rejectedCount = counts.rejectedCount;
 
     let totalSentences = 0;
     if (app.speakerCode) {
@@ -167,6 +171,7 @@ export default async function AdminApplicationsPage() {
       pendingCount,
       reRecordCount,
       acceptedCount,
+      rejectedCount,
       projectRole: app.projectRole
     }
   })
