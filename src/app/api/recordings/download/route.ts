@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
 
     // Download each audio file and add to ZIP inside the outer folder
     await Promise.all(
-      recorded.map(async (sentence) => {
+      recorded.map(async (sentence, index) => {
         const rec = sentence.recordings[0]
         try {
           const targetFormat = (project.audioFormat || "WAV").toUpperCase()
@@ -173,7 +173,8 @@ export async function GET(request: NextRequest) {
           // Priority: hardcoded U/N > customFileNaming > audioId from batch scripts > TEXT naming > SEQUENCE
           if (sequentialId.startsWith("N") || sequentialId.startsWith("U")) {
             // Hardcode for American and British projects (N and U codes): N0001.wav, N0002.wav
-            const paddedOrder = sentence.order.toString().padStart(4, '0')
+            const localOrder = index + 1
+            const paddedOrder = localOrder.toString().padStart(4, '0')
             innerFilename = `N${paddedOrder}.${ext}`
           } else if (project.customFileNaming) {
             let customName = project.customFileNaming
