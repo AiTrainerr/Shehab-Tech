@@ -128,6 +128,23 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     }
   }
 
+  const handleMarkAsDownloaded = () => {
+    if (selectedAppIds.size === 0) {
+      alert("Please select at least one application to mark as downloaded.");
+      return;
+    }
+    
+    if (!confirm(`Are you sure you want to mark ${selectedAppIds.size} applications as Downloaded without downloading their files?`)) return;
+
+    const newDownloadedSet = new Set(downloadedAppIds);
+    selectedAppIds.forEach(id => newDownloadedSet.add(id));
+    
+    setDownloadedAppIds(newDownloadedSet);
+    localStorage.setItem('downloadedApps', JSON.stringify(Array.from(newDownloadedSet)));
+    
+    setSelectedAppIds(new Set()); // Deselect after marking
+  }
+
   const handleExportExcel = async () => {
     if (filtered.length === 0) {
       alert("No data to export.");
@@ -320,6 +337,12 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             className="flex-1 sm:flex-none px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
           >
             <Download className="w-4 h-4" /> Export Excel
+          </button>
+          <button 
+            onClick={handleMarkAsDownloaded}
+            className="flex-1 sm:flex-none px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-purple-500/20 flex items-center justify-center gap-2"
+          >
+            <BadgeCheck className="w-4 h-4" /> Mark as Downloaded
           </button>
           <button 
             onClick={handleDownloadAll}
