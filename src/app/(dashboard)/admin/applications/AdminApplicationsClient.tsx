@@ -36,11 +36,29 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
   React.useEffect(() => {
     try {
       const stored = localStorage.getItem('downloadedApps');
+      const initialSet = new Set<string>();
       if (stored) {
-        setDownloadedAppIds(new Set(JSON.parse(stored)));
+        JSON.parse(stored).forEach((id: string) => initialSet.add(id));
+      }
+      
+      const hardcoded = ["G0276", "G0277", "G0280", "G0282", "G0284", "G0285", "G0286", "G0288", "G0289", "G0292", "G0293", "G0294", "G0295", "G0296", "G0297", "G0298", "G0299", "G0301", "G0303", "G0304", "G0305", "G0307", "G0312", "G0313", "G0315", "G0316", "G0317"];
+      let modified = false;
+      
+      applications.forEach(app => {
+        if (app.speakerCode && hardcoded.includes(app.speakerCode)) {
+          if (!initialSet.has(app.id)) {
+            initialSet.add(app.id);
+            modified = true;
+          }
+        }
+      });
+      
+      setDownloadedAppIds(initialSet);
+      if (modified) {
+        localStorage.setItem('downloadedApps', JSON.stringify(Array.from(initialSet)));
       }
     } catch (e) {}
-  }, []);
+  }, [applications]);
 
   const uniqueProjects = React.useMemo(() => {
     const map = new Map();
