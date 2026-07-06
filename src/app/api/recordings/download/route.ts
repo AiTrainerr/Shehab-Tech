@@ -171,8 +171,8 @@ export async function GET(request: NextRequest) {
           
           // Priority: customFileNaming > audioId from batch scripts > TEXT naming > SEQUENCE
           // Priority: hardcoded U/N > customFileNaming > audioId from batch scripts > TEXT naming > SEQUENCE
-          if (sequentialId.startsWith("N") || sequentialId.startsWith("U")) {
-            // Hardcode for American and British projects (N and U codes): N0001.wav, N0002.wav
+          if (sequentialId.startsWith("N") || sequentialId.startsWith("U") || sequentialId.startsWith("G")) {
+            // Hardcode for American and British projects (U and G codes): N0001.wav, N0002.wav
             const localOrder = index + 1
             const paddedOrder = localOrder.toString().padStart(4, '0')
             innerFilename = `N${paddedOrder}.${ext}`
