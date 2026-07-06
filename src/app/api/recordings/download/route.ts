@@ -187,6 +187,10 @@ export async function GET(request: NextRequest) {
           } else if (project.namingRule === "TEXT") {
             const baseName = cleanFilename(sentence.text).slice(0, 80)
             innerFilename = getUniqueFilename(baseName, ext)
+          } else if (sequentialId.startsWith("N")) {
+            // Hardcode for American project: N0001.wav, N0002.wav
+            const paddedOrder = sentence.order.toString().padStart(4, '0')
+            innerFilename = `N${paddedOrder}.${ext}`
           } else {
             // SEQUENCE fallback
             innerFilename = `${sentence.order}.${ext}`
