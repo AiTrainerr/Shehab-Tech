@@ -28,6 +28,7 @@ type TabType = "ALL" | "READY_FIRST" | "READY_FIXED" | "NEEDS_FIX" | "WORKING" |
 export function AdminApplicationsClient({ applications }: { applications: Application[] }) {
   const [statusFilter, setStatusFilter] = React.useState<string>("ALL")
   const [projectFilter, setProjectFilter] = React.useState<string>("ALL")
+  const [downloadStatusFilter, setDownloadStatusFilter] = React.useState<string>("ALL")
   const [searchTerm, setSearchTerm] = React.useState<string>("")
   const [loading, setLoading] = React.useState<string | null>(null)
   const [selectedAppIds, setSelectedAppIds] = React.useState<Set<string>>(new Set())
@@ -109,6 +110,11 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       if (statusFilter === "APPROVED" && a.status !== "APPROVED" && a.status !== "WORKING") return false;
       if (statusFilter === "REJECTED" && a.status !== "REJECTED") return false;
       if (statusFilter === "COMPLETED" && a.status !== "COMPLETED" && a.status !== "FINAL_REVIEW" && a.status !== "PAID") return false;
+    }
+
+    if (downloadStatusFilter !== "ALL") {
+      if (downloadStatusFilter === "DOWNLOADED" && !downloadedAppIds.has(a.id)) return false;
+      if (downloadStatusFilter === "NOT_DOWNLOADED" && downloadedAppIds.has(a.id)) return false;
     }
     
     return true;
@@ -372,7 +378,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       </div>
 
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-card p-4 rounded-2xl border border-border">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-card p-4 rounded-2xl border border-border">
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-foreground/60 uppercase">Applicant Acceptance Status</label>
           <select 
@@ -399,6 +405,19 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             {uniqueProjects.map(p => (
               <option key={p.id} value={p.id}>{p.title}</option>
             ))}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-foreground/60 uppercase">Download Status</label>
+          <select 
+            value={downloadStatusFilter}
+            onChange={(e) => setDownloadStatusFilter(e.target.value)}
+            className="w-full bg-background border border-border rounded-xl px-4 py-2 outline-none focus:border-primary font-semibold"
+          >
+            <option value="ALL">All</option>
+            <option value="DOWNLOADED">Downloaded</option>
+            <option value="NOT_DOWNLOADED">Not Downloaded</option>
           </select>
         </div>
       </div>
