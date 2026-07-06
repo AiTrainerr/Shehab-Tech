@@ -214,9 +214,9 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
         if (sequentialId !== "G_PENDING" && zipNamingRule === "SPEAKER_ONLY") {
           computedFileName = sequentialId;
         } else if (sequentialId !== "G_PENDING" && zipNamingRule === "ANONYMOUS") {
-          computedFileName = `${sequentialId}_${ageFolderStr}_${genderForFolder}`;
+          computedFileName = `${sequentialId}_${genderForFolder}_${ageFolderStr}`;
         } else {
-          computedFileName = `${sequentialId}_${app.user.firstName}_${app.user.lastName}_${ageFolderStr}_${genderForFolder}`;
+          computedFileName = `${sequentialId}_${app.user.firstName}_${app.user.lastName}_${genderForFolder}_${ageFolderStr}`;
         }
 
         worksheet.addRow({

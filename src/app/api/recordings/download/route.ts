@@ -147,10 +147,10 @@ export async function GET(request: NextRequest) {
     if (sequentialId !== "G_PENDING" && zipNamingRule === "SPEAKER_ONLY") {
       outerFolderName = sequentialId  // => G0269
     } else if (sequentialId !== "G_PENDING" && (project as any).zipNamingRule === "ANONYMOUS") {
-      outerFolderName = `${sequentialId}_${ageFolderStr}_${genderForFolder}`
+      outerFolderName = `${sequentialId}_${genderForFolder}_${ageFolderStr}`
     } else {
       // FULL (default)
-      outerFolderName = `${sequentialId}_${candidate.firstName}_${candidate.lastName}_${ageFolderStr}_${genderForFolder}`
+      outerFolderName = `${sequentialId}_${candidate.firstName}_${candidate.lastName}_${genderForFolder}_${ageFolderStr}`
     }
 
     // Download each audio file and add to ZIP inside the outer folder
