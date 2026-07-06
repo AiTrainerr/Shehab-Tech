@@ -30,6 +30,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
   const [projectFilter, setProjectFilter] = React.useState<string>("ALL")
   const [searchTerm, setSearchTerm] = React.useState<string>("")
   const [loading, setLoading] = React.useState<string | null>(null)
+  const [selectedAppIds, setSelectedAppIds] = React.useState<Set<string>>(new Set())
 
   const uniqueProjects = React.useMemo(() => {
     const map = new Map();
@@ -86,11 +87,10 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
   })
 
   const handleDownloadAll = async () => {
-    // Only download completed/approved apps from the CURRENT filtered list
-    const toDownload = filtered.filter(app => ['APPROVED', 'COMPLETED', 'PAID', 'FINAL_REVIEW'].includes(app.status));
+    const toDownload = filtered.filter(app => selectedAppIds.has(app.id));
     
     if (toDownload.length === 0) {
-      alert("No approved or completed applications found in the current search/filter.");
+      alert("Please select at least one application to download.");
       return;
     }
     
@@ -286,18 +286,30 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-xl focus:border-primary outline-none"
           />
         </div>
-        <div className="flex w-full sm:w-auto gap-2">
+        <div className="flex flex-wrap w-full sm:w-auto gap-2 mt-4 sm:mt-0">
+          <button 
+            onClick={() => {
+              if (selectedAppIds.size === filtered.length && filtered.length > 0) {
+                setSelectedAppIds(new Set());
+              } else {
+                setSelectedAppIds(new Set(filtered.map(a => a.id)));
+              }
+            }}
+            className="flex-1 sm:flex-none px-4 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+          >
+            <Check className="w-4 h-4" /> {selectedAppIds.size === filtered.length && filtered.length > 0 ? "Deselect All" : "Select All"}
+          </button>
           <button 
             onClick={handleExportExcel}
-            className="w-full sm:w-auto px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
           >
             <Download className="w-4 h-4" /> Export Excel
           </button>
           <button 
             onClick={handleDownloadAll}
-            className="w-full sm:w-auto px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
           >
-            <FileText className="w-4 h-4" /> Audio ZIPs ({filtered.filter(app => ['APPROVED', 'COMPLETED', 'PAID', 'FINAL_REVIEW'].includes(app.status)).length})
+            <FileText className="w-4 h-4" /> Download ZIPs ({selectedAppIds.size})
           </button>
         </div>
       </div>
@@ -346,7 +358,18 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             )}
 
             <div className="flex justify-between items-start mb-6">
-              <div>
+              <div className="flex items-center gap-3">
+                <input 
+                  type="checkbox" 
+                  className="w-5 h-5 rounded border-border text-primary cursor-pointer accent-primary"
+                  checked={selectedAppIds.has(app.id)}
+                  onChange={(e) => {
+                    const newSet = new Set(selectedAppIds);
+                    if (e.target.checked) newSet.add(app.id);
+                    else newSet.delete(app.id);
+                    setSelectedAppIds(newSet);
+                  }}
+                />
                 <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                   app.status === 'APPROVED' ? 'bg-green-500/10 text-green-500' :
                   app.status === 'WORKING' ? 'bg-blue-500/10 text-blue-500' :
