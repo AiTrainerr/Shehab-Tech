@@ -19,8 +19,8 @@ interface Application {
   speakerCode?: string | null
   proofUrl?: string | null
   projectRole?: string
-  project: { id: string; title: string; pricingModel: string; workflowType?: string }
-  user: { id: string; firstName: string; lastName: string; email: string; phone?: string | null; gender?: string | null; ranking: string; verificationStatus: string }
+  project: { id: string; title: string; pricingModel: string; workflowType?: string; zipNamingRule?: string }
+  user: { id: string; firstName: string; lastName: string; email: string; phone?: string | null; gender?: string | null; age?: number | null; ranking: string; verificationStatus: string }
 }
 
 type TabType = "ALL" | "READY_FIRST" | "READY_FIXED" | "NEEDS_FIX" | "WORKING" | "COMPLETED";
@@ -125,11 +125,13 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
 
       worksheet.columns = [
         { header: 'Project', key: 'project', width: 25 },
+        { header: 'File Name', key: 'fileName', width: 35 },
         { header: 'Name', key: 'name', width: 25 },
         { header: 'Email', key: 'email', width: 30 },
         { header: 'Phone', key: 'phone', width: 15 },
         { header: 'Speaker Code', key: 'speakerCode', width: 15 },
         { header: 'Gender', key: 'gender', width: 10 },
+        { header: 'Age', key: 'age', width: 10 },
         { header: 'Status', key: 'status', width: 15 },
         { header: 'Total Sentences', key: 'totalSentences', width: 15 },
         { header: 'Recorded (Valid)', key: 'recorded', width: 18 },
@@ -140,13 +142,35 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       ];
 
       filtered.forEach(app => {
+        let genderForFolder = "N-A";
+        if (app.user.gender) {
+          const g = app.user.gender.toLowerCase();
+          if (g === "male" || g === "ذكر") genderForFolder = "male";
+          else if (g === "female" || g === "أنثى" || g === "انثى") genderForFolder = "female";
+          else genderForFolder = app.user.gender;
+        }
+        const ageFolderStr = app.user.age ? String(app.user.age) : "N-A";
+        const sequentialId = app.speakerCode || "G_PENDING";
+        const zipNamingRule = app.project.zipNamingRule || "FULL";
+        
+        let computedFileName = "";
+        if (sequentialId !== "G_PENDING" && zipNamingRule === "SPEAKER_ONLY") {
+          computedFileName = sequentialId;
+        } else if (sequentialId !== "G_PENDING" && zipNamingRule === "ANONYMOUS") {
+          computedFileName = `${sequentialId}_${ageFolderStr}_${genderForFolder}`;
+        } else {
+          computedFileName = `${sequentialId}_${app.user.firstName}_${app.user.lastName}_${ageFolderStr}_${genderForFolder}`;
+        }
+
         worksheet.addRow({
           project: app.project.title,
+          fileName: computedFileName,
           name: `${app.user.firstName} ${app.user.lastName}`,
           email: app.user.email,
           phone: app.user.phone || '',
           speakerCode: app.speakerCode || '',
           gender: app.user.gender || '',
+          age: app.user.age || '',
           status: app.status,
           totalSentences: app.totalSentences || 0,
           recorded: app.recordedCount || 0,
