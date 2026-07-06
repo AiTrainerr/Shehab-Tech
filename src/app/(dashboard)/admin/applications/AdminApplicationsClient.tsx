@@ -211,9 +211,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
         const zipNamingRule = app.project.zipNamingRule || "FULL";
         
         let computedFileName = "";
-        if (sequentialId.startsWith("N")) {
-          computedFileName = sequentialId;
-        } else if (sequentialId !== "G_PENDING" && zipNamingRule === "SPEAKER_ONLY") {
+        if (sequentialId !== "G_PENDING" && zipNamingRule === "SPEAKER_ONLY") {
           computedFileName = sequentialId;
         } else if (sequentialId !== "G_PENDING" && zipNamingRule === "ANONYMOUS") {
           computedFileName = `${sequentialId}_${ageFolderStr}_${genderForFolder}`;
