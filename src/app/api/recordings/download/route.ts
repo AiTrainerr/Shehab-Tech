@@ -170,7 +170,12 @@ export async function GET(request: NextRequest) {
           let innerFilename = ""
           
           // Priority: customFileNaming > audioId from batch scripts > TEXT naming > SEQUENCE
-          if (project.customFileNaming) {
+          // Priority: hardcoded U/N > customFileNaming > audioId from batch scripts > TEXT naming > SEQUENCE
+          if (sequentialId.startsWith("N") || sequentialId.startsWith("U")) {
+            // Hardcode for American and British projects (N and U codes): N0001.wav, N0002.wav
+            const paddedOrder = sentence.order.toString().padStart(4, '0')
+            innerFilename = `N${paddedOrder}.${ext}`
+          } else if (project.customFileNaming) {
             let customName = project.customFileNaming
             customName = customName.replace(/\[speakerCode\]/g, sequentialId)
             customName = customName.replace(/\[audioId\]/g, sentence.audioId || "NA")
@@ -185,10 +190,6 @@ export async function GET(request: NextRequest) {
           } else if (project.namingRule === "TEXT") {
             const baseName = cleanFilename(sentence.text).slice(0, 80)
             innerFilename = getUniqueFilename(baseName, ext)
-          } else if (sequentialId.startsWith("N")) {
-            // Hardcode for American project: N0001.wav, N0002.wav
-            const paddedOrder = sentence.order.toString().padStart(4, '0')
-            innerFilename = `N${paddedOrder}.${ext}`
           } else {
             // SEQUENCE fallback
             innerFilename = `${sentence.order}.${ext}`
