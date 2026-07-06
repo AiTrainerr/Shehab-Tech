@@ -31,6 +31,16 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
   const [searchTerm, setSearchTerm] = React.useState<string>("")
   const [loading, setLoading] = React.useState<string | null>(null)
   const [selectedAppIds, setSelectedAppIds] = React.useState<Set<string>>(new Set())
+  const [downloadedAppIds, setDownloadedAppIds] = React.useState<Set<string>>(new Set())
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem('downloadedApps');
+      if (stored) {
+        setDownloadedAppIds(new Set(JSON.parse(stored)));
+      }
+    } catch (e) {}
+  }, []);
 
   const uniqueProjects = React.useMemo(() => {
     const map = new Map();
@@ -96,6 +106,8 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     
     if (!confirm(`Are you sure you want to download ${toDownload.length} ZIP files? This will download them one by one to your computer.`)) return;
 
+    const newDownloadedSet = new Set(downloadedAppIds);
+
     for (let i = 0; i < toDownload.length; i++) {
       const app = toDownload[i];
       const url = `/api/recordings/download?projectId=${app.project.id}&userId=${app.user.id}`;
@@ -106,6 +118,10 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+
+      newDownloadedSet.add(app.id);
+      setDownloadedAppIds(new Set(newDownloadedSet));
+      localStorage.setItem('downloadedApps', JSON.stringify(Array.from(newDownloadedSet)));
 
       // Wait 2 seconds between each download to prevent browser crashing or getting blocked
       await new Promise(res => setTimeout(res, 2000));
@@ -380,6 +396,11 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                 }`}>
                   {app.status.replace("_", " ")}
                 </span>
+                {downloadedAppIds.has(app.id) && (
+                  <span className="inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-green-500/20 text-green-600 dark:text-green-400">
+                    ✅ Downloaded
+                  </span>
+                )}
               </div>
               {app.speakerCode && (
                 <span className="text-xs font-black text-primary bg-primary/10 px-2 py-1 rounded-md">
