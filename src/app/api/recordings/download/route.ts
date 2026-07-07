@@ -133,7 +133,11 @@ export async function GET(request: NextRequest) {
       select: { speakerCode: true }
     })
 
-    const sequentialId = appRecord?.speakerCode || "G_PENDING"
+    let fallbackSpeakerCode = "G_PENDING"
+    if (recorded.length > 0 && recorded[0].speakerCode) {
+      fallbackSpeakerCode = recorded[0].speakerCode
+    }
+    const sequentialId = appRecord?.speakerCode || fallbackSpeakerCode
 
     // zipNamingRule controls the folder naming:
     // FULL         => G0001_FirstName_LastName_Age_Gender
