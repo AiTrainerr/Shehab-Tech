@@ -176,6 +176,7 @@ model ProjectSentence {
   speakerCode    String?
   audioId        String?
   speed          String?
+  note           String?
 
   recordings  VoiceRecording[]
   createdAt   DateTime        @default(now())

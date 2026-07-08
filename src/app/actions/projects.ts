@@ -128,14 +128,18 @@ export async function createProjectAction(formData: FormData) {
         // Can be either an array of strings (for STATIC/DYNAMIC_POOL) or array of objects (for PRE_ASSIGNED)
         let parsedSentences: any[] = []
         const scriptMode = formData.get("scriptMode") as string // "file" or "manual"
+        
+        const sentenceColIdx = formData.get("sentenceCol") ? parseInt(formData.get("sentenceCol") as string) : null;
+        const idColIdx = formData.get("idCol") ? parseInt(formData.get("idCol") as string) : null;
+        const noteColIdx = formData.get("noteCol") ? parseInt(formData.get("noteCol") as string) : null;
 
         if (scriptMode === "manual" && scriptType !== "PRE_ASSIGNED") {
           const manualScriptText = formData.get("manualScriptText") as string
           if (manualScriptText && manualScriptText.trim()) {
             parsedSentences = manualScriptText
               .split("\n")
-              .map(s => s.trim())
-              .filter(Boolean)
+              .map(s => ({ text: s.trim() }))
+              .filter(s => s.text)
           }
         } else {
           const file = formData.get("scriptFile") as File | null
@@ -149,10 +153,9 @@ export async function createProjectAction(formData: FormData) {
               
               for (const sheetName of workbook.SheetNames) {
                 const sheet = workbook.Sheets[sheetName]
+                const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
                 
                 if (scriptType === "PRE_ASSIGNED") {
-                  // For PRE_ASSIGNED, expect an array of objects/arrays with Sentence and Email
-                  const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
                   const sheetSentences = rows
                     .map((row: any[]) => {
                       if (row.length >= 2 && row[0] && row[1]) {
@@ -163,18 +166,24 @@ export async function createProjectAction(formData: FormData) {
                     .filter(Boolean)
                   allSentences = [...allSentences, ...sheetSentences]
                 } else {
-                  // Standard behavior
-                  const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
                   const sheetSentences = rows
                     .map((row: any[]) => {
-                      for (const cell of row) {
-                        if (cell !== undefined && cell !== null && String(cell).trim()) {
-                          return String(cell).trim()
+                      if (sentenceColIdx !== null && row[sentenceColIdx]) {
+                        const text = String(row[sentenceColIdx]).trim();
+                        if (!text) return null;
+                        const audioId = idColIdx !== null && row[idColIdx] ? String(row[idColIdx]).trim() : undefined;
+                        const note = noteColIdx !== null && row[noteColIdx] ? String(row[noteColIdx]).trim() : undefined;
+                        return { text, audioId, note };
+                      } else if (sentenceColIdx === null) {
+                        for (const cell of row) {
+                          if (cell !== undefined && cell !== null && String(cell).trim()) {
+                            return { text: String(cell).trim() }
+                          }
                         }
                       }
                       return null
                     })
-                    .filter(Boolean) as string[]
+                    .filter(Boolean)
                   allSentences = [...allSentences, ...sheetSentences]
                 }
               }
@@ -194,19 +203,13 @@ export async function createProjectAction(formData: FormData) {
         if (parsedSentences.length > 0) {
           await tx.projectSentence.createMany({
             data: parsedSentences.map((item, i) => {
-              if (typeof item === 'string') {
-                return {
-                  projectId: proj.id,
-                  text: item,
-                  order: i + 1
-                }
-              } else {
-                return {
-                  projectId: proj.id,
-                  text: item.text,
-                  assignedEmail: item.assignedEmail,
-                  order: i + 1
-                }
+              return {
+                projectId: proj.id,
+                text: item.text,
+                audioId: item.audioId || null,
+                note: item.note || null,
+                assignedEmail: item.assignedEmail || null,
+                order: i + 1
               }
             })
           })
@@ -692,14 +695,18 @@ export async function updateProjectAction(projectId: string, formData: FormData)
       if (updateScript && hasScript) {
         let sentences: string[] = []
         const scriptMode = formData.get("scriptMode") as string
+        
+        const sentenceColIdx = formData.get("sentenceCol") ? parseInt(formData.get("sentenceCol") as string) : null;
+        const idColIdx = formData.get("idCol") ? parseInt(formData.get("idCol") as string) : null;
+        const noteColIdx = formData.get("noteCol") ? parseInt(formData.get("noteCol") as string) : null;
 
         if (scriptMode === "manual") {
           const manualScriptText = formData.get("manualScriptText") as string
           if (manualScriptText && manualScriptText.trim()) {
             sentences = manualScriptText
               .split("\n")
-              .map(s => s.trim())
-              .filter(Boolean)
+              .map(s => ({ text: s.trim() }))
+              .filter(s => s.text)
           }
         } else {
           const file = formData.get("scriptFile") as File | null
@@ -709,7 +716,7 @@ export async function updateProjectAction(projectId: string, formData: FormData)
 
             if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
               const workbook = XLSX.read(buffer, { type: "buffer" })
-              let allSentences: string[] = []
+              let allSentences: any[] = []
               
               for (const sheetName of workbook.SheetNames) {
                 const sheet = workbook.Sheets[sheetName]
@@ -717,14 +724,22 @@ export async function updateProjectAction(projectId: string, formData: FormData)
 
                 const sheetSentences = rows
                   .map((row: any[]) => {
-                    for (const cell of row) {
-                      if (cell !== undefined && cell !== null && String(cell).trim()) {
-                        return String(cell).trim()
+                    if (sentenceColIdx !== null && row[sentenceColIdx]) {
+                      const text = String(row[sentenceColIdx]).trim();
+                      if (!text) return null;
+                      const audioId = idColIdx !== null && row[idColIdx] ? String(row[idColIdx]).trim() : undefined;
+                      const note = noteColIdx !== null && row[noteColIdx] ? String(row[noteColIdx]).trim() : undefined;
+                      return { text, audioId, note };
+                    } else if (sentenceColIdx === null) {
+                      for (const cell of row) {
+                        if (cell !== undefined && cell !== null && String(cell).trim()) {
+                          return { text: String(cell).trim() }
+                        }
                       }
                     }
                     return null
                   })
-                  .filter(Boolean) as string[]
+                  .filter(Boolean)
                   
                 allSentences = [...allSentences, ...sheetSentences]
               }
@@ -745,9 +760,11 @@ export async function updateProjectAction(projectId: string, formData: FormData)
         if (sentences.length > 0) {
           await tx.projectSentence.deleteMany({ where: { projectId } })
           await tx.projectSentence.createMany({
-            data: sentences.map((text, i) => ({
+            data: sentences.map((item: any, i) => ({
               projectId,
-              text,
+              text: item.text,
+              audioId: item.audioId || null,
+              note: item.note || null,
               order: i + 1
             }))
           })
@@ -1120,6 +1137,34 @@ export async function addTranscriptionTasks(projectId: string, tasks: { audioFil
   } catch (error: any) {
     console.error("Add transcription tasks error:", error)
     return { success: false, error: "Failed to add transcription tasks" }
+  }
+}
+
+
+export async function deleteProjectAction(projectId: string) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+    
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    await prisma.$transaction([
+      prisma.application.deleteMany({ where: { projectId } }),
+      prisma.comment.deleteMany({ where: { projectId } }),
+      prisma.project.delete({ where: { id: projectId } })
+    ])
+    
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath("/admin/projects")
+    
+    return { success: true }
+  } catch (error: any) {
+    console.error("Delete project error:", error)
+    return { success: false, error: "Failed to delete project: " + error.message }
   }
 }
 

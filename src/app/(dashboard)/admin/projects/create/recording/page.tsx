@@ -3,514 +3,538 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Save, Plus, Trash2, X, Globe } from "lucide-react"
+import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, ChevronRight, FileText, Settings, CreditCard, PlayCircle } from "lucide-react"
 import { createProjectAction } from "@/app/actions/projects"
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia", "Democratic Republic of the Congo", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
 ];
 
+const STEPS = [
+  { id: 1, title: "المعلومات الأساسية", icon: FileText },
+  { id: 2, title: "رفع الجمل (السكربت)", icon: UploadCloud },
+  { id: 3, title: "إعدادات الصوت والتسمية", icon: PlayCircle },
+  { id: 4, title: "المتطلبات والتسعير", icon: CreditCard },
+];
+
 export default function CreateRecordingProjectPage() {
   const router = useRouter()
+  const [currentStep, setCurrentStep] = React.useState(1)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+
+  // Step 1 States
   const [langCount, setLangCount] = React.useState(1)
   const [imageCount, setImageCount] = React.useState(1)
-  const [selectedCountries, setSelectedCountries] = React.useState<string[]>([])
-  const [scriptType, setScriptType] = React.useState("STATIC")
-  
-  // Interactive UI state options
-  const [executionOption, setExecutionOption] = React.useState("INTERNAL")
+
+  // Step 2 States
   const [hasScript, setHasScript] = React.useState(true)
+  const [scriptType, setScriptType] = React.useState("STATIC")
   const [scriptMode, setScriptMode] = React.useState("file")
-  
+  const [fileName, setFileName] = React.useState("")
+
+  // Step 3 States
+  const [executionOption, setExecutionOption] = React.useState("INTERNAL")
+  const [showAdvancedAudio, setShowAdvancedAudio] = React.useState(false)
   const [customNaming, setCustomNaming] = React.useState("")
+  const [zipNamingRule, setZipNamingRule] = React.useState("FULL")
+
+  // Step 4 States
+  const [selectedCountries, setSelectedCountries] = React.useState<string[]>([])
+
   const namingVariables = [
-    { label: "Speaker Code", value: "[speakerCode]" },
-    { label: "Audio ID (N001)", value: "[audioId]" },
-    { label: "Gender", value: "[gender]" },
-    { label: "Age", value: "[age]" },
-    { label: "Sentence Order", value: "[order]" },
-    { label: "Sentence Text", value: "[text]" }
+    { label: "كود المستقل (Speaker Code)", value: "[speakerCode]" },
+    { label: "رقم الجملة (ID) من الشيت", value: "[audioId]" },
+    { label: "الترتيب التلقائي (Order)", value: "[order]" },
+    { label: "الجنس (Gender)", value: "[gender]" },
+    { label: "العمر (Age)", value: "[age]" },
   ]
   const appendVariable = (val: string) => {
-    setCustomNaming(prev => prev + (prev && !prev.endsWith('_') ? '_' : '') + val)
+    setCustomNaming(prev => prev + (prev && !prev.endsWith('_') && !prev.endsWith('-') ? '-' : '') + val)
   }
 
   const addCountry = (country: string) => {
-    if (!selectedCountries.includes(country)) {
-      setSelectedCountries(prev => [...prev, country])
-    }
+    if (!selectedCountries.includes(country)) setSelectedCountries(prev => [...prev, country])
   }
-
   const removeCountry = (country: string) => {
     setSelectedCountries(prev => prev.filter(c => c !== country))
   }
 
+  // Dynamic Preview Logic
+  const previewSpeakerCode = "446"
+  const previewAudioId = "001"
+  let formattedAudioName = customNaming || "[speakerCode]_[order]"
+  formattedAudioName = formattedAudioName
+    .replace(/\[speakerCode\]/g, previewSpeakerCode)
+    .replace(/\[audioId\]/g, previewAudioId)
+    .replace(/\[gender\]/g, "Male")
+    .replace(/\[age\]/g, "25")
+    .replace(/\[order\]/g, "1")
+
+  let formattedZipName = "446_Ali_25_Male"
+  if (zipNamingRule === "ANONYMOUS") formattedZipName = "446_25_Male"
+  if (zipNamingRule === "SPEAKER_ONLY") formattedZipName = "446"
+
   return (
-    <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto w-full animate-slide-up">
-        <div className="mb-8">
-          <Link href="/admin/projects/create" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition-colors mb-4">
-            <ArrowLeft className="w-4 h-4" /> Change Project Type
+    <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8" dir="rtl">
+      <div className="max-w-5xl mx-auto w-full animate-slide-up">
+        
+        {/* Header */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-black text-foreground mb-2">
+              نشر مشروع تسجيل صوتي جديد
+            </h1>
+            <p className="text-foreground/70">قم بإعداد مشروعك بدقة وبخطوات بسيطة.</p>
+          </div>
+          <Link href="/admin/projects/create" className="inline-flex items-center gap-2 text-sm font-semibold text-foreground/60 hover:text-primary transition-colors bg-card px-4 py-2 rounded-xl border border-border">
+            العودة <ArrowLeft className="w-4 h-4 rotate-180" />
           </Link>
-          <h1 className="text-3xl font-black text-foreground">
-            Create Voice Recording Project
-          </h1>
-          <p className="text-foreground/70">Fill in the details to publish a new recording project to freelancers.</p>
+        </div>
+
+        {/* Wizard Steps Navigation */}
+        <div className="flex flex-wrap items-center gap-2 mb-8">
+          {STEPS.map((step, idx) => {
+            const isActive = currentStep === step.id;
+            const isPassed = currentStep > step.id;
+            return (
+              <React.Fragment key={step.id}>
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(step.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                    isActive 
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105" 
+                      : isPassed 
+                        ? "bg-primary/10 text-primary border border-primary/20" 
+                        : "bg-card text-foreground/50 border border-border hover:bg-muted"
+                  }`}
+                >
+                  <step.icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{step.id}. {step.title}</span>
+                </button>
+                {idx < STEPS.length - 1 && (
+                  <ChevronRight className="w-4 h-4 text-border rotate-180 shrink-0" />
+                )}
+              </React.Fragment>
+            )
+          })}
         </div>
 
         <form action={async (formData) => {
+          setIsSubmitting(true)
           const res = await createProjectAction(formData)
           if (res.success) {
-            // Redirect to edit page so admin can upload batch CSV files right away
             router.push(`/admin/projects/edit/${res.projectId}`)
           } else {
-            alert(res.error || "Something went wrong")
+            alert(res.error || "حدث خطأ ما")
+            setIsSubmitting(false)
           }
-        }} className="space-y-8 glass p-8 rounded-2xl border border-border">
+        }} className="glass p-6 sm:p-8 rounded-3xl border border-border shadow-sm">
           
-          <div className="space-y-4 border-b border-border pb-8">
-            <h3 className="text-lg font-bold text-foreground">General Information</h3>
-            <input type="hidden" name="isTranscriptionProject" value="false" />
+          <input type="hidden" name="isTranscriptionProject" value="false" />
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Project Title</label>
-              <input name="title" type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="e.g. Arabic Voice Recording" required />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-semibold">Public Description</label>
-              <textarea name="description" className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none" placeholder="Describe the project..." required />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-red-500 flex items-center gap-2">Private Data <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-xs">Hidden from public</span></label>
-              <textarea name="privateData" className="w-full h-24 px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all resize-none placeholder:text-red-500/40" placeholder="Links, credentials, or specific tasks revealed ONLY to approved freelancers..." />
-              <p className="text-xs text-foreground/50">This information will be securely hidden until you explicitly Approve a freelancer's application.</p>
-            </div>
-          </div>
-
-          {/* Languages Section */}
-          <div className="space-y-4 border-b border-border pb-8">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-foreground">Languages & Proficiencies</h3>
-              <button type="button" onClick={() => setLangCount(prev => prev + 1)} className="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
-                <Plus className="w-4 h-4" /> Add Language
-              </button>
-            </div>
-            <input type="hidden" name="langCount" value={langCount} />
-            
-            {Array.from({ length: langCount }).map((_, i) => (
-              <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border border-border rounded-xl bg-card/50 relative">
-                {i > 0 && (
-                  <button type="button" onClick={() => setLangCount(prev => prev - 1)} className="absolute -top-3 -right-3 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                )}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Language</label>
-                  <input name={`language_${i}`} type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. Arabic" required />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Dialect (Optional)</label>
-                  <input name={`dialect_${i}`} type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. Egyptian" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Level</label>
-                  <select name={`proficiency_${i}`} className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none appearance-none" required>
-                    <option value="">Select Level</option>
-                    <option value="Native">Native</option>
-                    <option value="Near Native">Near Native</option>
-                    <option value="Beginner">Beginner</option>
-                  </select>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Project Images Section */}
-          <div className="space-y-4 border-b border-border pb-8">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-foreground">Project Images & Captions</h3>
-              <button type="button" onClick={() => setImageCount(prev => prev + 1)} className="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
-                <Plus className="w-4 h-4" /> Add Image
-              </button>
-            </div>
-            <input type="hidden" name="imageCount" value={imageCount} />
-            
-            {Array.from({ length: imageCount }).map((_, i) => (
-              <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-border rounded-xl bg-card/50 relative">
-                {i > 0 && (
-                  <button type="button" onClick={() => setImageCount(prev => prev - 1)} className="absolute -top-3 -right-3 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                )}
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Upload Image</label>
-                  <input name={`image_${i}`} type="file" accept="image/*" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border focus:border-primary outline-none text-sm" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">Caption / Explanation</label>
-                  <input name={`caption_${i}`} type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="Explain what to do in this image..." />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Execution Option & Audio Specs Section */}
-          <div className="space-y-4 border-b border-border pb-8">
-            <h3 className="text-lg font-bold text-foreground">Project Execution & Audio Specifications</h3>
-          
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* ================= STEP 1 ================= */}
+          <div className={currentStep === 1 ? "block space-y-8 animate-fade-in" : "hidden"}>
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-foreground border-b border-border pb-2">المعلومات الأساسية</h3>
+              
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Execution Method</label>
-                <select
-                  name="executionOption"
-                  value={executionOption}
-                  onChange={(e) => setExecutionOption(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
-                >
-                  <option value="INTERNAL">Option A: Recording Inside Platform</option>
-                  <option value="EXTERNAL">Option B: External Platform Redirect</option>
-                </select>
-              </div>
-
-              {executionOption === "EXTERNAL" ? (
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold">External URL</label>
-                  <input name="externalUrl" type="url" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="https://example.com/external-task" required />
-                </div>
-              ) : (
-                <div className="space-y-2 opacity-50 select-none">
-                  <label className="text-sm font-semibold">External URL (Disabled for Internal)</label>
-                  <input type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="Disabled" disabled />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Audio Format</label>
-                <select name="audioFormat" defaultValue="WAV" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="WAV">WAV (Lossless)</option>
-                  <option value="FLAC">FLAC</option>
-                  <option value="MP3">MP3</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Sample Rate</label>
-                <select name="sampleRate" defaultValue="44100" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="8000">8000 Hz</option>
-                  <option value="16000">16000 Hz</option>
-                  <option value="22050">22050 Hz</option>
-                  <option value="44100">44100 Hz</option>
-                  <option value="48000">48000 Hz</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Bit Depth</label>
-                <select name="bitDepth" defaultValue="16" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="16">16-bit</option>
-                  <option value="24">24-bit</option>
-                  <option value="32">32-bit</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Channels</label>
-                <select name="channels" defaultValue="MONO" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="MONO">Mono (1 Channel)</option>
-                  <option value="STEREO">Stereo (2 Channels)</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Minimum Duration (seconds)</label>
-                <input name="minDuration" type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 5" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Maximum Duration (seconds)</label>
-                <input name="maxDuration" type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 60" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Target Males</label>
-                <input name="targetMales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 50" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Target Females</label>
-                <input name="targetFemales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 50" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">ZIP Folder Naming Rule</label>
-                <select name="zipNamingRule" defaultValue="FULL" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="FULL">Full (G0001_Name_Age_Gender)</option>
-                  <option value="ANONYMOUS">Anonymous (G0001_Age_Gender) – بدون الاسم</option>
-                  <option value="SPEAKER_ONLY">Speaker ID Only (G0001) – الكود فقط</option>
-                </select>
-                <p className="text-xs text-foreground/50">يتحكم في اسم مجلد وملف ZIP عند التحميل.</p>
-              </div>
-
-              <div className="space-y-3 md:col-span-2 p-4 bg-primary/5 rounded-xl border border-primary/20">
-                <label className="text-sm font-bold text-primary">Custom Audio File Naming Format (Optional)</label>
-                <p className="text-xs text-foreground/70 mb-2">Build your own audio file naming format. If left empty, default behavior is used.</p>
-                <input 
-                  type="text" 
-                  name="customFileNaming" 
-                  value={customNaming}
-                  onChange={(e) => setCustomNaming(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none font-mono text-sm" 
-                  placeholder="e.g. [speakerCode]_[gender]_[order]" 
-                />
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {namingVariables.map(v => (
-                    <button 
-                      key={v.value} 
-                      type="button" 
-                      onClick={() => appendVariable(v.value)}
-                      className="px-2 py-1 text-xs font-semibold bg-background border border-border rounded hover:bg-primary/10 hover:border-primary/50 transition-colors"
-                    >
-                      {v.label}
-                    </button>
-                  ))}
-                  <button type="button" onClick={() => setCustomNaming("")} className="px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded transition-colors ml-auto">
-                    Clear
-                  </button>
-                </div>
+                <label className="text-sm font-semibold">عنوان المشروع <span className="text-red-500">*</span></label>
+                <input name="title" type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="مثال: تسجيل أصوات باللهجة الإماراتية" required={currentStep===1} />
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Task Time Limit (Hours)</label>
-                <input name="timeLimitHours" type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="e.g. 24" />
-                <p className="text-xs text-foreground/50">How long freelancers have to record before task is released.</p>
+                <label className="text-sm font-semibold">الوصف العام <span className="text-red-500">*</span></label>
+                <textarea name="description" className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none" placeholder="اشرح طبيعة المشروع للمستقلين..." required={currentStep===1} />
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold">Enable Browser Noise Cancellation?</label>
-                <select name="enableNoiseCancellation" defaultValue="false" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                  <option value="false">No (Raw Audio, Recommended)</option>
-                  <option value="true">Yes (Apply Noise Suppression)</option>
-                </select>
-                <p className="text-xs text-foreground/50">Also enforces a mandatory pre-recording noise test.</p>
+                <label className="text-sm font-semibold text-red-500 flex items-center gap-2">تعليمات خاصة <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-xs">مخفية للعامة</span></label>
+                <textarea name="privateData" className="w-full h-24 px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20 focus:border-red-500 outline-none resize-none placeholder:text-red-500/40" placeholder="تظهر فقط للمستقلين بعد قبولهم (روابط، كلمات مرور، تعليمات دقيقة)..." />
               </div>
+            </div>
 
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <h3 className="text-xl font-bold text-foreground">اللغات المطلوبة</h3>
+                <button type="button" onClick={() => setLangCount(prev => prev + 1)} className="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
+                  <Plus className="w-4 h-4" /> إضافة لغة
+                </button>
+              </div>
+              <input type="hidden" name="langCount" value={langCount} />
+              
+              {Array.from({ length: langCount }).map((_, i) => (
+                <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border border-border rounded-xl bg-card/50 relative">
+                  {i > 0 && (
+                    <button type="button" onClick={() => setLangCount(prev => prev - 1)} className="absolute -top-3 -right-3 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">اللغة</label>
+                    <input name={`language_${i}`} type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: Arabic" required={currentStep===1} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">اللهجة (اختياري)</label>
+                    <input name={`dialect_${i}`} type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: Emirati" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">المستوى</label>
+                    <select name={`proficiency_${i}`} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" required={currentStep===1}>
+                      <option value="Native">لغة أم (Native)</option>
+                      <option value="Near Native">ممتاز (Near Native)</option>
+                      <option value="Beginner">مبتدئ (Beginner)</option>
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-border pb-2">
+                <h3 className="text-xl font-bold text-foreground">الصور التوضيحية</h3>
+                <button type="button" onClick={() => setImageCount(prev => prev + 1)} className="text-sm font-bold text-primary flex items-center gap-1 hover:underline">
+                  <Plus className="w-4 h-4" /> إضافة صورة
+                </button>
+              </div>
+              <input type="hidden" name="imageCount" value={imageCount} />
+              {Array.from({ length: imageCount }).map((_, i) => (
+                <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border border-border rounded-xl bg-card/50 relative">
+                  {i > 0 && (
+                    <button type="button" onClick={() => setImageCount(prev => prev - 1)} className="absolute -top-3 -right-3 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">الصورة</label>
+                    <input name={`image_${i}`} type="file" accept="image/*" className="w-full px-4 py-2.5 rounded-xl bg-background border border-border text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">وصف / تعليق</label>
+                    <input name={`caption_${i}`} type="text" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="اشرح ما بداخل الصورة..." />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Script Management Section */}
-          <div className="space-y-4 border-b border-border pb-8">
-            <h3 className="text-lg font-bold text-foreground">Script Configuration</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Display Script/Texts to Freelancers?</label>
-                <select
-                  name="hasScript"
-                  value={hasScript.toString()}
-                  onChange={(e) => setHasScript(e.target.value === "true")}
-                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
-                >
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-              </div>
+          {/* ================= STEP 2 ================= */}
+          <div className={currentStep === 2 ? "block space-y-8 animate-fade-in" : "hidden"}>
+            <div className="space-y-4">
+              <h3 className="text-xl font-bold text-foreground border-b border-border pb-2">إعدادات السكربت (الجمل)</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">هل يتطلب المشروع قراءة جمل؟</label>
+                  <select name="hasScript" value={hasScript.toString()} onChange={(e) => setHasScript(e.target.value === "true")} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none">
+                    <option value="true">نعم (سيتم رفع ملف)</option>
+                    <option value="false">لا (تسجيل حر)</option>
+                  </select>
+                </div>
 
-              {hasScript && (
-                <>
+                {hasScript && (
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold">Sentence Distribution Method</label>
-                    <select
-                      name="scriptType"
-                      value={scriptType}
-                      onChange={(e) => setScriptType(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
-                    >
-                      <option value="STATIC">Static: All users record the same file</option>
-                      <option value="DYNAMIC_POOL">Dynamic Pool (Auto-Chunking): Distribute sentences evenly across users</option>
-                      <option value="PRE_ASSIGNED">Pre-Assigned: Manual distribution via Email (Excel Upload)</option>
+                    <label className="text-sm font-semibold">طريقة توزيع الجمل</label>
+                    <select name="scriptType" value={scriptType} onChange={(e) => setScriptType(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none">
+                      <option value="STATIC">نفس الجمل للجميع (Static)</option>
+                      <option value="DYNAMIC_POOL">توزيع عشوائي من حصيلة (Dynamic Pool)</option>
+                      <option value="PRE_ASSIGNED">مخصصة مسبقاً لكل شخص بالإيميل (Pre-Assigned)</option>
                     </select>
                   </div>
-                  
-                  {scriptType === "DYNAMIC_POOL" && (
-                    <div className="space-y-2 md:col-span-2 bg-primary/5 p-4 rounded-xl border border-primary/20">
-                      <label className="text-sm font-semibold text-primary">Sentences Per User (Quota)</label>
-                      <p className="text-xs text-foreground/60 mb-2">How many sentences should each freelancer record from the total pool?</p>
-                      <input
-                        name="sentencesPerUser"
-                        type="number"
-                        min="1"
-                        required
-                        className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
-                        placeholder="e.g. 50"
-                      />
-                    </div>
-                  )}
+                )}
+              </div>
 
-                  {scriptType === "PRE_ASSIGNED" && (
-                    <div className="space-y-2 md:col-span-2 bg-orange-500/5 p-4 rounded-xl border border-orange-500/20">
-                      <label className="text-sm font-semibold text-orange-600">Manual Allocation Guidelines</label>
-                      <p className="text-xs text-foreground/80">
-                        You must upload an Excel file containing exactly two columns:<br/>
-                        1. <b>Sentence</b> (The text to be read)<br/>
-                        2. <b>Email</b> (The user email assigned to this sentence)
-                      </p>
-                    </div>
-                  )}
+              {hasScript && scriptType === "DYNAMIC_POOL" && (
+                <div className="space-y-2 bg-primary/5 p-4 rounded-xl border border-primary/20">
+                  <label className="text-sm font-semibold text-primary">حصة كل مستقل (عدد الجمل)</label>
+                  <input name="sentencesPerUser" type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none mt-2" placeholder="مثال: 50" required={currentStep===2 && scriptType==="DYNAMIC_POOL"} />
+                </div>
+              )}
 
-                  <div className="space-y-2 md:col-span-2">
-                    <label className="text-sm font-semibold">Upload Script Mode</label>
-                    <select
-                      value={scriptMode}
-                      onChange={(e) => setScriptMode(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
-                    >
-                      <option value="file">Upload File (XLSX, CSV, TXT)</option>
-                      <option value="manual">Manual Input</option>
+              {hasScript && (
+                <div className="space-y-6 pt-4 border-t border-border">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">طريقة إدخال الجمل</label>
+                    <select value={scriptMode} onChange={(e) => setScriptMode(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none">
+                      <option value="file">رفع ملف إكسيل / الشيت (ينصح به)</option>
+                      <option value="manual">إدخال يدوي</option>
                     </select>
                     <input type="hidden" name="scriptMode" value={scriptMode} />
                   </div>
 
                   {scriptMode === "file" ? (
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-semibold">Select Script File</label>
-                      <input
-                        name="scriptFile"
-                        type="file"
-                        accept={scriptType === "PRE_ASSIGNED" ? ".xlsx,.xls" : ".xlsx,.xls,.csv,.txt"}
-                        className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none"
-                        required
-                      />
-                      <p className="text-xs text-foreground/50">
-                        {scriptType === "PRE_ASSIGNED" 
-                          ? "Supported formats: Excel (.xlsx, .xls) ONLY for Pre-Assigned mode."
-                          : "Supported formats: Excel (.xlsx, .xls), CSV (.csv), Plain Text (.txt)"}
-                      </p>
+                    <div className="space-y-6">
+                      <div className="relative border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors rounded-2xl p-8 text-center cursor-pointer group">
+                        <input 
+                          name="scriptFile" 
+                          type="file" 
+                          accept={scriptType === "PRE_ASSIGNED" ? ".xlsx,.xls" : ".xlsx,.xls,.csv"} 
+                          required={currentStep===2 && scriptMode==="file"}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                          onChange={(e) => setFileName(e.target.files?.[0]?.name || "")}
+                        />
+                        <UploadCloud className="w-12 h-12 text-primary mx-auto mb-3 group-hover:scale-110 transition-transform" />
+                        <h4 className="font-bold text-lg text-primary">{fileName ? fileName : "اسحب ملف الإكسيل هنا أو اضغط للاختيار"}</h4>
+                        <p className="text-sm text-foreground/60 mt-1">صيغ مدعومة: XLSX, CSV</p>
+                      </div>
+
+                      {/* Column Mapping Options */}
+                      <div className="bg-card p-6 rounded-2xl border border-border space-y-4">
+                        <h4 className="font-bold text-lg flex items-center gap-2"><Settings className="w-5 h-5 text-primary" /> تعيين أعمدة الشيت (Column Mapping)</h4>
+                        <p className="text-sm text-foreground/60">اكتب رقم العمود لكي يتعرف عليه النظام. (أول عمود = 0، الثاني = 1، وهكذا.. أتركه فارغاً إذا لم يكن موجوداً).</p>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold">عمود نص الجملة <span className="text-red-500">*</span></label>
+                            <input name="sentenceCol" type="number" min="0" placeholder="مثال: 0 (للعمود A)" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold">عمود المعرف (رقم الجملة)</label>
+                            <input name="idCol" type="number" min="0" placeholder="مثال: 1 (للعمود B)" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-semibold">عمود الملاحظات</label>
+                            <input name="noteCol" type="number" min="0" placeholder="مثال: 2 (للعمود C)" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <div className="space-y-2 md:col-span-2">
-                      <label className="text-sm font-semibold">Enter Sentences (one sentence per line)</label>
-                      <textarea
-                        name="manualScriptText"
-                        disabled={scriptType === "PRE_ASSIGNED"}
-                        className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none disabled:opacity-50"
-                        placeholder={scriptType === "PRE_ASSIGNED" ? "Manual input disabled for Pre-Assigned mode. Please upload an Excel file." : "Sentence 1\nSentence 2\nSentence 3..."}
-                        required={scriptType !== "PRE_ASSIGNED"}
-                      />
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold">أدخل الجمل (جملة في كل سطر)</label>
+                      <textarea name="manualScriptText" className="w-full h-48 px-4 py-3 rounded-xl bg-background border border-border outline-none resize-none" placeholder="الجملة الأولى..." required={currentStep===2 && scriptMode==="manual"} />
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
-            
-            <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-xl flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                <Globe className="w-5 h-5 text-primary" />
+          </div>
+
+          {/* ================= STEP 3 ================= */}
+          <div className={currentStep === 3 ? "block space-y-8 animate-fade-in" : "hidden"}>
+            <div className="space-y-6">
+              <h3 className="text-xl font-bold text-foreground border-b border-border pb-2">إعدادات الصوت وتسمية الملفات</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">مكان التنفيذ</label>
+                  <select name="executionOption" value={executionOption} onChange={e => setExecutionOption(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none">
+                    <option value="INTERNAL">داخل المنصة (نظام التسجيل المدمج)</option>
+                    <option value="EXTERNAL">منصة خارجية (يتم تحويل المستقل لرابط خارجي)</option>
+                  </select>
+                </div>
+                {executionOption === "EXTERNAL" && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold">رابط المنصة الخارجية <span className="text-red-500">*</span></label>
+                    <input name="externalUrl" type="url" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="https://" required={currentStep===3 && executionOption==="EXTERNAL"} />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">تسمية الملف المضغوط (ZIP) عند التحميل</label>
+                  <select name="zipNamingRule" value={zipNamingRule} onChange={e => setZipNamingRule(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none text-left" dir="ltr">
+                    <option value="FULL">Code_Name_Age_Gender (Full)</option>
+                    <option value="ANONYMOUS">Code_Age_Gender (Anonymous)</option>
+                    <option value="SPEAKER_ONLY">Code (Speaker Code Only)</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <h4 className="font-bold text-primary text-sm">Advanced Batch Upload (Multiple CSVs)</h4>
-                <p className="text-xs text-foreground/70 mt-1">
-                  Want to upload multiple scripts for different freelancers (e.g. G0269, G0270) at once? 
-                  You will be automatically redirected to the Advanced Batch Upload page immediately after clicking "Save & Continue".
-                </p>
+
+              {/* Dynamic File Naming Builder & Live Preview */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                <div className="bg-card p-6 rounded-2xl border border-border space-y-4">
+                  <h4 className="font-bold text-lg">منشئ تسمية الملفات الصوتية</h4>
+                  <p className="text-xs text-foreground/70">اضغط على المتغيرات لترتيب التسمية، وسيتم تطبيقها على كل ملف صوتي داخل الـ ZIP.</p>
+                  
+                  <input 
+                    type="text" 
+                    name="customFileNaming" 
+                    value={customNaming}
+                    onChange={(e) => setCustomNaming(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-background border border-primary/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none font-mono text-sm text-left" 
+                    placeholder="[audioId]-[speakerCode]" 
+                    dir="ltr"
+                  />
+                  
+                  <div className="flex flex-wrap gap-2">
+                    {namingVariables.map(v => (
+                      <button key={v.value} type="button" onClick={() => appendVariable(v.value)} className="px-3 py-1.5 text-xs font-semibold bg-background border border-border rounded-lg hover:bg-primary/10 hover:border-primary/50 transition-colors">
+                        {v.label}
+                      </button>
+                    ))}
+                    <button type="button" onClick={() => setCustomNaming("")} className="px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded-lg transition-colors ml-auto">
+                      مسح
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live Preview Box */}
+                <div className="bg-primary/5 border border-primary/20 p-6 rounded-2xl flex flex-col justify-center">
+                  <h4 className="font-bold text-primary flex items-center gap-2 mb-4"><PlayCircle className="w-5 h-5" /> المعاينة الحية (Live Preview)</h4>
+                  
+                  <div className="space-y-3 font-mono text-sm" dir="ltr">
+                    <div className="flex items-start gap-3">
+                      <span className="bg-primary/20 px-2 py-1 rounded text-primary font-bold text-xs shrink-0 mt-0.5">ZIP Name</span>
+                      <span className="text-foreground/80 break-all">{formattedZipName}.zip</span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <span className="bg-primary/20 px-2 py-1 rounded text-primary font-bold text-xs shrink-0 mt-0.5">Audio 1</span>
+                      <span className="text-foreground/80 break-all">{formattedAudioName}.wav</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-foreground/50 mt-4 text-right">هذه معاينة تقريبية بناءً على خياراتك الحالية.</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border">
+                <button type="button" onClick={() => setShowAdvancedAudio(!showAdvancedAudio)} className="text-sm font-bold text-primary hover:underline mb-4">
+                  {showAdvancedAudio ? "إخفاء إعدادات الصوت المتقدمة -" : "عرض إعدادات الصوت المتقدمة +"}
+                </button>
+                
+                {showAdvancedAudio && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6 bg-card rounded-2xl border border-border animate-slide-up">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold">الصيغة</label>
+                      <select name="audioFormat" defaultValue="WAV" className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm">
+                        <option value="WAV">WAV (Lossless)</option>
+                        <option value="FLAC">FLAC</option>
+                        <option value="MP3">MP3</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold">معدل النقل (Sample Rate)</label>
+                      <select name="sampleRate" defaultValue="44100" className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm">
+                        <option value="16000">16000 Hz</option>
+                        <option value="44100">44100 Hz</option>
+                        <option value="48000">48000 Hz</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold">العمق (Bit Depth)</label>
+                      <select name="bitDepth" defaultValue="16" className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm">
+                        <option value="16">16-bit</option>
+                        <option value="24">24-bit</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold">القنوات</label>
+                      <select name="channels" defaultValue="MONO" className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm">
+                        <option value="MONO">Mono (1 Channel)</option>
+                        <option value="STEREO">Stereo</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold">إلغاء الضوضاء بالمتصفح؟</label>
+                      <select name="enableNoiseCancellation" defaultValue="false" className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm">
+                        <option value="false">لا (صوت خام - ينصح به)</option>
+                        <option value="true">نعم</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Other Requirements */}
-          <div className="space-y-4 border-b border-border pb-8">
-            <h3 className="text-lg font-bold text-foreground">Other Requirements</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-semibold flex items-center gap-2"><Globe className="w-4 h-4" /> Required Countries <span className="text-foreground/40 font-normal">(leave empty = Anywhere)</span></label>
-                
-                {/* Hidden input storing JSON array of selected countries */}
-                <input type="hidden" name="reqCountry" value={selectedCountries.length > 0 ? JSON.stringify(selectedCountries) : ""} />
-                
-                {/* Selected Country Tags */}
-                {selectedCountries.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {selectedCountries.map(c => (
-                      <span key={c} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm font-semibold">
-                        {c}
-                        <button type="button" onClick={() => removeCountry(c)} className="hover:text-red-500 transition-colors">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </span>
-                    ))}
-                    <button type="button" onClick={() => setSelectedCountries([])} className="px-3 py-1.5 text-xs text-red-400 hover:text-red-500 font-bold rounded-full border border-red-400/20 hover:bg-red-500/10 transition-colors">
-                      Clear All
-                    </button>
-                  </div>
-                )}
-
-                {/* Dropdown Select */}
-                <select
-                  value=""
-                  onChange={e => { if (e.target.value) addCountry(e.target.value) }}
-                  className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all appearance-none cursor-pointer"
-                >
-                  <option value="">— Select a country to add —</option>
-                  {COUNTRIES.filter(c => !selectedCountries.includes(c)).map(country => (
-                    <option key={country} value={country}>{country}</option>
-                  ))}
-                </select>
-              </div>
+          {/* ================= STEP 4 ================= */}
+          <div className={currentStep === 4 ? "block space-y-8 animate-fade-in" : "hidden"}>
+            <div className="space-y-6">
+              <h3 className="text-xl font-bold text-foreground border-b border-border pb-2">المتطلبات الإضافية والتسعير</h3>
               
-              {/* Duration and unit choice */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Recording Duration</label>
-                <div className="flex gap-2">
-                  <input name="recordingDuration" type="number" step="0.1" min="0.1" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="e.g. 2.5 or 50" />
-                  <select name="durationUnit" defaultValue="HOUR" className="w-32 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                    <option value="HOUR">Hours</option>
-                    <option value="SENTENCE">Sentences</option>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm font-semibold flex items-center gap-2"><Globe className="w-4 h-4" /> الدول المستهدفة <span className="text-foreground/40 font-normal">(اتركه فارغاً لجميع الدول)</span></label>
+                  <input type="hidden" name="reqCountry" value={selectedCountries.length > 0 ? JSON.stringify(selectedCountries) : ""} />
+                  
+                  {selectedCountries.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {selectedCountries.map(c => (
+                        <span key={c} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm font-semibold">
+                          {c}
+                          <button type="button" onClick={() => removeCountry(c)} className="hover:text-red-500 transition-colors">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </span>
+                      ))}
+                      <button type="button" onClick={() => setSelectedCountries([])} className="px-3 py-1.5 text-xs text-red-400 hover:text-red-500 font-bold rounded-full border border-red-400/20 hover:bg-red-500/10 transition-colors">مسح الكل</button>
+                    </div>
+                  )}
+                  <select value="" onChange={e => { if (e.target.value) addCountry(e.target.value) }} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none appearance-none cursor-pointer">
+                    <option value="">— اختر دولة لإضافتها —</option>
+                    {COUNTRIES.filter(c => !selectedCountries.includes(c)).map(country => (
+                      <option key={country} value={country}>{country}</option>
+                    ))}
                   </select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">سعر المشروع ($)</label>
+                  <div className="flex gap-2">
+                    <input name="price" type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 50.00" required={currentStep===4} />
+                    <select name="pricingModel" defaultValue="FIXED_PROJECT" className="w-32 px-2 py-3 rounded-xl bg-background border border-border outline-none text-sm">
+                      <option value="FIXED_PROJECT">مشروع ثابت</option>
+                      <option value="PER_HOUR">بالساعة</option>
+                      <option value="PER_SENTENCE">بالجملة</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">حجم التسجيل (المدة/العدد)</label>
+                  <div className="flex gap-2">
+                    <input name="recordingDuration" type="number" step="0.1" min="0.1" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 2.5 أو 500" />
+                    <select name="durationUnit" defaultValue="HOUR" className="w-32 px-2 py-3 rounded-xl bg-background border border-border outline-none text-sm">
+                      <option value="HOUR">ساعات</option>
+                      <option value="SENTENCE">جمل</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">الحد الأدنى والأقصى للعمر (اختياري)</label>
+                  <div className="flex gap-2 items-center">
+                    <input name="reqAgeMin" type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="الحد الأدنى" />
+                    <span>-</span>
+                    <input name="reqAgeMax" type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="الحد الأقصى" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold">مهلة التسجيل (بالساعات)</label>
+                  <input name="timeLimitHours" type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 24 ساعة" />
                 </div>
               </div>
 
-              {/* Price and model choice */}
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Price Configuration</label>
-                <div className="flex gap-2">
-                  <input name="price" type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all" placeholder="50.00" required />
-                  <select name="pricingModel" defaultValue="FIXED_PROJECT" className="w-48 px-3 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none">
-                    <option value="FIXED_PROJECT">Fixed Task</option>
-                    <option value="PER_HOUR">Per Hour</option>
-                    <option value="PER_SENTENCE">Per Sentence</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold">Age Range (Optional)</label>
-                <div className="flex gap-2 items-center">
-                  <input name="reqAgeMin" type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="Min age (18)" />
-                  <span className="text-foreground/50 font-bold">–</span>
-                  <input name="reqAgeMax" type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none" placeholder="Max age (60)" />
-                </div>
-              </div>
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2 border-t border-border pt-4">
                 <label className="flex items-center gap-3 p-4 bg-primary/5 border border-primary/20 rounded-xl cursor-pointer hover:bg-primary/10 transition-colors">
                   <input name="autoApprove" type="checkbox" value="true" className="w-5 h-5 rounded border-border text-primary focus:ring-primary" />
                   <div>
-                    <p className="font-bold text-sm text-foreground">Auto-Approve All Applicants</p>
-                    <p className="text-xs text-foreground/60">If checked, anyone who applies will be automatically approved and can see private project instructions.</p>
+                    <p className="font-bold text-sm text-foreground">قبول تلقائي للمتقدمين (Auto-Approve)</p>
+                    <p className="text-xs text-foreground/60">اذا قمت بتفعيله، سيتم قبول أي شخص يتقدم للمشروع فوراً.</p>
                   </div>
                 </label>
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-4 pt-4">
-            <Link href="/admin/projects/create" className="px-6 py-3 rounded-xl font-semibold text-foreground/70 hover:bg-card transition-colors">
-              Cancel
-            </Link>
-            <button type="submit" className="px-8 py-3 bg-primary text-primary-foreground font-bold rounded-xl flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:-translate-y-0.5">
-              <Save className="w-5 h-5" /> Publish Project
-            </button>
+          {/* Footer Controls */}
+          <div className="flex justify-between items-center pt-8 mt-8 border-t border-border">
+            {currentStep > 1 ? (
+              <button type="button" onClick={() => setCurrentStep(prev => prev - 1)} className="px-6 py-3 rounded-xl font-bold text-foreground/70 hover:bg-card border border-border transition-colors">
+                السابق
+              </button>
+            ) : <div></div>}
+            
+            {currentStep < 4 ? (
+              <button type="button" onClick={() => setCurrentStep(prev => prev + 1)} className="px-8 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:-translate-y-0.5">
+                التالي
+              </button>
+            ) : (
+              <button type="submit" disabled={isSubmitting} className="px-8 py-3 bg-green-600 text-white font-bold rounded-xl flex items-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-600/20 hover:-translate-y-0.5 disabled:opacity-50">
+                <Save className="w-5 h-5" /> {isSubmitting ? "جاري النشر..." : "نشر المشروع"}
+              </button>
+            )}
           </div>
+          
         </form>
       </div>
     </div>
