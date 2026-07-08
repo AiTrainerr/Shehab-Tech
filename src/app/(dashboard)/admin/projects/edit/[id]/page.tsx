@@ -7,6 +7,7 @@ import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, ChevronRight, Fil
 import { updateProjectAction, releaseIncompleteSentences, deleteProjectAction } from "@/app/actions/projects"
 import { BatchScriptUpload } from "@/components/BatchScriptUpload"
 import { BatchCodesManager } from "@/components/BatchCodesManager"
+import { VoiceRecorderPreview } from "@/components/voice-recorder-preview"
 import RichTextEditor from "@/components/RichTextEditor"
 
 const COUNTRIES = [
@@ -15,9 +16,10 @@ const COUNTRIES = [
 
 const STEPS = [
   { id: 1, title: "المعلومات الأساسية", icon: FileText },
-  { id: 2, title: "السكربت والكلمات", icon: UploadCloud },
+  { id: 2, title: "السكريبت والملفات", icon: UploadCloud },
   { id: 3, title: "إعدادات الصوت والتسمية", icon: PlayCircle },
   { id: 4, title: "المتطلبات الإضافية", icon: CreditCard },
+  { id: 5, title: "معاينة المشروع", icon: Globe },
 ];
 
 export default function EditProjectPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +27,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   const router = useRouter()
   const [project, setProject] = React.useState<any>(null)
   const [isLoading, setIsLoading] = React.useState(true)
+  const [previewSentences, setPreviewSentences] = React.useState<any[]>([])
 
   const [currentStep, setCurrentStep] = React.useState(1)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -62,16 +65,22 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   }
 
   React.useEffect(() => {
-    fetch(`/api/projects/${id}`)
+    fetch(`/api/projects/${id}?includeSentences=true`)
       .then(res => res.json())
       .then(data => {
         const proj = data.project
         setProject(proj)
+        setSentenceCount(data.sentenceCount || 0)
+        if (data.sentences) {
+          setPreviewSentences(data.sentences.map((s: any) => ({
+            ...s,
+            recordings: []
+          })))
+        }
         setLanguages(proj.languages || [])
         setExecutionOption(proj.executionOption || "INTERNAL")
         setHasScript(proj.hasScript !== false)
         setScriptType(proj.scriptType || "STATIC")
-        setSentenceCount(data.sentenceCount || 0)
         setCustomNaming(proj.customFileNaming || "")
         setZipNamingRule(proj.zipNamingRule || "FULL")
         setDescription(proj.description || "")
@@ -707,6 +716,29 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
+          {/* ================= STEP 5 ================= */}
+          <div className={currentStep === 5 ? "block space-y-8 animate-fade-in" : "hidden"}>
+            <div className="space-y-6">
+              <h3 className="text-xl font-bold text-foreground border-b border-border pb-2">معاينة حية للمشروع (Preview)</h3>
+              <p className="text-sm text-foreground/70">هذه الشاشة توضح بالضبط ما سيراه المستقل عند الدخول لتسجيل الجمل. يرجى مراجعة الجمل للتأكد من خلوها من أي نصوص أو أعمدة خاطئة تم استيرادها بالخطأ.</p>
+              
+              <div className="bg-card p-6 rounded-2xl border border-border mt-4">
+                <VoiceRecorderPreview 
+                  projectId={project?.id || ""}
+                  speakerCode={project?.scriptType === "PRE_ASSIGNED" || project?.scriptType === "BATCH_CODE" ? "G0001" : undefined}
+                  applicationStatus="APPROVED"
+                  audioFormat={project?.audioFormat || "WAV"}
+                  sampleRate={project?.sampleRate || 44100}
+                  bitDepth={project?.bitDepth || 16}
+                  channels={project?.channels || "1"}
+                  minDuration={project?.minDuration || null}
+                  maxDuration={project?.maxDuration || null}
+                  enableNoiseCancellation={project?.enableNoiseCancellation || false}
+                  sentences={previewSentences}
+                />
+              </div>
+            </div>
+          </div>
           {/* Footer Controls */}
           <div className="flex justify-between items-center pt-8 mt-8 border-t border-border">
             {currentStep > 1 ? (
@@ -715,7 +747,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </button>
             ) : <div></div>}
             
-            {currentStep < 4 ? (
+            {currentStep < 5 ? (
               <button type="button" onClick={() => setCurrentStep(prev => prev + 1)} className="px-8 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:-translate-y-0.5">
                 التالي
               </button>
