@@ -32,11 +32,10 @@ function playNotificationSound() {
       osc.stop(ctx.currentTime + start + duration + 0.05)
     }
     
-    playTone(880, 0,    0.12, 0.3)
-    playTone(1046, 0.13, 0.12, 0.3)
-    playTone(1318, 0.26, 0.18, 0.25)
+    playTone(1046, 0,    0.1, 0.3)
+    playTone(1046, 0.2,  0.1, 0.3)
   } catch (e) {
-    // Audio not supported – silent fallback
+    // Audio not supported
   }
 }
 

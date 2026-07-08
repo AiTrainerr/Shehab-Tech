@@ -295,20 +295,20 @@ export default function CreateRecordingProjectPage() {
                       {/* Column Mapping Options */}
                       <div className="bg-card p-6 rounded-2xl border border-border space-y-4">
                         <h4 className="font-bold text-lg flex items-center gap-2"><Settings className="w-5 h-5 text-primary" /> تعيين أعمدة الشيت (Column Mapping)</h4>
-                        <p className="text-sm text-foreground/60">اكتب رقم العمود لكي يتعرف عليه النظام. (أول عمود = 0، الثاني = 1، وهكذا.. أتركه فارغاً إذا لم يكن موجوداً).</p>
+                        <p className="text-sm text-foreground/60">اكتب الحرف الإنجليزي للعمود (A, B, C...). أتركه فارغاً إذا لم يكن موجوداً.</p>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                           <div className="space-y-2">
                             <label className="text-sm font-semibold">عمود نص الجملة <span className="text-red-500">*</span></label>
-                            <input name="sentenceCol" type="number" min="0" placeholder="مثال: 0 (للعمود A)" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" />
+                            <input name="sentenceCol" type="text" placeholder="مثال: A" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" />
                           </div>
                           <div className="space-y-2">
                             <label className="text-sm font-semibold">عمود المعرف (رقم الجملة)</label>
-                            <input name="idCol" type="number" min="0" placeholder="مثال: 1 (للعمود B)" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" />
+                            <input name="idCol" type="text" placeholder="مثال: B" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" />
                           </div>
                           <div className="space-y-2">
                             <label className="text-sm font-semibold">عمود الملاحظات</label>
-                            <input name="noteCol" type="number" min="0" placeholder="مثال: 2 (للعمود C)" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" />
+                            <input name="noteCol" type="text" placeholder="مثال: C" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" />
                           </div>
                         </div>
                       </div>

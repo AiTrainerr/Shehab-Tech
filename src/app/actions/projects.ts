@@ -6,6 +6,20 @@ import * as XLSX from "xlsx"
 import { createNotification, createManyNotifications } from "@/app/actions/notifications"
 import { deleteFromCloudinary } from "@/lib/cloudinary"
 
+function colToIndex(col: string | null): number | null {
+  if (!col) return null;
+  const upper = col.toUpperCase().trim();
+  if (!/^[A-Z]+$/.test(upper)) {
+    const parsed = parseInt(upper);
+    return isNaN(parsed) ? null : parsed;
+  }
+  let index = 0;
+  for (let i = 0; i < upper.length; i++) {
+    index = index * 26 + (upper.charCodeAt(i) - 64);
+  }
+  return index - 1;
+}
+
 export async function createProjectAction(formData: FormData) {
   try {
     const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
@@ -130,9 +144,9 @@ export async function createProjectAction(formData: FormData) {
         let parsedSentences: any[] = []
         const scriptMode = formData.get("scriptMode") as string // "file" or "manual"
         
-        const sentenceColIdx = formData.get("sentenceCol") ? parseInt(formData.get("sentenceCol") as string) : null;
-        const idColIdx = formData.get("idCol") ? parseInt(formData.get("idCol") as string) : null;
-        const noteColIdx = formData.get("noteCol") ? parseInt(formData.get("noteCol") as string) : null;
+        const sentenceColIdx = colToIndex(formData.get("sentenceCol") as string);
+        const idColIdx = colToIndex(formData.get("idCol") as string);
+        const noteColIdx = colToIndex(formData.get("noteCol") as string);
 
         if (scriptMode === "manual" && scriptType !== "PRE_ASSIGNED") {
           const manualScriptText = formData.get("manualScriptText") as string
@@ -152,8 +166,9 @@ export async function createProjectAction(formData: FormData) {
               const workbook = XLSX.read(buffer, { type: "buffer" })
               let allSentences: any[] = []
               
-              for (const sheetName of workbook.SheetNames) {
-                const sheet = workbook.Sheets[sheetName]
+              const firstSheetName = workbook.SheetNames[0]
+              if (firstSheetName) {
+                const sheet = workbook.Sheets[firstSheetName]
                 const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
                 
                 if (scriptType === "PRE_ASSIGNED") {
@@ -182,11 +197,11 @@ export async function createProjectAction(formData: FormData) {
                           }
                         }
                       }
-                      return null
-                    })
-                    .filter(Boolean)
-                  allSentences = [...allSentences, ...sheetSentences]
-                }
+                        return null
+                      })
+                      .filter(Boolean)
+                    allSentences = [...allSentences, ...sheetSentences]
+                  }
               }
               parsedSentences = allSentences
             } else if (name.endsWith(".txt") && scriptType !== "PRE_ASSIGNED") {
@@ -698,9 +713,9 @@ export async function updateProjectAction(projectId: string, formData: FormData)
         let sentences: string[] = []
         const scriptMode = formData.get("scriptMode") as string
         
-        const sentenceColIdx = formData.get("sentenceCol") ? parseInt(formData.get("sentenceCol") as string) : null;
-        const idColIdx = formData.get("idCol") ? parseInt(formData.get("idCol") as string) : null;
-        const noteColIdx = formData.get("noteCol") ? parseInt(formData.get("noteCol") as string) : null;
+        const sentenceColIdx = colToIndex(formData.get("sentenceCol") as string);
+        const idColIdx = colToIndex(formData.get("idCol") as string);
+        const noteColIdx = colToIndex(formData.get("noteCol") as string);
 
         if (scriptMode === "manual") {
           const manualScriptText = formData.get("manualScriptText") as string
@@ -720,8 +735,9 @@ export async function updateProjectAction(projectId: string, formData: FormData)
               const workbook = XLSX.read(buffer, { type: "buffer" })
               let allSentences: any[] = []
               
-              for (const sheetName of workbook.SheetNames) {
-                const sheet = workbook.Sheets[sheetName]
+              const firstSheetName = workbook.SheetNames[0]
+              if (firstSheetName) {
+                const sheet = workbook.Sheets[firstSheetName]
                 const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
 
                 const sheetSentences = rows
