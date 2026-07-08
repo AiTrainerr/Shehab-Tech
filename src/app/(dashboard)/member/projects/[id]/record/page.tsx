@@ -33,9 +33,15 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
 
   let sentences: any[] = []
 
-  if (application.speakerCode) {
-    // Speaker-code based: user already has a dedicated speaker code
-    
+  if (project.scriptType === "STATIC") {
+    sentences = await prisma.projectSentence.findMany({
+      where: { projectId: id },
+      orderBy: { order: "asc" },
+      include: { recordings: { where: { userId } } }
+    })
+  } else if (application.speakerCode && project.scriptType === "BATCH_CODE") {
+    // Only use speakerCode grouping if it's explicitly a BATCH_CODE project type
+    // or if we decide to maintain legacy speakerCode grouping. Currently, we just use application.speakerCode for folder naming.
     // Safety Check: If the user was previously assigned to a DIFFERENT speakerCode, 
     // release those old sentences to prevent locking mismatches.
     await prisma.projectSentence.updateMany({
@@ -58,56 +64,6 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
       orderBy: { order: "asc" },
       include: { recordings: { where: { userId } } }
     })
-  } else if (project.scriptType === "STATIC") {
-    // Check if user already has sentences assigned to them
-    const alreadyAssigned = await prisma.projectSentence.findMany({
-      where: { projectId: id, assignedUserId: userId },
-      orderBy: { order: "asc" },
-      include: { recordings: { where: { userId } } }
-    })
-
-    if (alreadyAssigned.length > 0) {
-      // User already has their batch — return it
-      sentences = alreadyAssigned
-    } else {
-      // Find an unassigned speakerCode group (a complete file of 80 sentences)
-      // Groups are determined by the speakerCode field on the sentences
-      const firstUnassignedGroup = await prisma.projectSentence.findFirst({
-        where: {
-          projectId: id,
-          assignedUserId: null,
-          speakerCode: { not: null }
-        },
-        orderBy: { order: "asc" }
-      })
-
-      if (firstUnassignedGroup?.speakerCode) {
-        // Lock the entire group (all sentences with this speakerCode) to this user
-        await prisma.projectSentence.updateMany({
-          where: { projectId: id, speakerCode: firstUnassignedGroup.speakerCode },
-          data: { assignedUserId: userId }
-        })
-        
-        // IMPORTANT: Sync the application speakerCode so they don't lose it
-        await prisma.application.update({
-          where: { id: application.id },
-          data: { speakerCode: firstUnassignedGroup.speakerCode }
-        })
-        
-        sentences = await prisma.projectSentence.findMany({
-          where: { projectId: id, speakerCode: firstUnassignedGroup.speakerCode },
-          orderBy: { order: "asc" },
-          include: { recordings: { where: { userId } } }
-        })
-      } else {
-        // No speakerCode grouping — fallback to all sentences (old behavior)
-        sentences = await prisma.projectSentence.findMany({
-          where: { projectId: id },
-          orderBy: { order: "asc" },
-          include: { recordings: { where: { userId } } }
-        })
-      }
-    }
   } else if (project.scriptType === "PRE_ASSIGNED") {
     sentences = await prisma.projectSentence.findMany({
       where: { projectId: id, assignedEmail: userObj.email },
