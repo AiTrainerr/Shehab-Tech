@@ -5,6 +5,9 @@ import { redirect, notFound } from "next/navigation"
 import { ArrowLeft, Mic } from "lucide-react"
 import { VoiceRecorder } from "@/components/voice-recorder"
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ProjectRecordPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const cookieStore = await cookies()
