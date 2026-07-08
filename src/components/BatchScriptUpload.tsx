@@ -33,16 +33,22 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
     const results: ParsedFile[] = []
     let pending = files.length
 
-    const processMappedRows = (file: File, data: any[]) => {
-      const mapped = data.map((row: any) => {
-        const keys = Object.keys(row)
-        return {
-          speakerCode: row["Speaker ID"] || row["录音人id"] || row[keys[0]] || "",
-          audioId:     row["Audio ID"]   || row["音频id"]   || row[keys[1]] || "",
-          text:        row["Text"]       || row["Script"]   || row["录音文本"] || row[keys[2]] || "",
-          speed:       row["Speed"]      || row["语速"]     || row[keys[3]] || "正常"
-        }
-      }).filter(item => item.speakerCode && item.text)
+    const processMappedRows = (file: File, data: any[], isPreMapped = false) => {
+      let mapped: any[] = []
+      
+      if (isPreMapped) {
+        mapped = data.filter(item => item.speakerCode && item.text)
+      } else {
+        mapped = data.map((row: any) => {
+          const keys = Object.keys(row)
+          return {
+            speakerCode: String(row["Speaker ID"] || row["录音人id"] || row[keys[0]] || "").trim(),
+            audioId:     String(row["Audio ID"]   || row["音频id"]   || row[keys[1]] || "").trim(),
+            text:        String(row["Text"]       || row["Script"]   || row["录音文本"] || row[keys[2]] || "").trim(),
+            speed:       String(row["Speed"]      || row["语速"]     || row[keys[3]] || "normal").trim()
+          }
+        }).filter(item => item.speakerCode && item.text)
+      }
 
       const detectedSpeakerCode = mapped[0]?.speakerCode || file.name.replace(/\.[^/.]+$/, "")
       
@@ -72,10 +78,61 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
           try {
             const data = new Uint8Array(evt.target?.result as ArrayBuffer);
             const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[firstSheetName];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
-            processMappedRows(file, jsonData);
+            
+            let allMappedRows: any[] = [];
+            
+            workbook.SheetNames.forEach(sheetName => {
+              const worksheet = workbook.Sheets[sheetName];
+              const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[];
+              if (rows.length === 0) return;
+              
+              const firstRow = rows[0] || [];
+              const isHeader = firstRow.some((cell: any) => {
+                if (typeof cell !== 'string') return false;
+                const lower = cell.toLowerCase();
+                return lower.includes('speaker') || lower.includes('id') || lower.includes('text') || lower.includes('script') || lower.includes('录音') || lower.includes('文本');
+              });
+              
+              let speakerIdx = 0, audioIdx = 0, textIdx = 1, speedIdx = -1;
+              
+              if (isHeader) {
+                firstRow.forEach((cell: any, idx: number) => {
+                  if (typeof cell !== 'string') return;
+                  const lower = cell.toLowerCase();
+                  if (lower.includes('speaker') || lower.includes('录音人')) speakerIdx = idx;
+                  else if (lower.includes('audio id') || lower.includes('音频')) audioIdx = idx;
+                  else if (lower === 'id' && audioIdx === 0) audioIdx = idx;
+                  else if (lower.includes('text') || lower.includes('script') || lower.includes('文本')) textIdx = idx;
+                  else if (lower.includes('speed') || lower.includes('语速')) speedIdx = idx;
+                });
+                // If speaker is not found but audio id is found, use audio id for speaker code
+                if (!firstRow.some((c:any) => typeof c === 'string' && (c.toLowerCase().includes('speaker') || c.toLowerCase().includes('录音人'))) && audioIdx !== 0) {
+                   speakerIdx = audioIdx;
+                }
+                rows.shift(); // remove header
+              } else {
+                const colCount = firstRow.length;
+                if (colCount >= 4) {
+                  speakerIdx = 0; audioIdx = 1; textIdx = 2; speedIdx = 3;
+                } else if (colCount === 3) {
+                  speakerIdx = 0; audioIdx = 0; textIdx = 1; speedIdx = 2;
+                }
+              }
+              
+              const mapped = rows.map(row => {
+                if (!row || row.length === 0) return null;
+                return {
+                  speakerCode: String(row[speakerIdx] || "").trim(),
+                  audioId:     String(row[audioIdx]   || row[speakerIdx] || "").trim(),
+                  text:        String(row[textIdx]    || "").trim(),
+                  speed:       speedIdx !== -1 ? String(row[speedIdx] || "normal").trim() : "normal"
+                }
+              }).filter(item => item && item.speakerCode && item.text);
+              
+              allMappedRows = allMappedRows.concat(mapped);
+            });
+            
+            processMappedRows(file, allMappedRows, true);
           } catch (err: any) {
             results.push({ file, speakerCode: file.name, rows: [], error: "Excel parsing error: " + err.message })
             checkDone()

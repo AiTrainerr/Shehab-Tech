@@ -73,7 +73,8 @@ export async function createProjectAction(formData: FormData) {
     const outputFormat = formData.get("outputFormat") as string || "WORD"
     const targetMales = parseInt(formData.get("targetMales") as string) || 0
     const targetFemales = parseInt(formData.get("targetFemales") as string) || 0
-    const requiredParticipants = targetMales + targetFemales
+    const reqParticipantsInput = parseInt(formData.get("requiredParticipants") as string) || 0
+    const requiredParticipants = Math.max(reqParticipantsInput, targetMales + targetFemales)
     const durationUnit = formData.get("durationUnit") as string || "HOUR"
     const pricingModel = formData.get("pricingModel") as string || "FIXED_PROJECT"
     const namingRule = formData.get("namingRule") as string || "SEQUENCE"
@@ -615,7 +616,8 @@ export async function updateProjectAction(projectId: string, formData: FormData)
     const maxDuration = formData.get("maxDuration") ? parseInt(formData.get("maxDuration") as string) : null
     const targetMales = parseInt(formData.get("targetMales") as string) || 0
     const targetFemales = parseInt(formData.get("targetFemales") as string) || 0
-    const requiredParticipants = targetMales + targetFemales
+    const reqParticipantsInput = parseInt(formData.get("requiredParticipants") as string) || 0
+    const requiredParticipants = Math.max(reqParticipantsInput, targetMales + targetFemales)
     const hasScript = formData.get("hasScript") === "true"
     const scriptType = formData.get("scriptType") as string || "STATIC"
     const sentencesPerUserStr = formData.get("sentencesPerUser") as string
@@ -1167,4 +1169,5 @@ export async function deleteProjectAction(projectId: string) {
     return { success: false, error: "Failed to delete project: " + error.message }
   }
 }
+
 
