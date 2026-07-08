@@ -5,9 +5,12 @@ import * as React from "react";
 export function RichTextDisplay({ content, className = "" }: { content: string, className?: string }) {
   if (!content) return null;
   
+  // Replace non-breaking spaces with normal spaces to allow browser word-wrapping
+  const wrapSafeContent = content.replace(/&nbsp;/g, ' ');
+  
   return (
     <div 
-      className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none 
+      className={`prose prose-sm sm:prose-base dark:prose-invert max-w-none whitespace-pre-wrap
         [&>p]:mb-4 [&>p:last-child]:mb-0 
         [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:mb-4 [&>ul]:mt-2
         [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:mb-4 [&>ol]:mt-2
@@ -17,7 +20,7 @@ export function RichTextDisplay({ content, className = "" }: { content: string, 
         [&>blockquote]:border-l-4 [&>blockquote]:border-primary/50 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:text-foreground/80
         [&_a]:text-primary [&_a]:underline hover:[&_a]:text-primary/80
         ${className}`}
-      dangerouslySetInnerHTML={{ __html: content }}
+      dangerouslySetInnerHTML={{ __html: wrapSafeContent }}
     />
   );
 }
