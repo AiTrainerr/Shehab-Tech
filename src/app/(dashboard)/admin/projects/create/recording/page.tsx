@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, ChevronRight, FileText, Settings, CreditCard, PlayCircle } from "lucide-react"
 import { createProjectAction } from "@/app/actions/projects"
+import RichTextEditor from "@/components/RichTextEditor"
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia", "Democratic Republic of the Congo", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
@@ -23,6 +24,8 @@ export default function CreateRecordingProjectPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
   // Step 1 States
+  const [description, setDescription] = React.useState("")
+  const [privateData, setPrivateData] = React.useState("")
   const [langCount, setLangCount] = React.useState(1)
   const [imageCount, setImageCount] = React.useState(1)
 
@@ -70,9 +73,17 @@ export default function CreateRecordingProjectPage() {
     .replace(/\[age\]/g, "25")
     .replace(/\[order\]/g, "1")
 
-  let formattedZipName = "446_Ali_25_Male"
-  if (zipNamingRule === "ANONYMOUS") formattedZipName = "446_25_Male"
-  if (zipNamingRule === "SPEAKER_ONLY") formattedZipName = "446"
+  let formattedZipName = zipNamingRule || "FULL"
+  if (formattedZipName === "FULL") formattedZipName = "[speakerCode]_[firstName]_[lastName]_[gender]_[age]"
+  if (formattedZipName === "ANONYMOUS") formattedZipName = "[speakerCode]_[gender]_[age]"
+  if (formattedZipName === "SPEAKER_ONLY") formattedZipName = "[speakerCode]"
+
+  formattedZipName = formattedZipName
+    .replace(/\[speakerCode\]/g, previewSpeakerCode)
+    .replace(/\[firstName\]/g, "Ali")
+    .replace(/\[lastName\]/g, "Ahmed")
+    .replace(/\[gender\]/g, "Male")
+    .replace(/\[age\]/g, "25")
 
   return (
     <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8" dir="rtl">
@@ -145,12 +156,16 @@ export default function CreateRecordingProjectPage() {
               
               <div className="space-y-2">
                 <label className="text-sm font-semibold">الوصف العام <span className="text-red-500">*</span></label>
-                <textarea name="description" className="w-full h-32 px-4 py-3 rounded-xl bg-background border border-border focus:border-primary outline-none resize-none" placeholder="اشرح طبيعة المشروع للمستقلين..." required={currentStep===1} />
+                <div className="min-h-[200px]">
+                  <RichTextEditor name="description" value={description} onChange={setDescription} placeholder="اشرح طبيعة المشروع للمستقلين..." />
+                </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-red-500 flex items-center gap-2">تعليمات خاصة <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-xs">مخفية للعامة</span></label>
-                <textarea name="privateData" className="w-full h-24 px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20 focus:border-red-500 outline-none resize-none placeholder:text-red-500/40" placeholder="تظهر فقط للمستقلين بعد قبولهم (روابط، كلمات مرور، تعليمات دقيقة)..." />
+                <div className="min-h-[200px]">
+                  <RichTextEditor name="privateData" value={privateData} onChange={setPrivateData} placeholder="تظهر فقط للمستقلين بعد قبولهم (روابط، كلمات مرور، تعليمات دقيقة)..." />
+                </div>
               </div>
             </div>
 
@@ -330,12 +345,38 @@ export default function CreateRecordingProjectPage() {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold">تسمية الملف المضغوط (ZIP) عند التحميل</label>
-                  <select name="zipNamingRule" value={zipNamingRule} onChange={e => setZipNamingRule(e.target.value)} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none text-left" dir="ltr">
-                    <option value="FULL">Code_Name_Age_Gender (Full)</option>
-                    <option value="ANONYMOUS">Code_Age_Gender (Anonymous)</option>
-                    <option value="SPEAKER_ONLY">Code (Speaker Code Only)</option>
-                  </select>
+                  <label className="text-sm font-semibold">تسمية المجلد (ZIP) عند التنزيل</label>
+                  <p className="text-xs text-foreground/70 mb-2">اضغط على المتغيرات لإضافتها، أو اكتب نصوصاً ثابتة مباشرة في الحقل.</p>
+                  
+                  <input 
+                    type="text" 
+                    name="zipNamingRule" 
+                    value={zipNamingRule === "FULL" ? "[speakerCode]_[firstName]_[lastName]_[gender]_[age]" : zipNamingRule === "ANONYMOUS" ? "[speakerCode]_[gender]_[age]" : zipNamingRule === "SPEAKER_ONLY" ? "[speakerCode]" : zipNamingRule}
+                    onChange={(e) => setZipNamingRule(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-background border border-primary/50 focus:border-primary focus:ring-1 focus:ring-primary outline-none font-mono text-sm text-left" 
+                    placeholder="[speakerCode]_[firstName]" 
+                    dir="ltr"
+                  />
+                  
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {[
+                      { label: "كود المستقل", value: "[speakerCode]" },
+                      { label: "الاسم الأول", value: "[firstName]" },
+                      { label: "اسم العائلة", value: "[lastName]" },
+                      { label: "الجنس", value: "[gender]" },
+                      { label: "العمر", value: "[age]" },
+                    ].map(v => (
+                      <button key={v.value} type="button" onClick={() => setZipNamingRule(prev => {
+                        const current = prev === "FULL" ? "[speakerCode]_[firstName]_[lastName]_[gender]_[age]" : prev === "ANONYMOUS" ? "[speakerCode]_[gender]_[age]" : prev === "SPEAKER_ONLY" ? "[speakerCode]" : prev;
+                        return current + (current && !current.endsWith('_') && !current.endsWith('-') ? '_' : '') + v.value;
+                      })} className="px-3 py-1.5 text-xs font-semibold bg-background border border-border rounded-lg hover:bg-primary/10 hover:border-primary/50 transition-colors">
+                        {v.label}
+                      </button>
+                    ))}
+                    <button type="button" onClick={() => setZipNamingRule("")} className="px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded-lg transition-colors ml-auto">
+                      مسح
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -343,7 +384,7 @@ export default function CreateRecordingProjectPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 <div className="bg-card p-6 rounded-2xl border border-border space-y-4">
                   <h4 className="font-bold text-lg">منشئ تسمية الملفات الصوتية</h4>
-                  <p className="text-xs text-foreground/70">اضغط على المتغيرات لترتيب التسمية، وسيتم تطبيقها على كل ملف صوتي داخل الـ ZIP.</p>
+                  <p className="text-xs text-foreground/70">اضغط على المتغيرات لإضافتها لنمط التسمية. سيتم تطبيق هذا النمط على كل ملف صوتي داخل الـ ZIP. يمكنك أيضاً كتابة نصوص ثابتة يدوياً.</p>
                   
                   <input 
                     type="text" 
@@ -367,21 +408,28 @@ export default function CreateRecordingProjectPage() {
                   </div>
                 </div>
 
-                {/* Live Preview Box */}
-                <div className="bg-primary/5 border border-primary/20 p-6 rounded-2xl flex flex-col justify-center">
-                  <h4 className="font-bold text-primary flex items-center gap-2 mb-4"><PlayCircle className="w-5 h-5" /> المعاينة الحية (Live Preview)</h4>
+                <div className="bg-primary/5 border border-primary/20 p-6 rounded-2xl flex flex-col justify-center relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
                   
-                  <div className="space-y-3 font-mono text-sm" dir="ltr">
-                    <div className="flex items-start gap-3">
-                      <span className="bg-primary/20 px-2 py-1 rounded text-primary font-bold text-xs shrink-0 mt-0.5">ZIP Name</span>
-                      <span className="text-foreground/80 break-all">{formattedZipName}.zip</span>
+                  <h4 className="font-bold text-lg mb-4 text-primary flex items-center gap-2">
+                    <PlayCircle className="w-5 h-5" /> معاينة التسمية
+                  </h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-xs text-foreground/60 mb-1 font-semibold">اسم المجلد (Folder):</p>
+                      <div className="p-3 bg-background rounded-xl border border-border font-mono text-sm text-left" dir="ltr">
+                        {formattedZipName}
+                      </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <span className="bg-primary/20 px-2 py-1 rounded text-primary font-bold text-xs shrink-0 mt-0.5">Audio 1</span>
-                      <span className="text-foreground/80 break-all">{formattedAudioName}.wav</span>
+                    
+                    <div>
+                      <p className="text-xs text-foreground/60 mb-1 font-semibold">اسم الملف الصوتي (File):</p>
+                      <div className="p-3 bg-background rounded-xl border border-primary/30 font-mono text-sm font-bold text-primary text-left shadow-sm" dir="ltr">
+                        {formattedAudioName}.wav
+                      </div>
                     </div>
                   </div>
-                  <p className="text-xs text-foreground/50 mt-4 text-right">هذه معاينة تقريبية بناءً على خياراتك الحالية.</p>
                 </div>
               </div>
 

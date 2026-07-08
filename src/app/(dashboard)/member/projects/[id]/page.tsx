@@ -2,10 +2,11 @@ import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect, notFound } from "next/navigation"
-import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, DollarSign, Globe, ArrowRight, Mic } from "lucide-react"
+import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, DollarSign, Globe, ArrowRight, Mic, Lock } from "lucide-react"
 import { applyToProject } from "@/app/actions/projects"
 import { CommentsSection } from "@/components/comments-section"
 import { TranscriptionTasksList } from "./TranscriptionTasksList"
+import { RichTextDisplay } from "@/components/RichTextDisplay"
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -97,7 +98,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <h1 className="text-3xl font-black text-foreground">{project.title}</h1>
             <span className="text-sm font-bold px-3 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20">{project.status}</span>
           </div>
-          <p className="text-foreground/70 mb-6">{project.description}</p>
+          <div className="text-foreground/70 mb-6">
+            <RichTextDisplay content={project.description} />
+          </div>
           <div className="flex flex-wrap gap-3 text-sm">
             {countries.map(c => (
               <span key={c} className="flex items-center gap-2 px-3 py-1.5 bg-card rounded-lg border border-border">
@@ -152,10 +155,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
         {/* Instructions */}
         {project.instructions && (
-          <div className="glass p-6 rounded-2xl border border-border mb-6">
-            <h2 className="text-lg font-bold mb-3">Instructions</h2>
+          <div className="glass p-8 rounded-2xl border border-border shadow-sm mb-8 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+            <h2 className="text-xl font-bold text-foreground mb-4">تفاصيل المشروع</h2>
             {isApproved ? (
-              <p className="text-foreground/70 leading-relaxed">{project.instructions}</p>
+              <div className="text-foreground/70 leading-relaxed">
+                <RichTextDisplay content={project.instructions} />
+              </div>
             ) : (
               <div className="flex items-center gap-3 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl text-orange-500">
                 <AlertCircle className="w-5 h-5 shrink-0" />
@@ -189,15 +194,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
         {/* Private Data (ONLY SHOWN IF APPROVED) */}
         {isApproved && project.privateData && (
-          <div className="glass p-6 rounded-2xl border border-primary/30 bg-primary/5 mb-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
-              Confidential Info
+          <div className="glass p-8 rounded-2xl border border-primary/30 shadow-sm shadow-primary/10 mb-8 animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <div className="flex items-center gap-3 mb-4">
+              <Lock className="w-5 h-5 text-primary" />
+              <h2 className="text-xl font-bold text-primary">التعليمات الخاصة</h2>
+              <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-bold rounded-full ml-auto">سري</span>
             </div>
-            <h2 className="text-lg font-bold mb-3 flex items-center gap-2 text-primary">
-              <CheckCircle className="w-5 h-5" /> Accepted Member Instructions
-            </h2>
-            <div className="text-foreground/80 leading-relaxed p-4 bg-background rounded-xl border border-border whitespace-pre-wrap">
-              {project.privateData}
+            <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
+              <RichTextDisplay content={project.privateData} />
             </div>
             <p className="text-xs text-foreground/50 mt-4 flex items-center gap-1.5">
               <AlertCircle className="w-4 h-4" /> Please do not share this information with anyone.

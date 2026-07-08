@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Save, Plus, Trash2, Globe, FileText, Headphones, X, Loader2, UploadCloud, FileAudio } from "lucide-react"
 import { updateProjectAction, addTranscriptionTasks } from "@/app/actions/projects"
+import RichTextEditor from "@/components/RichTextEditor"
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia", "Democratic Republic of the Congo", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
@@ -21,6 +22,9 @@ export default function EditTranscriptionProjectPage({ params }: { params: Promi
   const [selectedCountries, setSelectedCountries] = React.useState<string[]>([])
   const [countrySearch, setCountrySearch] = React.useState("")
   const [showDropdown, setShowDropdown] = React.useState(false)
+  
+  const [description, setDescription] = React.useState("")
+  const [privateData, setPrivateData] = React.useState("")
 
   const [isUploading, setIsUploading] = React.useState(false)
   const [uploadProgress, setUploadProgress] = React.useState(0)
@@ -110,6 +114,8 @@ export default function EditTranscriptionProjectPage({ params }: { params: Promi
         const proj = data.project
         setProject(proj)
         setLanguages(proj.languages || [])
+        setDescription(proj.description || "")
+        setPrivateData(proj.privateData || "")
 
         const initialCountries: string[] = []
         if (proj.reqCountry) {
@@ -231,6 +237,8 @@ export default function EditTranscriptionProjectPage({ params }: { params: Promi
           formData.append("projectId", project.id)
           formData.append("reqCountry", JSON.stringify(selectedCountries))
           formData.append("languages", JSON.stringify(languages))
+          formData.append("description", description)
+          formData.append("privateData", privateData)
           
           const res = await updateProjectAction(project.id, formData)
           if (res.success) {
@@ -255,11 +263,18 @@ export default function EditTranscriptionProjectPage({ params }: { params: Promi
             </div>
             <div>
               <label className="block text-sm font-bold mb-2">Description *</label>
-              <textarea name="description" defaultValue={project.description} required rows={3} className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:border-primary outline-none transition-colors resize-none" />
+              <div className="space-y-2">
+                <div className="min-h-[200px]">
+                  <RichTextEditor name="description" value={description} onChange={setDescription} />
+                </div>
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-bold mb-2">Guidelines / Instructions</label>
-              <textarea name="instructions" defaultValue={project.instructions} rows={4} className="w-full px-4 py-3 bg-background border border-border rounded-xl focus:border-primary outline-none transition-colors resize-none" placeholder="Provide formatting rules..." />
+              <label className="text-sm font-semibold text-red-500 flex items-center gap-2">Private Data <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-xs">Hidden from public</span></label>
+              <div className="min-h-[200px]">
+                <RichTextEditor name="privateData" value={privateData} onChange={setPrivateData} />
+              </div>
+              <p className="text-xs text-foreground/50 mt-2">This information will be securely hidden until you explicitly Approve a freelancer's application.</p>
             </div>
           </div>
         </section>

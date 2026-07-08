@@ -139,22 +139,34 @@ export async function GET(request: NextRequest) {
     }
     const sequentialId = appRecord?.speakerCode || fallbackSpeakerCode
 
-    // zipNamingRule controls the folder naming:
-    // FULL         => G0001_FirstName_LastName_Age_Gender
-    // ANONYMOUS    => G0001_Age_Gender  (no name)
-    // SPEAKER_ONLY => G0001
+    // zipNamingRule controls the folder naming. 
+    // Legacy mapping:
+    // FULL         => [speakerCode]_[firstName]_[lastName]_[gender]_[age]
+    // ANONYMOUS    => [speakerCode]_[gender]_[age]
+    // SPEAKER_ONLY => [speakerCode]
     let outerFolderName: string
-    const zipNamingRule = (project as any).zipNamingRule || "FULL"
-    
-    // If the user has a batch speakerCode (like G0269), auto-use SPEAKER_ONLY
-    // because the speakerCode IS the filename - that's how the client identifies it
-    if (sequentialId !== "G_PENDING" && zipNamingRule === "SPEAKER_ONLY") {
-      outerFolderName = sequentialId  // => G0269
-    } else if (sequentialId !== "G_PENDING" && (project as any).zipNamingRule === "ANONYMOUS") {
-      outerFolderName = `${sequentialId}_${genderForFolder}_${ageFolderStr}`
+    let zipNamingRule = (project as any).zipNamingRule || "FULL"
+
+    if (zipNamingRule === "FULL") {
+      zipNamingRule = "[speakerCode]_[firstName]_[lastName]_[gender]_[age]"
+    } else if (zipNamingRule === "ANONYMOUS") {
+      zipNamingRule = "[speakerCode]_[gender]_[age]"
+    } else if (zipNamingRule === "SPEAKER_ONLY") {
+      zipNamingRule = "[speakerCode]"
+    }
+
+    if (sequentialId === "G_PENDING") {
+      outerFolderName = "PENDING_MEMBER"
     } else {
-      // FULL (default)
-      outerFolderName = `${sequentialId}_${candidate.firstName}_${candidate.lastName}_${genderForFolder}_${ageFolderStr}`
+      outerFolderName = zipNamingRule
+        .replace(/\[speakerCode\]/g, sequentialId)
+        .replace(/\[firstName\]/g, candidate.firstName || "N-A")
+        .replace(/\[lastName\]/g, candidate.lastName || "N-A")
+        .replace(/\[gender\]/g, genderForFolder)
+        .replace(/\[age\]/g, ageFolderStr)
+      
+      // Clean up multiple underscores or trailing underscores that might happen if firstName/lastName are missing
+      outerFolderName = outerFolderName.replace(/_+/g, '_').replace(/^_|_$/g, '')
     }
 
     // Download each audio file and add to ZIP inside the outer folder

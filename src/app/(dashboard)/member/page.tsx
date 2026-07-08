@@ -8,6 +8,7 @@ import { MemberDashboardClient } from "@/components/member-dashboard-client"
 import { getUserLevel, getUserBadges, getLevelProgress, getNextLevel } from "@/lib/gamification"
 import { LevelCard, BadgesGrid } from "@/components/achievement-badge"
 import { CopyReferralLink } from "@/components/copy-referral-link"
+import { stripHtml } from "@/components/RichTextDisplay"
 
 export default async function MemberDashboard() {
   const cookieStore = await cookies()
@@ -217,7 +218,7 @@ export default async function MemberDashboard() {
                     <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
                       <div>
                         <h3 className="text-lg font-bold mb-1">{app.project.title}</h3>
-                        <p className="text-sm text-foreground/70 line-clamp-2">{app.project.description}</p>
+                        <p className="text-sm text-foreground/70 line-clamp-2">{stripHtml(app.project.description)}</p>
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-lg font-bold text-primary">${app.project.price?.toFixed(2) ?? "—"}</div>

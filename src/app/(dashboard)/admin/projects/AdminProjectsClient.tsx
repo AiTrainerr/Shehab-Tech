@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { Users, Clock, Edit2, CheckCircle, MoreVertical } from "lucide-react"
 import { updateProjectStatus } from "@/app/actions/projects"
+import { stripHtml } from "@/components/RichTextDisplay"
 
 export function AdminProjectsClient({ initialProjects }: { initialProjects: any[] }) {
   const [projects, setProjects] = React.useState(initialProjects)
@@ -59,7 +60,7 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
               {project.status}
             </span>
           </div>
-          <p className="text-foreground/70 text-sm mb-4 line-clamp-2">{project.description}</p>
+          <p className="text-foreground/70 text-sm mb-4 line-clamp-2">{stripHtml(project.description)}</p>
           
           <div className="flex flex-wrap gap-4 text-sm font-semibold text-foreground/60 mb-4">
             <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" /> {new Date(project.createdAt).toLocaleDateString()}</span>
