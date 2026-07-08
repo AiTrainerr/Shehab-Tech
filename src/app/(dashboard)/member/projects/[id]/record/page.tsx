@@ -121,7 +121,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
           <h1 className="text-2xl sm:text-3xl font-black text-foreground mb-2">{project.title}</h1>
           <p className="text-sm text-foreground/60">Follow the rules and read each sentence carefully.</p>
 
-          {application.speakerCode && (
+          {application.speakerCode && project.scriptType === "PRE_ASSIGNED" && (
             <div className="mt-4 flex items-center gap-3 p-4 bg-primary/10 border border-primary/30 rounded-xl">
               <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shrink-0">
                 <Mic className="w-5 h-5 text-primary-foreground" />
@@ -138,7 +138,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
         {sentences.length > 0 ? (
           <VoiceRecorder
             projectId={id}
-            speakerCode={application.speakerCode || undefined}
+            speakerCode={project.scriptType === "PRE_ASSIGNED" ? application.speakerCode || undefined : undefined}
             applicationStatus={application.status}
             audioFormat={project.audioFormat}
             sampleRate={project.sampleRate}

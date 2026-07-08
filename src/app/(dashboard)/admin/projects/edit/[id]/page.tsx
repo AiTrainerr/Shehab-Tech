@@ -596,9 +596,8 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     <div className="space-y-2">
                       <label className="text-xs font-semibold">الحد الأقصى (ثواني)</label>
                       <input name="maxDuration" defaultValue={project.maxDuration || ""} type="number" min="1" className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm" />
-                    </div>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
