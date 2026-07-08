@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
     // Get project settings
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { title: true, namingRule: true, audioFormat: true, zipNamingRule: true, customFileNaming: true }
+      select: { title: true, namingRule: true, audioFormat: true, zipNamingRule: true, customFileNaming: true, sampleRate: true }
     })
     if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 })
 
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
         const rec = sentence.recordings[0]
         try {
           const targetFormat = (project.audioFormat || "WAV").toUpperCase()
-          const targetSampleRate = rec.sampleRate || 44100
+          const targetSampleRate = (project as any).sampleRate || rec.sampleRate || 44100
           
           const fetchUrl = getTransformedCloudinaryUrl(rec.fileUrl, targetFormat, targetSampleRate)
           

@@ -44,7 +44,6 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
 
   // Step 3 States
   const [executionOption, setExecutionOption] = React.useState("INTERNAL")
-  const [showAdvancedAudio, setShowAdvancedAudio] = React.useState(false)
   const [customNaming, setCustomNaming] = React.useState("")
   const [zipNamingRule, setZipNamingRule] = React.useState("FULL")
 
@@ -549,13 +548,10 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-border">
-                <button type="button" onClick={() => setShowAdvancedAudio(!showAdvancedAudio)} className="text-sm font-bold text-primary hover:underline mb-4">
-                  {showAdvancedAudio ? "إخفاء إعدادات الصوت المتقدمة -" : "عرض إعدادات الصوت المتقدمة +"}
-                </button>
+              <div className="pt-4 border-t border-border mt-6">
+                <h4 className="font-bold text-lg mb-4 text-foreground">إعدادات الصوت المتقدمة</h4>
                 
-                {showAdvancedAudio && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6 bg-card rounded-2xl border border-border animate-slide-up">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6 bg-card rounded-2xl border border-border">
                     <div className="space-y-2">
                       <label className="text-xs font-semibold">الصيغة</label>
                       <select name="audioFormat" defaultValue={project.audioFormat || "WAV"} className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm">
@@ -733,3 +729,4 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
     </div>
   )
 }
+
