@@ -69,7 +69,10 @@ export default async function AdminProjectsPage() {
     })
 
     const totalActive = workingMales + workingFemales + finishedMales + finishedFemales
-    const uploadedFilesCount = filesCountMap[p.id] || 0
+    let uploadedFilesCount = filesCountMap[p.id] || 0
+    if (p.scriptType === "STATIC" || p.scriptType === "DYNAMIC_POOL") {
+      uploadedFilesCount = p.requiredParticipants || 0
+    }
     const unassignedCount = Math.max(0, uploadedFilesCount - totalActive)
     
     return {
