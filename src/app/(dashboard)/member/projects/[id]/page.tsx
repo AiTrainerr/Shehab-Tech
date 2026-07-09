@@ -7,6 +7,7 @@ import { applyToProject } from "@/app/actions/projects"
 import { CommentsSection } from "@/components/comments-section"
 import { TranscriptionTasksList } from "./TranscriptionTasksList"
 import { RichTextDisplay } from "@/components/RichTextDisplay"
+import { ApplyButton } from "./ApplyButton"
 
 export const dynamic = 'force-dynamic';
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -234,26 +235,22 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <AlertCircle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
                 <p className="text-sm text-foreground/70">By applying, you confirm that you meet all the requirements for this project.</p>
               </div>
-              <div className="flex gap-3">
-                <form action={async () => {
-                  "use server"
-                  await applyToProject(id, "FREELANCER")
-                }}>
-                  <button type="submit" className="whitespace-nowrap px-6 py-3 bg-primary/10 text-primary border border-primary/20 font-bold rounded-xl hover:bg-primary/20 transition-all">
-                    Apply as Freelancer
-                  </button>
-                </form>
-                {project.isTranscriptionProject && (
-                  <form action={async () => {
-                    "use server"
-                    await applyToProject(id, "TEAM_LEADER")
-                  }}>
-                    <button type="submit" className="whitespace-nowrap px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-                      Apply as Team Leader
-                    </button>
-                  </form>
-                )}
-              </div>
+                <div className="flex gap-3">
+                  <ApplyButton
+                    projectId={id}
+                    type="FREELANCER"
+                    label="Apply as Freelancer"
+                    className="whitespace-nowrap px-6 py-3 bg-primary/10 text-primary border border-primary/20 font-bold rounded-xl hover:bg-primary/20 transition-all"
+                  />
+                  {project.isTranscriptionProject && (
+                    <ApplyButton
+                      projectId={id}
+                      type="TEAM_LEADER"
+                      label="Apply as Team Leader"
+                      className="whitespace-nowrap px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                    />
+                  )}
+                </div>
             </div>
           )}
         </div>
