@@ -10,7 +10,16 @@ import { useRouter } from "next/navigation"
 type ParsedFile = {
   file: File
   speakerCode: string
-  rows: any[]
+  headers: string[]
+  rawData: any[][]
+  
+  speakerIdx: number
+  audioIdx: number
+  textIdx: number
+  speedIdx: number
+  noteIdx: number
+  orderIdx: number
+
   error?: string
   uploaded?: boolean
 }
@@ -29,45 +38,78 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
 
     setGlobalSuccess("")
     setGlobalError("")
+    e.target.value = ""
 
     const results: ParsedFile[] = []
     let pending = files.length
-
-    const processMappedRows = (file: File, data: any[], isPreMapped = false) => {
-      let mapped: any[] = []
-      
-      if (isPreMapped) {
-        mapped = data.filter(item => item.speakerCode && item.text)
-      } else {
-        mapped = data.map((row: any) => {
-          const keys = Object.keys(row)
-          return {
-            speakerCode: String(row["Speaker ID"] || row["录音人id"] || row[keys[0]] || "").trim(),
-            audioId:     String(row["Audio ID"]   || row["音频id"]   || row[keys[1]] || "").trim(),
-            text:        String(row["Text"]       || row["Script"]   || row["录音文本"] || row[keys[2]] || "").trim(),
-            speed:       String(row["Speed"]      || row["语速"]     || row[keys[3]] || "normal").trim()
-          }
-        }).filter(item => item.speakerCode && item.text)
-      }
-
-      const detectedSpeakerCode = mapped[0]?.speakerCode || file.name.replace(/\.[^/.]+$/, "")
-      
-      results.push({
-        file,
-        speakerCode: detectedSpeakerCode,
-        rows: mapped,
-        error: mapped.length === 0 ? "Could not parse rows. Check column headers." : undefined
-      })
-      checkDone()
-    }
 
     const checkDone = () => {
       pending--
       if (pending === 0) {
         results.sort((a, b) => a.speakerCode.localeCompare(b.speakerCode))
-        setParsedFiles(results)
-        setExpandedIndex(0)
+        setParsedFiles(prev => [...prev, ...results])
+        setExpandedIndex(prev => prev === null ? 0 : prev)
       }
+    }
+
+    const processRawData = (file: File, allRows: any[][]) => {
+      if (allRows.length === 0) {
+        results.push({
+          file, speakerCode: file.name, headers: [], rawData: [],
+          speakerIdx: -1, audioIdx: -1, textIdx: -1, speedIdx: -1, noteIdx: -1, orderIdx: -1,
+          error: "الملف فارغ"
+        })
+        checkDone()
+        return
+      }
+
+      // First row is headers
+      const headersRow = allRows[0] || []
+      const headers = headersRow.map((h: any) => String(h || "").trim())
+      const rawData = allRows.slice(1) // exclude headers
+
+      let speakerIdx = 0, audioIdx = 0, textIdx = 1, noteIdx = -1, speedIdx = -1, orderIdx = -1
+
+      // Auto-guess columns
+      headers.forEach((h: string, idx: number) => {
+        const lower = h.toLowerCase()
+        if (lower.includes('speaker') || lower.includes('كود') || lower.includes('录音人')) speakerIdx = idx;
+        else if (lower.includes('audio id') || lower.includes('صوت') || lower.includes('音频')) audioIdx = idx;
+        else if (lower === 'id' && audioIdx === 0) audioIdx = idx;
+        else if (lower.includes('text') || lower.includes('script') || lower.includes('نص') || lower.includes('文本')) textIdx = idx;
+        else if (lower.includes('note') || lower.includes('ملاحظ') || lower.includes('instruction')) noteIdx = idx;
+        else if (lower.includes('speed') || lower.includes('سرع') || lower.includes('语速')) speedIdx = idx;
+        else if (lower.includes('order') || lower.includes('رقم') || lower.includes('序号') || lower.includes('index')) orderIdx = idx;
+      })
+
+      if (!headers.some((c) => c.toLowerCase().includes('speaker') || c.toLowerCase().includes('كود')) && audioIdx !== 0) {
+        speakerIdx = audioIdx;
+      }
+
+      const colCount = headers.length
+      if (speakerIdx === 0 && audioIdx === 0 && textIdx === 1 && noteIdx === -1 && speedIdx === -1) {
+        if (colCount >= 5) {
+          speakerIdx = 0; audioIdx = 1; textIdx = 2; noteIdx = 3; speedIdx = 4;
+        } else if (colCount === 4) {
+          speakerIdx = 0; audioIdx = 1; textIdx = 2; noteIdx = 3; speedIdx = -1;
+        } else if (colCount === 3) {
+          speakerIdx = 0; audioIdx = 0; textIdx = 1; noteIdx = 2; speedIdx = -1;
+        }
+      }
+
+      results.push({
+        file,
+        speakerCode: file.name.replace(/\.[^/.]+$/, ""),
+        headers,
+        rawData,
+        speakerIdx,
+        audioIdx,
+        textIdx,
+        speedIdx,
+        noteIdx,
+        orderIdx
+      })
+      checkDone()
     }
 
     files.forEach((file) => {
@@ -78,81 +120,49 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
           try {
             const data = new Uint8Array(evt.target?.result as ArrayBuffer);
             const workbook = XLSX.read(data, { type: 'array' });
+            let allRows: any[][] = [];
             
-            let allMappedRows: any[] = [];
+            // Only process the first sheet to avoid header collision if sheets have different structures
+            const firstSheetName = workbook.SheetNames[0]
+            if (firstSheetName) {
+               const worksheet = workbook.Sheets[firstSheetName];
+               const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+               allRows = rows.filter(r => r && r.length > 0)
+            }
             
-            workbook.SheetNames.forEach(sheetName => {
-              const worksheet = workbook.Sheets[sheetName];
-              const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[];
-              if (rows.length === 0) return;
-              
-              const firstRow = rows[0] || [];
-              const isHeader = firstRow.some((cell: any) => {
-                if (typeof cell !== 'string') return false;
-                const lower = cell.toLowerCase();
-                return lower.includes('speaker') || lower.includes('id') || lower.includes('text') || lower.includes('script') || lower.includes('录音') || lower.includes('文本');
-              });
-              
-              let speakerIdx = 0, audioIdx = 0, textIdx = 1, speedIdx = -1;
-              
-              if (isHeader) {
-                firstRow.forEach((cell: any, idx: number) => {
-                  if (typeof cell !== 'string') return;
-                  const lower = cell.toLowerCase();
-                  if (lower.includes('speaker') || lower.includes('录音人')) speakerIdx = idx;
-                  else if (lower.includes('audio id') || lower.includes('音频')) audioIdx = idx;
-                  else if (lower === 'id' && audioIdx === 0) audioIdx = idx;
-                  else if (lower.includes('text') || lower.includes('script') || lower.includes('文本')) textIdx = idx;
-                  else if (lower.includes('speed') || lower.includes('语速')) speedIdx = idx;
-                });
-                // If speaker is not found but audio id is found, use audio id for speaker code
-                if (!firstRow.some((c:any) => typeof c === 'string' && (c.toLowerCase().includes('speaker') || c.toLowerCase().includes('录音人'))) && audioIdx !== 0) {
-                   speakerIdx = audioIdx;
-                }
-                rows.shift(); // remove header
-              } else {
-                const colCount = firstRow.length;
-                if (colCount >= 4) {
-                  speakerIdx = 0; audioIdx = 1; textIdx = 2; speedIdx = 3;
-                } else if (colCount === 3) {
-                  speakerIdx = 0; audioIdx = 0; textIdx = 1; speedIdx = 2;
-                }
-              }
-              
-              const mapped = rows.map(row => {
-                if (!row || row.length === 0) return null;
-                return {
-                  speakerCode: String(row[speakerIdx] || "").trim(),
-                  audioId:     String(row[audioIdx]   || row[speakerIdx] || "").trim(),
-                  text:        String(row[textIdx]    || "").trim(),
-                  speed:       speedIdx !== -1 ? String(row[speedIdx] || "normal").trim() : "normal"
-                }
-              }).filter(item => item && item.speakerCode && item.text);
-              
-              allMappedRows = allMappedRows.concat(mapped);
-            });
-            
-            processMappedRows(file, allMappedRows, true);
+            processRawData(file, allRows);
           } catch (err: any) {
-            results.push({ file, speakerCode: file.name, rows: [], error: "Excel parsing error: " + err.message })
+            results.push({
+              file, speakerCode: file.name, headers: [], rawData: [],
+              speakerIdx: -1, audioIdx: -1, textIdx: -1, speedIdx: -1, noteIdx: -1, orderIdx: -1,
+              error: "خطأ في قراءة الشيت: " + err.message
+            })
             checkDone()
           }
         };
         reader.onerror = () => {
-          results.push({ file, speakerCode: file.name, rows: [], error: "Failed to read Excel file." })
+          results.push({
+            file, speakerCode: file.name, headers: [], rawData: [],
+            speakerIdx: -1, audioIdx: -1, textIdx: -1, speedIdx: -1, noteIdx: -1, orderIdx: -1,
+            error: "فشل في قراءة الملف."
+          })
           checkDone()
         }
         reader.readAsArrayBuffer(file);
       } else {
-        // Assume CSV
+        // CSV
         Papa.parse(file, {
-          header: true,
+          header: false,
           skipEmptyLines: true,
           complete: (result) => {
-            processMappedRows(file, result.data);
+            processRawData(file, result.data as any[][]);
           },
           error: (err: any) => {
-            results.push({ file, speakerCode: file.name, rows: [], error: err.message })
+            results.push({
+              file, speakerCode: file.name, headers: [], rawData: [],
+              speakerIdx: -1, audioIdx: -1, textIdx: -1, speedIdx: -1, noteIdx: -1, orderIdx: -1,
+              error: err.message
+            })
             checkDone()
           }
         })
@@ -160,12 +170,16 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
     })
   }
 
+  const updateMapping = (fileIndex: number, field: keyof ParsedFile, value: number) => {
+    setParsedFiles(prev => prev.map((f, i) => i === fileIndex ? { ...f, [field]: value } : f))
+  }
+
   const removeFile = (idx: number) => {
     setParsedFiles(prev => prev.filter((_, i) => i !== idx))
   }
 
   const handleUploadAll = async () => {
-    const toUpload = parsedFiles.filter(f => !f.error && !f.uploaded && f.rows.length > 0)
+    const toUpload = parsedFiles.filter(f => !f.error && !f.uploaded && f.rawData.length > 0)
     if (toUpload.length === 0) return
 
     setIsUploadingAll(true)
@@ -173,9 +187,27 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
     let uploadedCount = 0
 
     for (const pf of toUpload) {
-      const res = await uploadBatchScripts(projectId, pf.rows)
+      // Map rows based on selected indices
+      const mapped = pf.rawData.map(row => {
+        const parsedOrder = pf.orderIdx !== -1 ? parseInt(row[pf.orderIdx]) : NaN;
+        return {
+          speakerCode: pf.speakerIdx !== -1 ? String(row[pf.speakerIdx] || "").trim() : "",
+          audioId:     pf.audioIdx !== -1 ? String(row[pf.audioIdx] || String(row[pf.speakerIdx] || "")).trim() : "",
+          text:        pf.textIdx !== -1 ? String(row[pf.textIdx] || "").trim() : "",
+          note:        pf.noteIdx !== -1 ? String(row[pf.noteIdx] || "").trim() : "",
+          speed:       pf.speedIdx !== -1 ? String(row[pf.speedIdx] || "normal").trim() : "normal",
+          order:       !isNaN(parsedOrder) ? parsedOrder : undefined
+        }
+      }).filter(item => item && item.speakerCode && item.text)
+
+      if (mapped.length === 0) {
+        setParsedFiles(prev => prev.map(f => f.file === pf.file ? { ...f, error: "تعذر استخراج الجمل. تأكد من تحديد أعمدة النص والكود بشكل صحيح." } : f))
+        continue;
+      }
+
+      const res = await uploadBatchScripts(projectId, mapped)
       if (res.success) {
-        setParsedFiles(prev => prev.map(f => f.file === pf.file ? { ...f, uploaded: true } : f))
+        setParsedFiles(prev => prev.map(f => f.file === pf.file ? { ...f, uploaded: true, error: undefined } : f))
         uploadedCount++
       } else {
         setParsedFiles(prev => prev.map(f => f.file === pf.file ? { ...f, error: res.error || "Upload failed" } : f))
@@ -184,37 +216,27 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
 
     setIsUploadingAll(false)
     if (uploadedCount > 0) {
-      setGlobalSuccess(`✅ تم رفع ${uploadedCount} ملف بنجاح! إجمالي ${parsedFiles.reduce((a, f) => a + f.rows.length, 0)} جملة محفوظة.`)
+      setGlobalSuccess(`تم رفع ${uploadedCount} ملف بنجاح! تم إضافة جميع الجمل المطلوبة.`)
       router.refresh()
     }
   }
 
-  const totalRows = parsedFiles.reduce((a, f) => a + f.rows.length, 0)
-  const validFiles = parsedFiles.filter(f => !f.error && f.rows.length > 0)
-  const uploadedFiles = parsedFiles.filter(f => f.uploaded)
+  const validFiles = parsedFiles.filter(f => !f.error)
+  const uploadedFiles = validFiles.filter(f => f.uploaded)
+  const totalRows = parsedFiles.reduce((a, f) => a + f.rawData.length, 0)
 
   return (
-    <div className="bg-primary/5 border border-primary/20 p-6 rounded-2xl space-y-5">
-      {/* Header */}
-      <div>
-        <h3 className="text-xl font-black flex items-center gap-2">
-          <UploadCloud className="w-5 h-5 text-primary" /> رفع ملفات المتقدمين (Batch Excel/CSV)
-        </h3>
-        <p className="text-sm text-foreground/70 mt-1">
-          ارفع جميع ملفاتك دفعةً واحدة. كل ملف = متقدم واحد (Speaker ID).
-          عند الموافقة على أي متقدم، يُخصَّص له كوده تلقائياً.
-        </p>
-        <p className="text-xs text-foreground/50 mt-1">
-          <b>الأعمدة المطلوبة:</b> Speaker ID (录音人id) — Audio ID (音频id) — Text (录音文本) — Speed (语速)
-        </p>
-      </div>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {globalSuccess && <div className="p-4 bg-green-500/10 text-green-500 rounded-xl font-bold">{globalSuccess}</div>}
+      {globalError && <div className="p-4 bg-red-500/10 text-red-500 rounded-xl font-bold">{globalError}</div>}
 
-      {/* File picker - supports multiple */}
-      <div>
-        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/30 rounded-2xl cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all bg-background/50">
-          <UploadCloud className="w-8 h-8 text-primary/40 mb-2" />
-          <p className="text-sm font-bold text-foreground/60">اسحب الملفات هنا أو اضغط للاختيار</p>
-          <p className="text-xs text-foreground/40 mt-1">يدعم اختيار ملفات إكسل (XLSX, XLS) و CSV متعددة في آن واحد</p>
+      <div className="bg-card p-6 rounded-2xl border border-border shadow-sm">
+        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/30 rounded-xl cursor-pointer bg-background hover:bg-primary/5 transition-colors">
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <UploadCloud className="w-8 h-8 text-primary mb-2" />
+            <p className="text-sm font-semibold text-foreground">اختر شيتات Excel أو CSV</p>
+            <p className="text-xs text-foreground/50 mt-1">يمكنك اختيار عدة ملفات معاً</p>
+          </div>
           <input
             type="file"
             accept=".csv, .xlsx, .xls"
@@ -225,98 +247,111 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
         </label>
       </div>
 
-      {/* Files List */}
       {parsedFiles.length > 0 && (
-        <div className="space-y-3">
-          {/* Summary bar */}
+        <div className="space-y-4">
           <div className="flex items-center justify-between text-sm font-semibold">
             <span className="text-foreground/60">
-              {parsedFiles.length} ملف — {totalRows} جملة إجمالاً
+              {parsedFiles.length} ملفات — {totalRows} جملة
             </span>
             <span className="text-green-500">{uploadedFiles.length} / {validFiles.length} تم رفعه</span>
           </div>
 
-          {/* File cards */}
-          {parsedFiles.map((pf, idx) => (
+          {parsedFiles.map((pf, idx) => {
+            const isExpanded = expandedIndex === idx
+            return (
             <div key={idx} className={`border rounded-xl overflow-hidden transition-all ${
               pf.uploaded ? "border-green-500/30 bg-green-500/5" :
               pf.error    ? "border-red-500/30 bg-red-500/5" :
-                            "border-border bg-card"
+              "border-border bg-card"
             }`}>
-              {/* Card header */}
-              <div
-                className="flex items-center gap-3 p-3 cursor-pointer select-none"
-                onClick={() => setExpandedIndex(expandedIndex === idx ? null : idx)}
+              <div 
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-foreground/5"
+                onClick={() => !pf.uploaded && setExpandedIndex(isExpanded ? null : idx)}
               >
-                <FileSpreadsheet className={`w-5 h-5 shrink-0 ${pf.error ? "text-red-500" : pf.uploaded ? "text-green-500" : "text-primary"}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="font-black text-sm truncate">
-                    {pf.speakerCode}
-                    {pf.uploaded && <span className="ml-2 text-green-500 text-xs">✓ تم الرفع</span>}
-                    {pf.error    && <span className="ml-2 text-red-500 text-xs">✗ خطأ</span>}
-                  </p>
-                  <p className="text-xs text-foreground/50">{pf.file.name} — {pf.rows.length} جملة</p>
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <FileSpreadsheet className={`w-5 h-5 flex-shrink-0 ${pf.uploaded ? "text-green-500" : pf.error ? "text-red-500" : "text-primary"}`} />
+                  <div className="truncate">
+                    <p className="font-bold text-sm truncate" dir="ltr">{pf.file.name}</p>
+                    {pf.error ? (
+                      <p className="text-xs text-red-500 truncate">{pf.error}</p>
+                    ) : (
+                      <p className="text-xs text-foreground/60">{pf.rawData.length} جملة</p>
+                    )}
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); removeFile(idx) }}
-                  className="p-1 rounded-lg hover:bg-red-500/10 text-foreground/40 hover:text-red-500 transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-                {expandedIndex === idx ? <ChevronUp className="w-4 h-4 text-foreground/40" /> : <ChevronDown className="w-4 h-4 text-foreground/40" />}
+                
+                <div className="flex items-center gap-3">
+                  {pf.uploaded && <CheckCircle className="w-5 h-5 text-green-500" />}
+                  {!pf.uploaded && (
+                    <button onClick={(e) => { e.stopPropagation(); removeFile(idx); }} className="p-2 text-foreground/40 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                  {!pf.uploaded && !pf.error && (
+                    isExpanded ? <ChevronUp className="w-5 h-5 text-foreground/40" /> : <ChevronDown className="w-5 h-5 text-foreground/40" />
+                  )}
+                </div>
               </div>
 
-              {/* Expanded preview */}
-              {expandedIndex === idx && (
-                <div className="border-t border-border">
-                  {pf.error ? (
-                    <p className="p-3 text-red-500 text-sm">{pf.error}</p>
-                  ) : (
-                    <div className="max-h-48 overflow-y-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-muted sticky top-0">
-                          <tr>
-                            <th className="p-2 font-semibold">Speaker ID</th>
-                            <th className="p-2 font-semibold">Audio ID</th>
-                            <th className="p-2 font-semibold">Text</th>
-                            <th className="p-2 font-semibold">Speed</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {pf.rows.slice(0, 8).map((r, i) => (
-                            <tr key={i} className="hover:bg-muted/50">
-                              <td className="p-2 font-mono">{r.speakerCode}</td>
-                              <td className="p-2 font-mono">{r.audioId}</td>
-                              <td className="p-2 max-w-[200px] truncate">{r.text}</td>
-                              <td className="p-2">{r.speed}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                      {pf.rows.length > 8 && (
-                        <p className="text-xs text-foreground/40 text-center py-2">
-                          ... وأكثر ({pf.rows.length - 8} صف إضافي)
-                        </p>
-                      )}
-                    </div>
-                  )}
+              {/* Column Mapper UI */}
+              {isExpanded && !pf.uploaded && !pf.error && (
+                <div className="p-4 border-t border-border bg-background/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="col-span-full">
+                    <p className="text-xs font-bold text-primary mb-2">قم بتعيين الأعمدة بشكل صحيح بناءً على هذا الشيت:</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold">كود المستقل (Speaker ID)</label>
+                    <select value={pf.speakerIdx} onChange={e => updateMapping(idx, 'speakerIdx', parseInt(e.target.value))} className="w-full text-sm p-2 rounded-lg border border-border bg-card outline-none focus:border-primary">
+                      <option value={-1}>-- غير محدد --</option>
+                      {pf.headers.map((h, i) => <option key={i} value={i}>العمود {i+1}: {h}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold">رقم الجملة (Audio ID)</label>
+                    <select value={pf.audioIdx} onChange={e => updateMapping(idx, 'audioIdx', parseInt(e.target.value))} className="w-full text-sm p-2 rounded-lg border border-border bg-card outline-none focus:border-primary">
+                      <option value={-1}>-- نفس كود المستقل --</option>
+                      {pf.headers.map((h, i) => <option key={i} value={i}>العمود {i+1}: {h}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold">النص (Text)</label>
+                    <select value={pf.textIdx} onChange={e => updateMapping(idx, 'textIdx', parseInt(e.target.value))} className="w-full text-sm p-2 rounded-lg border border-border bg-card outline-none focus:border-primary">
+                      <option value={-1}>-- غير محدد --</option>
+                      {pf.headers.map((h, i) => <option key={i} value={i}>العمود {i+1}: {h}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold">السرعة (Speed)</label>
+                    <select value={pf.speedIdx} onChange={e => updateMapping(idx, 'speedIdx', parseInt(e.target.value))} className="w-full text-sm p-2 rounded-lg border border-border bg-card outline-none focus:border-primary">
+                      <option value={-1}>-- افتراضي (عادي) --</option>
+                      {pf.headers.map((h, i) => <option key={i} value={i}>العمود {i+1}: {h}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold">ملاحظة (Note)</label>
+                    <select value={pf.noteIdx} onChange={e => updateMapping(idx, 'noteIdx', parseInt(e.target.value))} className="w-full text-sm p-2 rounded-lg border border-border bg-card outline-none focus:border-primary">
+                      <option value={-1}>-- بدون ملاحظة --</option>
+                      {pf.headers.map((h, i) => <option key={i} value={i}>العمود {i+1}: {h}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold">ترتيب (Order)</label>
+                    <select value={pf.orderIdx} onChange={e => updateMapping(idx, 'orderIdx', parseInt(e.target.value))} className="w-full text-sm p-2 rounded-lg border border-border bg-card outline-none focus:border-primary">
+                      <option value={-1}>-- تلقائي --</option>
+                      {pf.headers.map((h, i) => <option key={i} value={i}>العمود {i+1}: {h}</option>)}
+                    </select>
+                  </div>
                 </div>
               )}
             </div>
-          ))}
+          )})}
 
-          {/* Global messages */}
-          {globalSuccess && (
-            <div className="p-3 bg-green-500/10 text-green-600 rounded-xl text-sm font-semibold flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" /> {globalSuccess}
-            </div>
-          )}
-          {globalError && (
-            <div className="p-3 bg-red-500/10 text-red-500 rounded-xl text-sm font-semibold">{globalError}</div>
-          )}
-
-          {/* Upload all button */}
           {validFiles.filter(f => !f.uploaded).length > 0 && (
             <button
               disabled={isUploadingAll}

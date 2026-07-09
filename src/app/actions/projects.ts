@@ -171,6 +171,8 @@ export async function createProjectAction(formData: FormData) {
                 const sheet = workbook.Sheets[firstSheetName]
                 const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
                 
+                rows.shift(); // Always ignore the first row (headers)
+                
                 if (scriptType === "PRE_ASSIGNED") {
                   const sheetSentences = rows
                     .map((row: any[]) => {
@@ -410,7 +412,7 @@ export async function approveApplication(applicationId: string) {
     if (!currentApp) return { success: false, error: "Application not found" }
     
     // Attempt to free any expired tasks before we assign one
-    await releaseExpiredApplications(currentApp.projectId);
+    // await releaseExpiredApplications(currentApp.projectId);
 
     let newStatus = "ACCEPTED";
     if (currentApp.status === "FINAL_REVIEW") {
@@ -739,6 +741,8 @@ export async function updateProjectAction(projectId: string, formData: FormData)
               if (firstSheetName) {
                 const sheet = workbook.Sheets[firstSheetName]
                 const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+                
+                rows.shift(); // Always ignore the first row (headers)
 
                 const sheetSentences = rows
                   .map((row: any[]) => {
@@ -922,7 +926,7 @@ export async function releaseIncompleteSentences(projectId: string) {
   }
 }
 
-export async function uploadBatchScripts(projectId: string, data: { speakerCode: string, audioId: string, text: string, speed: string }[]) {
+export async function uploadBatchScripts(projectId: string, data: { speakerCode: string, audioId: string, text: string, speed: string, note?: string, order?: number }[]) {
   try {
     const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
     const { data: { user } } = await supabase.auth.getUser()
@@ -969,14 +973,19 @@ export async function uploadBatchScripts(projectId: string, data: { speakerCode:
 
       // Create new sentences
       const sentencesToCreate = filteredData.map(item => {
-        currentOrder++
+        if (item.order !== undefined && !isNaN(item.order)) {
+          currentOrder = Math.max(currentOrder, item.order)
+        } else {
+          currentOrder++
+        }
         return {
           projectId,
           text: item.text,
           speakerCode: item.speakerCode,
           audioId: item.audioId,
           speed: item.speed,
-          order: currentOrder
+          note: item.note || null,
+          order: item.order !== undefined && !isNaN(item.order) ? item.order : currentOrder
         }
       })
 

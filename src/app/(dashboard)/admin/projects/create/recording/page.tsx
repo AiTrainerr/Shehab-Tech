@@ -266,7 +266,7 @@ export default function CreateRecordingProjectPage() {
                 </div>
               )}
 
-              {hasScript && (
+              {hasScript && scriptType !== "BATCH_CODE" && (
                 <div className="space-y-6 pt-4 border-t border-border">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">طريقة إدخال الجمل</label>

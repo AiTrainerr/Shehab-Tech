@@ -1,0 +1,1 @@
+import { prisma } from './src/lib/prisma'; async function run() { const sentences = await prisma.projectSentence.findMany({ take: 10, orderBy: { createdAt: 'desc' } }); console.dir(sentences.map(s => ({ audioId: s.audioId, text: s.text, speed: s.speed }))); } run();

@@ -369,7 +369,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 </label>
               </div>
 
-              {updateScript && hasScript && (
+              {updateScript && hasScript && scriptType !== "BATCH_CODE" && (
                 <div className="space-y-6 pt-4 border-t border-primary/25">
                   <div className="space-y-2">
                     <label className="text-sm font-semibold">طريقة إدخال الجمل</label>

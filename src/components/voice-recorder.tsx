@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import * as React from "react"
 import { Mic, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2, ShieldAlert, ChevronLeft, ChevronRight, UploadCloud, Volume2, Lock, X, Send } from "lucide-react"
@@ -564,23 +564,23 @@ export function VoiceRecorder({
               "{activeSentence.text}"
             </h2>
             
-            {activeSentence.note && (
-                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl max-w-2xl mx-auto text-yellow-700 dark:text-yellow-500 text-sm font-semibold">
-                  <strong className="block mb-1">ملاحظة:</strong>
-                  <p dir="auto" className="whitespace-pre-line">{activeSentence.note}</p>
-                </div>
-              )}
-              
-              {/* Speed Instructions (Compact Pill) */}
-            {activeSentence.speed && (
-              <div className="mt-4 flex justify-center">
+            {(activeSentence.note || (activeSentence.speed && activeSentence.speed.length > 15 && !['بطيء', 'عادي', 'سريع', 'slow', 'normal', 'fast'].includes(activeSentence.speed.trim().toLowerCase()))) && (
+                  <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl max-w-2xl mx-auto text-yellow-700 dark:text-yellow-500 text-sm font-semibold">
+                    <strong className="block mb-1">ملاحظة:</strong>
+                    <p dir="auto" className="whitespace-pre-line">{activeSentence.note || activeSentence.speed}</p>
+                  </div>
+                )}
+                
+                {/* Speed Instructions (Compact Pill) */}
+              {activeSentence.speed && activeSentence.speed.length <= 15 && (
+                <div className="mt-4 flex justify-center">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-50 text-red-600 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-full text-sm font-semibold shadow-sm">
                   <AlertTriangle className="w-4 h-4" />
                   <span>
-                    {activeSentence.speed.trim() === '慢' && "السرعة المطلوبة: بطيئة (أبطأ من العادي)"}
-                    {activeSentence.speed.trim() === '正常' && "السرعة المطلوبة: عادية"}
-                    {activeSentence.speed.trim() === '快' && "السرعة المطلوبة: سريعة (أسرع من العادي)"}
-                    {!['慢', '正常', '快'].includes(activeSentence.speed.trim()) && `السرعة المطلوبة: ${activeSentence.speed}`}
+                    {(activeSentence.speed.trim() === 'بطيء' || activeSentence.speed.trim() === '慢' || activeSentence.speed.trim().toLowerCase() === 'slow') && "تعليمات السرعة: بطيء (تحدث ببطء ووضوح)"}
+                    {(activeSentence.speed.trim() === 'عادي' || activeSentence.speed.trim() === '正常' || activeSentence.speed.trim().toLowerCase() === 'normal') && "تعليمات السرعة: عادي"}
+                    {(activeSentence.speed.trim() === 'سريع' || activeSentence.speed.trim() === '快' || activeSentence.speed.trim().toLowerCase() === 'fast') && "تعليمات السرعة: سريع (تحدث بشكل أسرع)"}
+                    {!['بطيء', 'عادي', 'سريع', '慢', '正常', '快', 'slow', 'normal', 'fast'].includes(activeSentence.speed.trim().toLowerCase()) && `تعليمات السرعة: ${activeSentence.speed}`}
                   </span>
                 </div>
               </div>
