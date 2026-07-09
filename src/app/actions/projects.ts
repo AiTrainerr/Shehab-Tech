@@ -980,6 +980,18 @@ export async function uploadBatchScripts(projectId: string, data: { speakerCode:
     const project = await prisma.project.findUnique({ where: { id: projectId } })
     if (!project) return { success: false, error: "Project not found" }
 
+    const { translateNotesBatch } = await import("@/lib/translation");
+    const notesToTranslate = data.map(item => item.note).filter(Boolean) as string[];
+    const translationsMap = await translateNotesBatch(notesToTranslate);
+    
+    let translatedData = data;
+    if (translationsMap.size > 0) {
+      translatedData = data.map(item => ({
+        ...item,
+        note: item.note && translationsMap.has(item.note) ? translationsMap.get(item.note) : item.note
+      }));
+    }
+
     await prisma.$transaction(async (tx) => {
       // First, get the current max order
       const lastSentence = await tx.projectSentence.findFirst({
@@ -988,8 +1000,8 @@ export async function uploadBatchScripts(projectId: string, data: { speakerCode:
       })
       let currentOrder = lastSentence?.order || 0
 
-      let filteredData = data;
-      const incomingCodes = Array.from(new Set(data.map(item => item.speakerCode).filter(Boolean)));
+      let filteredData = translatedData;
+      const incomingCodes = Array.from(new Set(translatedData.map(item => item.speakerCode).filter(Boolean)));
       if (incomingCodes.length > 0) {
         const existingCodes = await tx.projectSentence.findMany({
           where: {
@@ -1002,7 +1014,7 @@ export async function uploadBatchScripts(projectId: string, data: { speakerCode:
         
         if (existingCodes.length > 0) {
           const dupes = new Set(existingCodes.map(c => c.speakerCode));
-          filteredData = data.filter(item => !dupes.has(item.speakerCode));
+          filteredData = translatedData.filter(item => !dupes.has(item.speakerCode));
         }
       }
 
@@ -1316,6 +1328,7 @@ export async function extendApplicationTime(applicationId: string) {
     return { success: false, error: "Failed to extend time" }
   }
 }
+
 
 
 
