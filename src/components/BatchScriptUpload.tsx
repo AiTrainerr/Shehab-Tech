@@ -171,7 +171,7 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
   }
 
   const updateMapping = (fileIndex: number, field: keyof ParsedFile, value: number) => {
-    setParsedFiles(prev => prev.map((f, i) => i === fileIndex ? { ...f, [field]: value } : f))
+    setParsedFiles(prev => prev.map(f => ({ ...f, [field]: value })))
   }
 
   const removeFile = (idx: number) => {
@@ -377,3 +377,6 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
     </div>
   )
 }
+
+
+
