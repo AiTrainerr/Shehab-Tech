@@ -191,8 +191,9 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
       const mapped = pf.rawData.map(row => {
         const parsedOrder = pf.orderIdx !== -1 ? parseInt(row[pf.orderIdx]) : NaN;
         
-        // If speakerIdx is -1, use the file name as the speaker code
-        const mappedSpeakerCode = pf.speakerIdx !== -1 ? String(row[pf.speakerIdx] || "").trim() : pf.speakerCode;
+        // If speakerIdx is -1, OR if the row's speaker code is empty, use the file name as the speaker code
+        const extractedSpeakerCode = pf.speakerIdx !== -1 ? String(row[pf.speakerIdx] || "").trim() : "";
+        const mappedSpeakerCode = extractedSpeakerCode || pf.speakerCode;
         
         // If audioIdx is -1, leave it empty (which will fallback to sequential numbers in the UI)
         const mappedAudioId = pf.audioIdx !== -1 ? String(row[pf.audioIdx] || "").trim() : "";
