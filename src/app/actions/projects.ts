@@ -228,6 +228,16 @@ export async function createProjectAction(formData: FormData) {
         }
 
         if (parsedSentences.length > 0) {
+          const { translateNotesBatch } = await import("@/lib/translation");
+          const notesToTranslate = parsedSentences.map((s: any) => s.note).filter(Boolean);
+          const translationsMap = await translateNotesBatch(notesToTranslate);
+          if (translationsMap.size > 0) {
+            parsedSentences = parsedSentences.map((s: any) => ({
+              ...s,
+              note: s.note && translationsMap.has(s.note) ? translationsMap.get(s.note) : s.note
+            }));
+          }
+
           await tx.projectSentence.createMany({
             data: parsedSentences.map((item, i) => {
               return {
@@ -799,6 +809,16 @@ export async function updateProjectAction(projectId: string, formData: FormData)
         }
 
         if (sentences.length > 0) {
+          const { translateNotesBatch } = await import("@/lib/translation");
+          const notesToTranslate = sentences.map((s: any) => s.note).filter(Boolean);
+          const translationsMap = await translateNotesBatch(notesToTranslate);
+          if (translationsMap.size > 0) {
+            sentences = sentences.map((s: any) => ({
+              ...s,
+              note: s.note && translationsMap.has(s.note) ? translationsMap.get(s.note) : s.note
+            }));
+          }
+
           await tx.projectSentence.deleteMany({ where: { projectId } })
           await tx.projectSentence.createMany({
             data: sentences.map((item: any, i) => ({
