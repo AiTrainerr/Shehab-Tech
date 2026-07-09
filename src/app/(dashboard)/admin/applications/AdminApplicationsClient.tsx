@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Check, X, Search, FileText, User, BadgeCheck, Mic2, Download } from "lucide-react"
+import { Check, X, Search, FileText, User, BadgeCheck, Mic2, Download, Clock } from "lucide-react"
 import { approveApplication, rejectApplication, deleteApplication, extendApplicationTime } from "@/app/actions/projects"
 interface Application {
   id: string
@@ -635,22 +635,41 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                   )}
 
                   {(app.status === 'WORKING' || app.status === 'UNDER_REVIEW' || app.status === 'ACCEPTED') && (
-                    <button
-                      onClick={async () => {
-                        if (!confirm("هل أنت متأكد من تحرير التاسك وحذف كل تسجيلات هذا المستخدم؟ (سيتلقى إشعاراً بالرفض)")) return;
-                        setLoading(app.id);
-                        const res = await rejectApplication(app.id, "تم الرفض بسبب عدم إكمال التاسك");
-                        if (!res.success) alert(res.error);
-                        else window.location.reload();
-                        setLoading(null);
-                      }}
-                      disabled={loading === app.id}
-                      className="w-full px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                      title="تحرير التاسك ورفض المستخدم"
-                    >
-                      <X className="w-4 h-4" /> تحرير التاسك
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleExtendTime(app.id)}
+                        disabled={loading === app.id}
+                        className="w-full px-4 py-2 bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        title="تمديد الوقت 24 ساعة إضافية"
+                      >
+                        <Clock className="w-4 h-4" /> تمديد الوقت
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!confirm("هل أنت متأكد من إلغاء التاسك وحذف كل تسجيلات هذا المستخدم؟ (سيتم تبليغه فوراً بالرفض)")) return;
+                          setLoading(app.id);
+                          const res = await rejectApplication(app.id, "تم رفضك بسبب ضعف الجودة أو انتهاء الوقت");
+                          if (!res.success) alert(res.error);
+                          else window.location.reload();
+                          setLoading(null);
+                        }}
+                        disabled={loading === app.id}
+                        className="w-full px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        title="إلغاء التاسك ورفض المستخدم"
+                      >
+                        <X className="w-4 h-4" /> إلغاء التاسك
+                      </button>
+                    </>
                   )}
+                  
+                  <button
+                    onClick={() => handleDelete(app.id)}
+                    disabled={loading === app.id}
+                    className="w-full px-4 py-2 bg-gray-500/10 text-gray-500 hover:bg-gray-500 hover:text-white text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    title="حذف الطلب نهائياً ليبدأ من جديد"
+                  >
+                    <X className="w-4 h-4" /> حذف نهائي
+                  </button>
                 </div>
               )}
             </div>
