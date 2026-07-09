@@ -3,9 +3,10 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, ChevronRight, FileText, Settings, CreditCard, PlayCircle, FileSpreadsheet, ChevronDown, ChevronUp, CheckCircle, Loader2 } from "lucide-react"
+import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, ChevronRight, FileText, Settings, CreditCard, PlayCircle, FileSpreadsheet, ChevronDown, ChevronUp, CheckCircle, Loader2, Eye } from "lucide-react"
 import { createProjectAction, uploadBatchScripts } from "@/app/actions/projects"
 import RichTextEditor from "@/components/RichTextEditor"
+import { VoiceRecorderPreview } from "@/components/voice-recorder-preview"
 import Papa from "papaparse"
 import * as XLSX from "xlsx"
 
@@ -32,6 +33,7 @@ const STEPS = [
   { id: 2, title: "رفع الجمل (السكربت)", icon: UploadCloud },
   { id: 3, title: "إعدادات الصوت والتسمية", icon: PlayCircle },
   { id: 4, title: "المتطلبات والتسعير", icon: CreditCard },
+  { id: 5, title: "معاينة قبل النشر", icon: Eye },
 ];
 
 export default function CreateRecordingProjectPage() {
@@ -63,6 +65,14 @@ export default function CreateRecordingProjectPage() {
   // Step 4 States
   const [selectedCountries, setSelectedCountries] = React.useState<string[]>([])
 
+  // Audio settings state (for preview)
+  const [audioFormat, setAudioFormat] = React.useState("WAV")
+  const [sampleRate, setSampleRate] = React.useState(44100)
+  const [bitDepth, setBitDepth] = React.useState(16)
+  const [channels, setChannels] = React.useState("MONO")
+  const [minDuration, setMinDuration] = React.useState<number|null>(null)
+  const [maxDuration, setMaxDuration] = React.useState<number|null>(null)
+  const [enableNoiseCancellation, setEnableNoiseCancellation] = React.useState(false)
   const namingVariables = [
     { label: "كود المستقل (Speaker Code)", value: "[speakerCode]" },
     { label: "رقم الجملة (ID) من الشيت", value: "[audioId]" },
@@ -96,6 +106,28 @@ export default function CreateRecordingProjectPage() {
   if (formattedZipName === "FULL") formattedZipName = "[speakerCode]_[firstName]_[lastName]_[gender]_[age]"
   if (formattedZipName === "ANONYMOUS") formattedZipName = "[speakerCode]_[gender]_[age]"
   if (formattedZipName === "SPEAKER_ONLY") formattedZipName = "[speakerCode]"
+
+  // Generate preview sentences
+  const previewSentences = React.useMemo(() => {
+    if (scriptType === "BATCH_CODE" && batchFiles.length > 0) {
+      const firstValidFile = batchFiles.find(f => !f.error && f.rawData.length > 0)
+      if (firstValidFile) {
+        return firstValidFile.rawData.slice(0, 5).map((row, i) => ({
+          id: `preview-${i}`,
+          text: firstValidFile.textIdx !== -1 ? String(row[firstValidFile.textIdx] || "").trim() : "لا يوجد نص",
+          order: i + 1,
+          audioId: firstValidFile.audioIdx !== -1 ? String(row[firstValidFile.audioIdx] || String(row[firstValidFile.speakerIdx] || "")).trim() : `00${i+1}`,
+          note: firstValidFile.noteIdx !== -1 ? String(row[firstValidFile.noteIdx] || "").trim() : undefined,
+          speed: firstValidFile.speedIdx !== -1 ? String(row[firstValidFile.speedIdx] || "normal").trim() : "normal",
+          recordings: []
+        }))
+      }
+    }
+    return [
+      { id: "preview-1", text: "مرحباً بكم في منصتنا للتسجيل الصوتي.", order: 1, audioId: "S001", recordings: [] },
+      { id: "preview-2", text: "هذه جملة تجريبية لمعاينة كيف سيظهر التطبيق للمستقل.", order: 2, audioId: "S002", speed: "بطيء", recordings: [] }
+    ]
+  }, [scriptType, batchFiles])
 
   formattedZipName = formattedZipName
     .replace(/\[speakerCode\]/g, previewSpeakerCode)
@@ -748,6 +780,30 @@ export default function CreateRecordingProjectPage() {
             </div>
           </div>
 
+          {/* ================= STEP 5 ================= */}
+          <div className={currentStep === 5 ? "block space-y-8 animate-fade-in" : "hidden"}>
+            <div className="space-y-6">
+              <h3 className="text-xl font-bold text-foreground border-b border-border pb-2">معاينة شاشة المستقل (Preview)</h3>
+              <p className="text-sm text-foreground/70">هكذا ستظهر شاشة التسجيل للمستقل. يمكنك اختبار واجهة المستخدم ومراجعة كيفية عرض الجمل والإرشادات. الملفات التي تسجلها هنا للمعاينة فقط ولن يتم حفظها.</p>
+              
+              <div className="bg-card p-6 rounded-2xl border border-border mt-4 pointer-events-auto">
+                <VoiceRecorderPreview 
+                  projectId="preview-project"
+                  speakerCode={scriptType === "PRE_ASSIGNED" || scriptType === "BATCH_CODE" ? "PREVIEW-CODE" : undefined}
+                  applicationStatus="APPROVED"
+                  audioFormat={audioFormat}
+                  sampleRate={sampleRate}
+                  bitDepth={bitDepth}
+                  channels={channels}
+                  minDuration={minDuration}
+                  maxDuration={maxDuration}
+                  enableNoiseCancellation={enableNoiseCancellation}
+                  sentences={previewSentences}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Footer Controls */}
           <div className="flex justify-between items-center pt-8 mt-8 border-t border-border">
             {currentStep > 1 ? (
@@ -756,7 +812,7 @@ export default function CreateRecordingProjectPage() {
               </button>
             ) : <div></div>}
             
-            {currentStep < 4 ? (
+            {currentStep < 5 ? (
               <button type="button" onClick={() => setCurrentStep(prev => prev + 1)} className="px-8 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:-translate-y-0.5">
                 التالي
               </button>

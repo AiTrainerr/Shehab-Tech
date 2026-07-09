@@ -165,10 +165,27 @@ export async function uploadVoiceRecording(
     
     const sentence = await prisma.projectSentence.findUnique({
       where: { id: sentenceId },
-      select: { order: true, projectId: true, audioId: true }
+      select: { 
+        order: true, 
+        projectId: true, 
+        audioId: true,
+        project: {
+          select: {
+            customFileNaming: true
+          }
+        }
+      }
     })
 
     if (!dbUser || !sentence) return { success: false, error: "User or Sentence not found" }
+
+    // Try to get speakerCode from application
+    const application = await prisma.application.findUnique({
+      where: {
+        projectId_userId: { projectId: sentence.projectId, userId: user.id }
+      },
+      select: { speakerCode: true }
+    })
 
     const buffer = Buffer.from(await audioFile.arrayBuffer())
     
@@ -185,9 +202,22 @@ export async function uploadVoiceRecording(
     else if (audioFile.type.includes("wav")) ext = "wav"
     else if (audioFile.type.includes("ogg")) ext = "ogg"
     
-    // File name: FirstName_LastName_Sentence_Order.ext
+    // File name: Use custom naming or default
+    let filename = "";
     const sentenceIdString = sentence.audioId ? sentence.audioId : `Sentence_${sentence.order}`;
-    const filename = `${dbUser.firstName}_${dbUser.lastName || ''}_${sentenceIdString}.${ext}`;
+    
+    if (sentence.project.customFileNaming) {
+      filename = sentence.project.customFileNaming
+        .replace(/\[speakerCode\]/g, application?.speakerCode || "UNKNOWN")
+        .replace(/\[audioId\]/g, sentence.audioId || "0000")
+        .replace(/\[gender\]/g, dbUser.gender === "MALE" ? "Male" : dbUser.gender === "FEMALE" ? "Female" : "Unknown")
+        .replace(/\[age\]/g, ageStr)
+        .replace(/\[order\]/g, sentence.order.toString())
+        
+      filename = `${filename}.${ext}`
+    } else {
+      filename = `${dbUser.firstName}_${dbUser.lastName || ''}_${sentenceIdString}.${ext}`;
+    }
 
     // Check if recording already exists to prevent Cloudinary storage leaks
     const existingRecording = await prisma.voiceRecording.findUnique({
