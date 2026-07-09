@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { Briefcase, MapPin, Users, DollarSign, Filter, CheckCircle, Clock, Send, Loader2 } from "lucide-react"
 import { applyToProject } from "@/app/actions/projects"
-import { stripHtml } from "@/components/RichTextDisplay"
+import { stripHtml } from "@/lib/string-utils"
 
 export function MemberProjectsClient({ initialProjects, isPast }: { initialProjects: any[], isPast: boolean }) {
   const [filterLang, setFilterLang] = React.useState("")
@@ -210,3 +210,4 @@ export function MemberProjectsClient({ initialProjects, isPast }: { initialProje
     </div>
   )
 }
+

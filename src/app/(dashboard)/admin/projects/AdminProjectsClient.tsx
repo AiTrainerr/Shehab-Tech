@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { Users, Clock, Edit2, CheckCircle, MoreVertical } from "lucide-react"
 import { updateProjectStatus } from "@/app/actions/projects"
-import { stripHtml } from "@/components/RichTextDisplay"
+import { stripHtml } from "@/lib/string-utils"
 
 export function AdminProjectsClient({ initialProjects }: { initialProjects: any[] }) {
   const [projects, setProjects] = React.useState(initialProjects)
@@ -171,3 +171,4 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
     </div>
   )
 }
+

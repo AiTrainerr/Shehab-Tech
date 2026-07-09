@@ -180,7 +180,7 @@ export async function createProjectAction(formData: FormData) {
                     const sheetSentences = rows
                       .map((row: any[]) => {
                         if (row.length >= 2 && row[0] && row[1]) {
-                          return { text: String(row[0]).trim(), assignedEmail: String(row[1]).trim() }
+                          return { text: String(row[0]).trim(), assignedEmail: String(row[1]).trim(), speakerCode: firstSheetName }
                         }
                         return null
                       })
@@ -194,11 +194,11 @@ export async function createProjectAction(formData: FormData) {
                           if (!text) return null;
                           const audioId = idColIdx !== null && row[idColIdx] ? String(row[idColIdx]).trim() : undefined;
                           const note = noteColIdx !== null && row[noteColIdx] ? String(row[noteColIdx]).trim() : undefined;
-                          return { text, audioId, note };
+                          return { text, audioId, note, speakerCode: firstSheetName };
                         } else if (sentenceColIdx === null) {
                           for (const cell of row) {
                             if (cell !== undefined && cell !== null && String(cell).trim()) {
-                              return { text: String(cell).trim() }
+                              return { text: String(cell).trim(), speakerCode: firstSheetName }
                             }
                           }
                         }
@@ -207,15 +207,17 @@ export async function createProjectAction(formData: FormData) {
                         .filter(Boolean)
                       allSentences = [...allSentences, ...sheetSentences]
                     }
+                  
+                  allFilesSentences = [...allFilesSentences, ...allSentences]
                 }
-                allFilesSentences = [...allFilesSentences, ...allSentences]
-              } else if (name.endsWith(".txt") && scriptType !== "PRE_ASSIGNED") {
+              } else if (name.endsWith(".txt")) {
                 const text = buffer.toString("utf-8")
+                const baseName = file.name.split('.').slice(0, -1).join('.');
                 const textSentences = text
                   .split("\n")
                   .map(s => s.trim())
                   .filter(Boolean)
-                  .map(text => ({ text }))
+                  .map(text => ({ text, speakerCode: baseName }))
                 allFilesSentences = [...allFilesSentences, ...textSentences]
               } else {
                 throw new Error("Unsupported script file format for the chosen distribution method.")
@@ -764,11 +766,11 @@ export async function updateProjectAction(projectId: string, formData: FormData)
                         if (!text) return null;
                         const audioId = idColIdx !== null && row[idColIdx] ? String(row[idColIdx]).trim() : undefined;
                         const note = noteColIdx !== null && row[noteColIdx] ? String(row[noteColIdx]).trim() : undefined;
-                        return { text, audioId, note };
+                        return { text, audioId, note, speakerCode: firstSheetName };
                       } else if (sentenceColIdx === null) {
                         for (const cell of row) {
                           if (cell !== undefined && cell !== null && String(cell).trim()) {
-                            return { text: String(cell).trim() }
+                            return { text: String(cell).trim(), speakerCode: firstSheetName }
                           }
                         }
                       }
@@ -1294,4 +1296,6 @@ export async function extendApplicationTime(applicationId: string) {
     return { success: false, error: "Failed to extend time" }
   }
 }
+
+
 

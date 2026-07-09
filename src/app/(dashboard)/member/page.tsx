@@ -8,7 +8,7 @@ import { MemberDashboardClient } from "@/components/member-dashboard-client"
 import { getUserLevel, getUserBadges, getLevelProgress, getNextLevel } from "@/lib/gamification"
 import { LevelCard, BadgesGrid } from "@/components/achievement-badge"
 import { CopyReferralLink } from "@/components/copy-referral-link"
-import { stripHtml } from "@/components/RichTextDisplay"
+import { stripHtml } from "@/lib/string-utils"
 
 export default async function MemberDashboard() {
   const cookieStore = await cookies()
@@ -375,3 +375,4 @@ export default async function MemberDashboard() {
     </div>
   )
 }
+
