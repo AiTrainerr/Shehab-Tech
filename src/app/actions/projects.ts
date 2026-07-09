@@ -232,7 +232,10 @@ export async function createProjectAction(formData: FormData) {
             })
           })
         } else {
-          throw new Error("Script configuration enabled, but no sentences could be parsed or found.")
+          // For BATCH_CODE, allow creation without sentences (they are uploaded separately via the batch uploader)
+          if (scriptType !== "BATCH_CODE") {
+            throw new Error("Script configuration enabled, but no sentences could be parsed or found.")
+          }
         }
       } else if (isTranscriptionProject) {
         // Try parsing preUploadedAudio first
