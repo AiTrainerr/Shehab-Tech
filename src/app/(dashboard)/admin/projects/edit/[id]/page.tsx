@@ -354,7 +354,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 {hasScript && (
                   <div className="space-y-2 mt-4 bg-background p-4 rounded-xl border border-border">
                     <label className="text-sm font-semibold text-primary">حصة كل مستقل (عدد الجمل)</label>
-                    <input name="sentencesPerUser" type="number" min="1" defaultValue={project.sentencesPerUser || ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none mt-2" placeholder="مثال: 50" />
+                    <input name="sentencesPerUser" type="number" min="1" defaultValue={project.sentencesPerUser ?? ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none mt-2" placeholder="مثال: 50" />
                   </div>
                 )}
               </div>
@@ -601,11 +601,11 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-semibold">الحد الأدنى (ثواني)</label>
-                      <input name="minDuration" defaultValue={project.minDuration || ""} type="number" min="1" className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm" />
+                      <input name="minDuration" defaultValue={project.minDuration ?? ""} type="number" min="1" className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-semibold">الحد الأقصى (ثواني)</label>
-                      <input name="maxDuration" defaultValue={project.maxDuration || ""} type="number" min="1" className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm" />
+                      <input name="maxDuration" defaultValue={project.maxDuration ?? ""} type="number" min="1" className="w-full px-3 py-2 rounded-lg bg-background border border-border outline-none text-sm" />
                   </div>
                 </div>
               </div>
@@ -620,11 +620,11 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">👨 <span className="text-blue-400">العدد المطلوب من الذكور</span></label>
-                  <input name="targetMales" type="number" min="0" defaultValue={project.targetMales || 0} className="w-full px-4 py-3 rounded-xl bg-background border border-blue-500/30 outline-none focus:border-blue-500" required />
+                  <input name="targetMales" type="number" min="0" defaultValue={project.targetMales ?? 0} className="w-full px-4 py-3 rounded-xl bg-background border border-blue-500/30 outline-none focus:border-blue-500" required />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">👩 <span className="text-pink-400">العدد المطلوب من الإناث</span></label>
-                  <input name="targetFemales" type="number" min="0" defaultValue={project.targetFemales || 0} className="w-full px-4 py-3 rounded-xl bg-background border border-pink-500/30 outline-none focus:border-pink-500" required />
+                  <input name="targetFemales" type="number" min="0" defaultValue={project.targetFemales ?? 0} className="w-full px-4 py-3 rounded-xl bg-background border border-pink-500/30 outline-none focus:border-pink-500" required />
                 </div>
                 
                 <div className="space-y-2 md:col-span-2">
@@ -655,7 +655,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">سعر المشروع ($)</label>
                   <div className="flex gap-2">
-                    <input name="price" defaultValue={project.price || ""} type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 50.00" required={currentStep===4} />
+                    <input name="price" defaultValue={project.price ?? ""} type="number" step="0.01" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 50.00" required={currentStep===4} />
                     <select name="pricingModel" defaultValue={project.pricingModel || "FIXED_PROJECT"} className="w-32 px-2 py-3 rounded-xl bg-background border border-border outline-none text-sm">
                       <option value="FIXED_PROJECT">مشروع ثابت</option>
                       <option value="PER_HOUR">بالساعة</option>
@@ -667,7 +667,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">حجم التسجيل (المدة/العدد)</label>
                   <div className="flex gap-2">
-                    <input name="recordingDuration" defaultValue={project.recordingDuration || ""} type="number" step="0.1" min="0.1" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 2.5 أو 500" />
+                    <input name="recordingDuration" defaultValue={project.recordingDuration ?? ""} type="number" step="0.1" min="0.1" className="flex-1 px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 2.5 أو 500" />
                     <select name="durationUnit" defaultValue={project.durationUnit || "HOUR"} className="w-32 px-2 py-3 rounded-xl bg-background border border-border outline-none text-sm">
                       <option value="HOUR">ساعات</option>
                       <option value="SENTENCE">جمل</option>
@@ -678,20 +678,20 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">الحد الأدنى والأقصى للعمر (اختياري)</label>
                   <div className="flex gap-2 items-center">
-                    <input name="reqAgeMin" defaultValue={project.reqAgeMin || ""} type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="الحد الأدنى" />
+                    <input name="reqAgeMin" defaultValue={project.reqAgeMin ?? ""} type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="الحد الأدنى" />
                     <span>-</span>
-                    <input name="reqAgeMax" defaultValue={project.reqAgeMax || ""} type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="الحد الأقصى" />
+                    <input name="reqAgeMax" defaultValue={project.reqAgeMax ?? ""} type="number" min="18" max="80" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="الحد الأقصى" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">عدد المستقلين المطلوب (العدد الإجمالي)</label>
-                  <input name="requiredParticipants" defaultValue={project.requiredParticipants || 1} type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 50" required={currentStep===4} />
+                  <input name="requiredParticipants" defaultValue={project.requiredParticipants ?? 1} type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 50" required={currentStep===4} />
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">مهلة التسجيل (بالساعات)</label>
-                  <input name="timeLimitHours" defaultValue={project.timeLimitHours || ""} type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 24 ساعة" />
+                  <input name="timeLimitHours" defaultValue={project.timeLimitHours ?? ""} type="number" min="1" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="مثال: 24 ساعة" />
                 </div>
               </div>
 
