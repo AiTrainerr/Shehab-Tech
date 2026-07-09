@@ -619,12 +619,12 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold">العدد المطلوب من الذكور</label>
-                  <input name="targetMales" type="number" min="0" defaultValue={project.targetMales || 0} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" required />
+                  <label className="text-sm font-semibold">👨 <span className="text-blue-400">العدد المطلوب من الذكور</span></label>
+                  <input name="targetMales" type="number" min="0" defaultValue={project.targetMales || 0} className="w-full px-4 py-3 rounded-xl bg-background border border-blue-500/30 outline-none focus:border-blue-500" required />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold">العدد المطلوب من الإناث</label>
-                  <input name="targetFemales" type="number" min="0" defaultValue={project.targetFemales || 0} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" required />
+                  <label className="text-sm font-semibold">👩 <span className="text-pink-400">العدد المطلوب من الإناث</span></label>
+                  <input name="targetFemales" type="number" min="0" defaultValue={project.targetFemales || 0} className="w-full px-4 py-3 rounded-xl bg-background border border-pink-500/30 outline-none focus:border-pink-500" required />
                 </div>
                 
                 <div className="space-y-2 md:col-span-2">

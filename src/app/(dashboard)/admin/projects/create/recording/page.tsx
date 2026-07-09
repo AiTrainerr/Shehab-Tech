@@ -716,13 +716,19 @@ export default function CreateRecordingProjectPage() {
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">عدد الذكور والإناث المطلوبين (اختياري)</label>
-                  <div className="flex gap-2 items-center">
-                    <input name="targetMales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="ذكور" />
-                    <span>-</span>
-                    <input name="targetFemales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="إناث" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-blue-400">👨 ذكور</label>
+                      <input name="targetMales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="0" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-pink-400">👩 إناث</label>
+                      <input name="targetFemales" type="number" min="0" defaultValue="0" className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none" placeholder="0" />
+                    </div>
                   </div>
                   <p className="text-xs text-foreground/50 mt-1">يجب أن يكون المجموع أقل من أو يساوي العدد الإجمالي. اتركهم 0 إذا لم يكن هناك تحديد للجنس.</p>
                 </div>
+
 
                 <div className="space-y-2">
                   <label className="text-sm font-semibold">مهلة التسجيل (بالساعات)</label>
