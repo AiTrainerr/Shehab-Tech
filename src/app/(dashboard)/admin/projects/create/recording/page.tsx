@@ -253,6 +253,7 @@ export default function CreateRecordingProjectPage() {
                       <option value="STATIC">نفس الجمل للجميع (Static)</option>
                       <option value="DYNAMIC_POOL">توزيع عشوائي من حصيلة (Dynamic Pool)</option>
                       <option value="PRE_ASSIGNED">مخصصة مسبقاً لكل شخص بالإيميل (Pre-Assigned)</option>
+                      <option value="BATCH_CODE">أكواد غير متكررة (Batch Code)</option>
                     </select>
                   </div>
                 )}

@@ -11,6 +11,7 @@ type Sentence = {
   text: string
   order: number
   audioId?: string
+  note?: string | null
   speed?: string
   recordings: { fileUrl: string; expiresAt: Date; status?: string; rejectionReason?: string | null }[]
 }
@@ -562,6 +563,13 @@ export function VoiceRecorderPreview({
             <h2 className="text-2xl sm:text-4xl font-black text-foreground leading-relaxed whitespace-pre-line px-4" dir="auto">
               "{activeSentence.text}"
             </h2>
+
+            {activeSentence.note && (
+              <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl max-w-2xl mx-auto text-yellow-700 dark:text-yellow-500 text-sm font-semibold">
+                <strong className="block mb-1">ملاحظة:</strong>
+                <p dir="auto" className="whitespace-pre-line">{activeSentence.note}</p>
+              </div>
+            )}
             
             {/* Speed Instructions (Compact Pill) */}
             {activeSentence.speed && (

@@ -321,7 +321,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               </div>
 
               {/* Advanced Batch Upload For Non-Transcription */}
-              {project.type !== "TRANSCRIPTION" && (
+              {project.type !== "TRANSCRIPTION" && scriptType === "BATCH_CODE" && (
                 <>
                   <BatchScriptUpload projectId={id} />
                   <BatchCodesManager projectId={id} />
@@ -345,12 +345,13 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                         <option value="STATIC">نفس الجمل للجميع (Static)</option>
                         <option value="DYNAMIC_POOL">توزيع عشوائي من حصيلة (Dynamic Pool)</option>
                         <option value="PRE_ASSIGNED">مخصصة مسبقاً لكل شخص بالإيميل (Pre-Assigned)</option>
+                        <option value="BATCH_CODE">أكواد غير متكررة (Batch Code)</option>
                       </select>
                     </div>
                   )}
                 </div>
 
-                {hasScript && scriptType === "DYNAMIC_POOL" && (
+                {hasScript && (
                   <div className="space-y-2 mt-4 bg-background p-4 rounded-xl border border-border">
                     <label className="text-sm font-semibold text-primary">حصة كل مستقل (عدد الجمل)</label>
                     <input name="sentencesPerUser" type="number" min="1" defaultValue={project.sentencesPerUser || ""} className="w-full px-4 py-3 rounded-xl bg-background border border-border outline-none mt-2" placeholder="مثال: 50" />

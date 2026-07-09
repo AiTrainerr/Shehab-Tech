@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { prisma } from "@/lib/prisma"
 import { uploadToSupabase } from "@/lib/storage"
@@ -320,7 +320,7 @@ export async function applyToProject(projectId: string, applicationType: "FREELA
       if (currentCount >= target) {
         return { 
           success: false, 
-          error: `عذراً، لقد اكتمل العدد المطلوب لـ ${applicant.gender === 'male' ? 'الذكور' : 'الإناث'} في هذا المشروع.` 
+          error: `Ø¹Ø°Ø±Ø§Ù‹ØŒ Ù„Ù‚Ø¯ Ø§ÙƒØªÙ…Ù„ Ø§Ù„Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨ Ù„Ù€ ${applicant.gender === 'male' ? 'Ø§Ù„Ø°ÙƒÙˆØ±' : 'Ø§Ù„Ø¥Ù†Ø§Ø«'} ÙÙŠ Ù‡Ø°Ø§ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹.` 
         }
       }
     }
@@ -381,7 +381,7 @@ export async function promoteToQC(applicationId: string) {
 
     await createNotification(
       app.userId,
-      "Promoted to QC 🎉",
+      "Promoted to QC ðŸŽ‰",
       `You have been promoted to Quality Control (QC) for project "${app.project.title}".`,
       `/member/projects/${app.projectId}`
     )
@@ -487,10 +487,10 @@ export async function approveApplication(applicationId: string) {
     
     await createNotification(
       application.userId,
-      newStatus === "APPROVED" ? "تم قبول عملك!" : "تم قبول طلبك!",
+      newStatus === "APPROVED" ? "ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø¹Ù…Ù„Ùƒ!" : "ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø·Ù„Ø¨Ùƒ!",
       newStatus === "APPROVED" 
-        ? `تم قبول عملك في "${application.project.title}". كودك هو ${speakerCode}.`
-        : `تم قبول طلبك لـ "${application.project.title}". اضغط للبدء!`,
+        ? `ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø¹Ù…Ù„Ùƒ ÙÙŠ "${application.project.title}". ÙƒÙˆØ¯Ùƒ Ù‡Ùˆ ${speakerCode}.`
+        : `ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø·Ù„Ø¨Ùƒ Ù„Ù€ "${application.project.title}". Ø§Ø¶ØºØ· Ù„Ù„Ø¨Ø¯Ø¡!`,
       `/member/projects/${application.projectId}`
     )
     const { revalidatePath } = await import("next/cache")
@@ -540,7 +540,7 @@ export async function rejectApplication(applicationId: string, reason?: string) 
       }
     })
 
-    // ✅ Release the sentences assigned to this user so the file is available for someone else
+    // âœ… Release the sentences assigned to this user so the file is available for someone else
     await prisma.projectSentence.updateMany({
       where: {
         projectId: application.projectId,
@@ -826,7 +826,7 @@ export async function markApplicationPaid(applicationId: string) {
 
     await createNotification(
       application.userId,
-      "💰 Payout Released!",
+      "ðŸ’° Payout Released!",
       `Your payment for the project "${application.project.title}" has been processed and marked as paid.`
     )
 
@@ -1032,7 +1032,7 @@ export async function releaseExpiredApplications(projectId: string) {
       // Optionally notify
       await createNotification(
         app.userId,
-        "Task Expired ⏳",
+        "Task Expired â³",
         `Your task for project has expired because you didn't complete it within ${project.timeLimitHours} hours.`
       ).catch(() => {}); // silent fail if user lookup fails
     }
@@ -1186,4 +1186,86 @@ export async function deleteProjectAction(projectId: string) {
   }
 }
 
+
+
+export async function deleteApplication(applicationId: string) {
+  try {
+    const user = await currentUser()
+    if (!user) return { success: false, error: "Unauthorized" }
+    const admin = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
+    if (!admin || !["ADMIN", "SUPERADMIN"].includes(admin.role)) return { success: false, error: "Forbidden" }
+
+    const app = await prisma.application.findUnique({ where: { id: applicationId } })
+    if (!app) return { success: false, error: "Application not found" }
+
+    await prisma.projectSentence.updateMany({ where: { projectId: app.projectId, assignedUserId: app.userId }, data: { assignedUserId: null } })
+    await prisma.application.delete({ where: { id: applicationId } })
+    return { success: true }
+  } catch (error: any) {
+    console.error("delete application error:", error)
+    return { success: false, error: "Failed to delete" }
+  }
+}
+
+export async function extendApplicationTime(applicationId: string) {
+  try {
+    const user = await currentUser()
+    if (!user) return { success: false, error: "Unauthorized" }
+
+    const admin = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    })
+    if (!admin || !["ADMIN", "SUPERADMIN"].includes(admin.role)) return { success: false, error: "Forbidden" }
+
+    const app = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { project: true }
+    })
+    if (!app) return { success: false, error: "Application not found" }
+
+    if (app.project.scriptType === "DYNAMIC_POOL" && app.project.sentencesPerUser) {
+      // Check how many sentences the user already has assigned
+      const currentAssigned = await prisma.projectSentence.count({
+        where: { projectId: app.projectId, assignedUserId: app.userId }
+      })
+
+      const needed = app.project.sentencesPerUser - currentAssigned
+
+      if (needed > 0) {
+        // Find unassigned sentences
+        const unassigned = await prisma.projectSentence.findMany({
+          where: { projectId: app.projectId, assignedUserId: null },
+          take: needed,
+          orderBy: { order: "asc" }
+        })
+
+        if (unassigned.length < needed) {
+          return { success: false, error: "?? ???? ?????? ????? ??? ?????? ?????? ?????. ??????: " + unassigned.length }
+        }
+
+        // Assign them to the user
+        const unassignedIds = unassigned.map(s => s.id)
+        await prisma.projectSentence.updateMany({
+          where: { id: { in: unassignedIds } },
+          data: { assignedUserId: app.userId }
+        })
+      }
+    }
+
+    // Update application
+    await prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        status: "WORKING",
+        updatedAt: new Date() // Reset the timeout clock
+      }
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("extend time error:", error)
+    return { success: false, error: "Failed to extend time" }
+  }
+}
 

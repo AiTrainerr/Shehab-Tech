@@ -40,6 +40,7 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
     sentences = await prisma.projectSentence.findMany({
       where: { projectId: id },
       orderBy: { order: "asc" },
+      take: project.sentencesPerUser || undefined,
       include: { recordings: { where: { userId } } }
     })
   } else if (application.speakerCode && project.scriptType === "BATCH_CODE") {

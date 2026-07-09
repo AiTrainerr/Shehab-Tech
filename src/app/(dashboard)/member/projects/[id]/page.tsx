@@ -8,6 +8,7 @@ import { CommentsSection } from "@/components/comments-section"
 import { TranscriptionTasksList } from "./TranscriptionTasksList"
 import { RichTextDisplay } from "@/components/RichTextDisplay"
 
+export const dynamic = 'force-dynamic';
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const cookieStore = await cookies()

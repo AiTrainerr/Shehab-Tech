@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import * as React from "react"
 import { Mic, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2, ShieldAlert, ChevronLeft, ChevronRight, UploadCloud, Volume2, Lock, X, Send } from "lucide-react"
@@ -12,6 +12,7 @@ type Sentence = {
   order: number
   audioId?: string
   speed?: string
+  note?: string
   recordings: { fileUrl: string; expiresAt: Date; status?: string; rejectionReason?: string | null }[]
 }
 
@@ -563,7 +564,14 @@ export function VoiceRecorder({
               "{activeSentence.text}"
             </h2>
             
-            {/* Speed Instructions (Compact Pill) */}
+            {activeSentence.note && (
+                <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl max-w-2xl mx-auto text-yellow-700 dark:text-yellow-500 text-sm font-semibold">
+                  <strong className="block mb-1">ملاحظة:</strong>
+                  <p dir="auto" className="whitespace-pre-line">{activeSentence.note}</p>
+                </div>
+              )}
+              
+              {/* Speed Instructions (Compact Pill) */}
             {activeSentence.speed && (
               <div className="mt-4 flex justify-center">
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-red-50 text-red-600 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-full text-sm font-semibold shadow-sm">

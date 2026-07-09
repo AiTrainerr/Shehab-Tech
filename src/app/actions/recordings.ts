@@ -1,4 +1,4 @@
-"use server"
+﻿"use server"
 
 import { prisma } from "@/lib/prisma"
 import { createClientServer } from "@/lib/supabase"
@@ -165,7 +165,7 @@ export async function uploadVoiceRecording(
     
     const sentence = await prisma.projectSentence.findUnique({
       where: { id: sentenceId },
-      select: { order: true, projectId: true }
+      select: { order: true, projectId: true, audioId: true }
     })
 
     if (!dbUser || !sentence) return { success: false, error: "User or Sentence not found" }
@@ -186,7 +186,8 @@ export async function uploadVoiceRecording(
     else if (audioFile.type.includes("ogg")) ext = "ogg"
     
     // File name: FirstName_LastName_Sentence_Order.ext
-    const filename = `${dbUser.firstName}_${dbUser.lastName}_Sentence_${sentence.order}.${ext}`
+    const sentenceIdString = sentence.audioId ? sentence.audioId : \Sentence_\\;
+      const filename = \\_\_\.\\;
 
     // Check if recording already exists to prevent Cloudinary storage leaks
     const existingRecording = await prisma.voiceRecording.findUnique({

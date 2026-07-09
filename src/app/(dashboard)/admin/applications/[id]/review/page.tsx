@@ -34,21 +34,25 @@ export default async function AdminReviewPage({ params }: { params: Promise<{ id
 
   if (!application) notFound()
 
-  // Fetch ONLY the sentences assigned to this specific applicant
-  // Priority: speakerCode (batch upload) > assignedUserId (dynamic/static assignment)
   let sentenceFilter: any = { projectId: application.projectId }
+  let takeLimit = undefined
 
-  if (application.speakerCode) {
-    // Batch project: sentences are grouped by speakerCode
+  if (application.project.scriptType === "STATIC") {
+    sentenceFilter.recordings = { some: { userId: application.userId } }
+    // We don't use takeLimit because we only fetch what they actually recorded
+  } else if (application.speakerCode && application.project.scriptType === "BATCH_CODE") {
     sentenceFilter.speakerCode = application.speakerCode
+  } else if (application.project.scriptType === "PRE_ASSIGNED") {
+    sentenceFilter.assignedEmail = application.user.email
   } else {
-    // Static/Dynamic project: sentences are assigned by userId
+    // DYNAMIC_POOL or others
     sentenceFilter.assignedUserId = application.userId
   }
 
   const sentences = await prisma.projectSentence.findMany({
     where: sentenceFilter,
     orderBy: { order: "asc" },
+    take: takeLimit,
     include: {
       recordings: {
         where: { userId: application.userId }

@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { Check, X, Search, FileText, User, BadgeCheck, Mic2, Download } from "lucide-react"
-import { approveApplication, rejectApplication } from "@/app/actions/projects"
+import { approveApplication, rejectApplication, deleteApplication, extendApplicationTime } from "@/app/actions/projects"
 interface Application {
   id: string
   status: string
@@ -93,6 +93,24 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     setLoading(null)
     setRejectId(null)
     setRejectReason("")
+  }
+
+  const handleExtendTime = async (id: string) => {
+    if (!confirm("هل أنت متأكد من تمديد الوقت لهذا المستقل؟")) return
+    setLoading(id)
+    const res = await extendApplicationTime(id)
+    if (!res.success) alert(res.error)
+    else alert("تم تمديد الوقت بنجاح!")
+    setLoading(null)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟ (لا يمكن التراجع)")) return
+    setLoading(id)
+    const res = await deleteApplication(id)
+    if (!res.success) alert(res.error)
+    else alert("تم حذف الطلب بنجاح!")
+    setLoading(null)
   }
 
   const filtered = applications.filter(a => {
@@ -566,7 +584,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                         disabled={loading === app.id}
                         className="flex-1 px-2 py-2 bg-purple-500/10 text-purple-600 font-bold text-xs rounded-xl hover:bg-purple-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-1"
                         title="Promote to QC">
-                        Promote to QC
+                        <BadgeCheck className="w-4 h-4" /> QC
                       </button>
                     )}
                     <button 

@@ -5,6 +5,7 @@ import { ArrowLeft, Briefcase } from "lucide-react"
 import { MemberProjectsClient } from "./MemberProjectsClient"
 import { redirect } from "next/navigation"
 
+export const dynamic = 'force-dynamic';
 export default async function MemberProjectsPage({ 
   searchParams 
 }: { 
