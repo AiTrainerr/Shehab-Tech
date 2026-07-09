@@ -1,4 +1,4 @@
-﻿"use server"
+"use server"
 
 import { prisma } from "@/lib/prisma"
 import { uploadToSupabase } from "@/lib/storage"
@@ -320,7 +320,7 @@ export async function applyToProject(projectId: string, applicationType: "FREELA
       if (currentCount >= target) {
         return { 
           success: false, 
-          error: `Ø¹Ø°Ø±Ø§Ù‹ØŒ Ù„Ù‚Ø¯ Ø§ÙƒØªÙ…Ù„ Ø§Ù„Ø¹Ø¯Ø¯ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨ Ù„Ù€ ${applicant.gender === 'male' ? 'Ø§Ù„Ø°ÙƒÙˆØ±' : 'Ø§Ù„Ø¥Ù†Ø§Ø«'} ÙÙŠ Ù‡Ø°Ø§ Ø§Ù„Ù…Ø´Ø±ÙˆØ¹.` 
+          error: `عذراً، لقد اكتمل العدد المطلوب لـ ${applicant.gender === 'male' ? 'الذكور' : 'الإناث'} في هذا المشروع.` 
         }
       }
     }
@@ -381,7 +381,7 @@ export async function promoteToQC(applicationId: string) {
 
     await createNotification(
       app.userId,
-      "Promoted to QC ðŸŽ‰",
+      "Promoted to QC 🎉",
       `You have been promoted to Quality Control (QC) for project "${app.project.title}".`,
       `/member/projects/${app.projectId}`
     )
@@ -487,10 +487,10 @@ export async function approveApplication(applicationId: string) {
     
     await createNotification(
       application.userId,
-      newStatus === "APPROVED" ? "ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø¹Ù…Ù„Ùƒ!" : "ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø·Ù„Ø¨Ùƒ!",
+      newStatus === "APPROVED" ? "تم قبول عملك!" : "تم قبول طلبك!",
       newStatus === "APPROVED" 
-        ? `ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø¹Ù…Ù„Ùƒ ÙÙŠ "${application.project.title}". ÙƒÙˆØ¯Ùƒ Ù‡Ùˆ ${speakerCode}.`
-        : `ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø·Ù„Ø¨Ùƒ Ù„Ù€ "${application.project.title}". Ø§Ø¶ØºØ· Ù„Ù„Ø¨Ø¯Ø¡!`,
+        ? `تم قبول عملك في "${application.project.title}". كودك هو ${speakerCode}.`
+        : `تم قبول طلبك لـ "${application.project.title}". اضغط للبدء!`,
       `/member/projects/${application.projectId}`
     )
     const { revalidatePath } = await import("next/cache")
@@ -540,7 +540,7 @@ export async function rejectApplication(applicationId: string, reason?: string) 
       }
     })
 
-    // âœ… Release the sentences assigned to this user so the file is available for someone else
+    // ✅ Release the sentences assigned to this user so the file is available for someone else
     await prisma.projectSentence.updateMany({
       where: {
         projectId: application.projectId,
@@ -710,7 +710,7 @@ export async function updateProjectAction(projectId: string, formData: FormData)
       // Handle optional script update
       const updateScript = formData.get("updateScript") === "true"
       if (updateScript && hasScript) {
-        let sentences: string[] = []
+        let sentences: any[] = []
         const scriptMode = formData.get("scriptMode") as string
         
         const sentenceColIdx = colToIndex(formData.get("sentenceCol") as string);
@@ -826,7 +826,7 @@ export async function markApplicationPaid(applicationId: string) {
 
     await createNotification(
       application.userId,
-      "ðŸ’° Payout Released!",
+      "💰 Payout Released!",
       `Your payment for the project "${application.project.title}" has been processed and marked as paid.`
     )
 
@@ -1032,7 +1032,7 @@ export async function releaseExpiredApplications(projectId: string) {
       // Optionally notify
       await createNotification(
         app.userId,
-        "Task Expired â³",
+        "Task Expired ⏳",
         `Your task for project has expired because you didn't complete it within ${project.timeLimitHours} hours.`
       ).catch(() => {}); // silent fail if user lookup fails
     }
@@ -1190,7 +1190,7 @@ export async function deleteProjectAction(projectId: string) {
 
 export async function deleteApplication(applicationId: string) {
   try {
-    const user = await currentUser()
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer()); const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Unauthorized" }
     const admin = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
     if (!admin || !["ADMIN", "SUPERADMIN"].includes(admin.role)) return { success: false, error: "Forbidden" }
@@ -1209,7 +1209,7 @@ export async function deleteApplication(applicationId: string) {
 
 export async function extendApplicationTime(applicationId: string) {
   try {
-    const user = await currentUser()
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer()); const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Unauthorized" }
 
     const admin = await prisma.user.findUnique({

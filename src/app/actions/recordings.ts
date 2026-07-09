@@ -187,7 +187,7 @@ export async function uploadVoiceRecording(
     
     // File name: FirstName_LastName_Sentence_Order.ext
     const sentenceIdString = sentence.audioId ? sentence.audioId : `Sentence_${sentence.order}`;
-    const filename = `${applicant.firstName}_${applicant.lastName || ''}_${sentenceIdString}.${ext}`;
+    const filename = `${dbUser.firstName}_${dbUser.lastName || ''}_${sentenceIdString}.${ext}`;
 
     // Check if recording already exists to prevent Cloudinary storage leaks
     const existingRecording = await prisma.voiceRecording.findUnique({

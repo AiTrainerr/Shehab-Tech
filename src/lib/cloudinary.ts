@@ -131,9 +131,9 @@ export async function deleteFromCloudinary(publicId: string, fileUrl?: string) {
 
     await cloudinary.uploader.destroy(publicId, { 
       resource_type: "video",
-      cloud_name: targetAccount?.cloudName,
-      api_key: targetAccount?.apiKey,
-      api_secret: targetAccount?.apiSecret
+      
+      
+      
     })
   } catch (e) {
     console.error("Cloudinary delete error:", e)
