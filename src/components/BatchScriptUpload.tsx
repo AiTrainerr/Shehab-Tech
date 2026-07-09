@@ -190,9 +190,16 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
       // Map rows based on selected indices
       const mapped = pf.rawData.map(row => {
         const parsedOrder = pf.orderIdx !== -1 ? parseInt(row[pf.orderIdx]) : NaN;
+        
+        // If speakerIdx is -1, use the file name as the speaker code
+        const mappedSpeakerCode = pf.speakerIdx !== -1 ? String(row[pf.speakerIdx] || "").trim() : pf.speakerCode;
+        
+        // If audioIdx is -1, leave it empty (which will fallback to sequential numbers in the UI)
+        const mappedAudioId = pf.audioIdx !== -1 ? String(row[pf.audioIdx] || "").trim() : "";
+
         return {
-          speakerCode: pf.speakerIdx !== -1 ? String(row[pf.speakerIdx] || "").trim() : "",
-          audioId:     pf.audioIdx !== -1 ? String(row[pf.audioIdx] || String(row[pf.speakerIdx] || "")).trim() : "",
+          speakerCode: mappedSpeakerCode,
+          audioId:     mappedAudioId,
           text:        pf.textIdx !== -1 ? String(row[pf.textIdx] || "").trim() : "",
           note:        pf.noteIdx !== -1 ? String(row[pf.noteIdx] || "").trim() : "",
           speed:       pf.speedIdx !== -1 ? String(row[pf.speedIdx] || "normal").trim() : "normal",
@@ -311,7 +318,7 @@ export function BatchScriptUpload({ projectId }: { projectId: string }) {
                   <div className="space-y-1">
                     <label className="text-xs font-semibold">رقم الجملة (Audio ID)</label>
                     <select value={pf.audioIdx} onChange={e => updateMapping(idx, 'audioIdx', parseInt(e.target.value))} className="w-full text-sm p-2 rounded-lg border border-border bg-card outline-none focus:border-primary">
-                      <option value={-1}>-- نفس كود المستقل --</option>
+                      <option value={-1}>-- غير محدد --</option>
                       {pf.headers.map((h, i) => <option key={i} value={i}>العمود {i+1}: {h}</option>)}
                     </select>
                   </div>
