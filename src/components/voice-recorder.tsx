@@ -548,12 +548,16 @@ export function VoiceRecorder({
       {/* Active Sentence Visual Wizard Card */}
       <div className="glass p-6 sm:p-10 rounded-3xl border border-border relative overflow-hidden bg-card/40">
         <div className="absolute top-4 right-6 text-sm font-bold text-foreground/40 flex items-center gap-3">
-          {activeSentence.audioId && (
-            <span className="px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg">
-              ID: {activeSentence.audioId}
+          {activeSentence.audioId ? (
+            <span className="px-3 py-1.5 bg-primary/15 text-primary border border-primary/30 rounded-lg font-black text-base tracking-wide">
+              {activeSentence.audioId}
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 bg-foreground/10 text-foreground/60 border border-border rounded-lg">
+              #{currentIndex + 1}
             </span>
           )}
-          <span>Sentence {currentIndex + 1} of {totalSentences}</span>
+          <span className="text-xs text-foreground/40">{currentIndex + 1} / {totalSentences}</span>
         </div>
 
         <div className="space-y-8 mt-4 text-center">
@@ -820,9 +824,9 @@ export function VoiceRecorder({
                   setLocalAudioUrl(null)
                   setCurrentIndex(idx)
                 }}
-                className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black border transition-all ${bgClass}`}
+                className={`min-w-[36px] h-9 px-1.5 rounded-xl flex items-center justify-center text-xs font-black border transition-all ${bgClass}`}
               >
-                {idx + 1}
+                {s.audioId || (idx + 1)}
               </button>
             )
           })}
