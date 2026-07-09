@@ -386,6 +386,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
                         <input 
                           name="scriptFile" 
                           type="file" 
+                          multiple
                           accept={scriptType === "PRE_ASSIGNED" ? ".xlsx,.xls" : ".xlsx,.xls,.csv"} 
                           required={updateScript && scriptMode==="file"}
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"

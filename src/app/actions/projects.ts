@@ -157,65 +157,72 @@ export async function createProjectAction(formData: FormData) {
               .filter(s => s.text)
           }
         } else {
-          const file = formData.get("scriptFile") as File | null
-          if (file && file.size > 0) {
-            const name = file.name.toLowerCase()
-            const buffer = Buffer.from(await file.arrayBuffer())
+          const files = formData.getAll("scriptFile") as File[]
+          let allFilesSentences: any[] = []
+          
+          for (const file of files) {
+            if (file && file.size > 0) {
+              const name = file.name.toLowerCase()
+              const buffer = Buffer.from(await file.arrayBuffer())
 
-            if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
-              const workbook = XLSX.read(buffer, { type: "buffer" })
-              let allSentences: any[] = []
-              
-              const firstSheetName = workbook.SheetNames[0]
-              if (firstSheetName) {
-                const sheet = workbook.Sheets[firstSheetName]
-                const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+              if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
+                const workbook = XLSX.read(buffer, { type: "buffer" })
+                let allSentences: any[] = []
                 
-                rows.shift(); // Always ignore the first row (headers)
-                
-                if (scriptType === "PRE_ASSIGNED") {
-                  const sheetSentences = rows
-                    .map((row: any[]) => {
-                      if (row.length >= 2 && row[0] && row[1]) {
-                        return { text: String(row[0]).trim(), assignedEmail: String(row[1]).trim() }
-                      }
-                      return null
-                    })
-                    .filter(Boolean)
-                  allSentences = [...allSentences, ...sheetSentences]
-                } else {
-                  const sheetSentences = rows
-                    .map((row: any[]) => {
-                      if (sentenceColIdx !== null && row[sentenceColIdx]) {
-                        const text = String(row[sentenceColIdx]).trim();
-                        if (!text) return null;
-                        const audioId = idColIdx !== null && row[idColIdx] ? String(row[idColIdx]).trim() : undefined;
-                        const note = noteColIdx !== null && row[noteColIdx] ? String(row[noteColIdx]).trim() : undefined;
-                        return { text, audioId, note };
-                      } else if (sentenceColIdx === null) {
-                        for (const cell of row) {
-                          if (cell !== undefined && cell !== null && String(cell).trim()) {
-                            return { text: String(cell).trim() }
-                          }
+                const firstSheetName = workbook.SheetNames[0]
+                if (firstSheetName) {
+                  const sheet = workbook.Sheets[firstSheetName]
+                  const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+                  
+                  rows.shift(); // Always ignore the first row (headers)
+                  
+                  if (scriptType === "PRE_ASSIGNED") {
+                    const sheetSentences = rows
+                      .map((row: any[]) => {
+                        if (row.length >= 2 && row[0] && row[1]) {
+                          return { text: String(row[0]).trim(), assignedEmail: String(row[1]).trim() }
                         }
-                      }
                         return null
                       })
                       .filter(Boolean)
                     allSentences = [...allSentences, ...sheetSentences]
-                  }
+                  } else {
+                    const sheetSentences = rows
+                      .map((row: any[]) => {
+                        if (sentenceColIdx !== null && row[sentenceColIdx]) {
+                          const text = String(row[sentenceColIdx]).trim();
+                          if (!text) return null;
+                          const audioId = idColIdx !== null && row[idColIdx] ? String(row[idColIdx]).trim() : undefined;
+                          const note = noteColIdx !== null && row[noteColIdx] ? String(row[noteColIdx]).trim() : undefined;
+                          return { text, audioId, note };
+                        } else if (sentenceColIdx === null) {
+                          for (const cell of row) {
+                            if (cell !== undefined && cell !== null && String(cell).trim()) {
+                              return { text: String(cell).trim() }
+                            }
+                          }
+                        }
+                          return null
+                        })
+                        .filter(Boolean)
+                      allSentences = [...allSentences, ...sheetSentences]
+                    }
+                }
+                allFilesSentences = [...allFilesSentences, ...allSentences]
+              } else if (name.endsWith(".txt") && scriptType !== "PRE_ASSIGNED") {
+                const text = buffer.toString("utf-8")
+                const textSentences = text
+                  .split("\n")
+                  .map(s => s.trim())
+                  .filter(Boolean)
+                  .map(text => ({ text }))
+                allFilesSentences = [...allFilesSentences, ...textSentences]
+              } else {
+                throw new Error("Unsupported script file format for the chosen distribution method.")
               }
-              parsedSentences = allSentences
-            } else if (name.endsWith(".txt") && scriptType !== "PRE_ASSIGNED") {
-              const text = buffer.toString("utf-8")
-              parsedSentences = text
-                .split("\n")
-                .map(s => s.trim())
-                .filter(Boolean)
-            } else {
-              throw new Error("Unsupported script file format for the chosen distribution method.")
             }
           }
+          parsedSentences = allFilesSentences
         }
 
         if (parsedSentences.length > 0) {
@@ -731,55 +738,62 @@ export async function updateProjectAction(projectId: string, formData: FormData)
               .filter(s => s.text)
           }
         } else {
-          const file = formData.get("scriptFile") as File | null
-          if (file && file.size > 0) {
-            const name = file.name.toLowerCase()
-            const buffer = Buffer.from(await file.arrayBuffer())
+          const files = formData.getAll("scriptFile") as File[]
+          let allFilesSentences: any[] = []
+          
+          for (const file of files) {
+            if (file && file.size > 0) {
+              const name = file.name.toLowerCase()
+              const buffer = Buffer.from(await file.arrayBuffer())
 
-            if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
-              const workbook = XLSX.read(buffer, { type: "buffer" })
-              let allSentences: any[] = []
-              
-              const firstSheetName = workbook.SheetNames[0]
-              if (firstSheetName) {
-                const sheet = workbook.Sheets[firstSheetName]
-                const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+              if (name.endsWith(".xlsx") || name.endsWith(".xls") || name.endsWith(".csv")) {
+                const workbook = XLSX.read(buffer, { type: "buffer" })
+                let allSentences: any[] = []
                 
-                rows.shift(); // Always ignore the first row (headers)
+                const firstSheetName = workbook.SheetNames[0]
+                if (firstSheetName) {
+                  const sheet = workbook.Sheets[firstSheetName]
+                  const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+                  
+                  rows.shift(); // Always ignore the first row (headers)
 
-                const sheetSentences = rows
-                  .map((row: any[]) => {
-                    if (sentenceColIdx !== null && row[sentenceColIdx]) {
-                      const text = String(row[sentenceColIdx]).trim();
-                      if (!text) return null;
-                      const audioId = idColIdx !== null && row[idColIdx] ? String(row[idColIdx]).trim() : undefined;
-                      const note = noteColIdx !== null && row[noteColIdx] ? String(row[noteColIdx]).trim() : undefined;
-                      return { text, audioId, note };
-                    } else if (sentenceColIdx === null) {
-                      for (const cell of row) {
-                        if (cell !== undefined && cell !== null && String(cell).trim()) {
-                          return { text: String(cell).trim() }
+                  const sheetSentences = rows
+                    .map((row: any[]) => {
+                      if (sentenceColIdx !== null && row[sentenceColIdx]) {
+                        const text = String(row[sentenceColIdx]).trim();
+                        if (!text) return null;
+                        const audioId = idColIdx !== null && row[idColIdx] ? String(row[idColIdx]).trim() : undefined;
+                        const note = noteColIdx !== null && row[noteColIdx] ? String(row[noteColIdx]).trim() : undefined;
+                        return { text, audioId, note };
+                      } else if (sentenceColIdx === null) {
+                        for (const cell of row) {
+                          if (cell !== undefined && cell !== null && String(cell).trim()) {
+                            return { text: String(cell).trim() }
+                          }
                         }
                       }
-                    }
-                    return null
-                  })
+                      return null
+                    })
+                    .filter(Boolean)
+                    
+                  allSentences = [...allSentences, ...sheetSentences]
+                }
+                
+                allFilesSentences = [...allFilesSentences, ...allSentences]
+              } else if (name.endsWith(".txt")) {
+                const text = buffer.toString("utf-8")
+                const textSentences = text
+                  .split("\n")
+                  .map(s => s.trim())
                   .filter(Boolean)
-                  
-                allSentences = [...allSentences, ...sheetSentences]
+                  .map(text => ({ text }))
+                allFilesSentences = [...allFilesSentences, ...textSentences]
+              } else {
+                throw new Error("Unsupported script file format. Please upload XLSX, CSV, or TXT.")
               }
-              
-              sentences = allSentences
-            } else if (name.endsWith(".txt")) {
-              const text = buffer.toString("utf-8")
-              sentences = text
-                .split("\n")
-                .map(s => s.trim())
-                .filter(Boolean)
-            } else {
-              throw new Error("Unsupported script file format. Please upload XLSX, CSV, or TXT.")
             }
           }
+          sentences = allFilesSentences
         }
 
         if (sentences.length > 0) {

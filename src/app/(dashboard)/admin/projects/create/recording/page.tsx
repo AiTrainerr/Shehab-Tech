@@ -416,8 +416,7 @@ export default function CreateRecordingProjectPage() {
                     <div className="space-y-6">
                       <div className="relative border-2 border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 transition-colors rounded-2xl p-8 text-center cursor-pointer group">
                         <input 
-                          name="scriptFile" 
-                          type="file" 
+                          name="scriptFile" type="file" multiple 
                           accept={scriptType === "PRE_ASSIGNED" ? ".xlsx,.xls" : ".xlsx,.xls,.csv"} 
                           required={currentStep===2 && scriptMode==="file"}
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -828,3 +827,4 @@ export default function CreateRecordingProjectPage() {
     </div>
   )
 }
+
