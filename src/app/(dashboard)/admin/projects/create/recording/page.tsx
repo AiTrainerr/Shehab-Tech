@@ -3,9 +3,25 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, ChevronRight, FileText, Settings, CreditCard, PlayCircle } from "lucide-react"
-import { createProjectAction } from "@/app/actions/projects"
+import { ArrowLeft, Save, Plus, Trash2, X, Globe, UploadCloud, ChevronRight, FileText, Settings, CreditCard, PlayCircle, FileSpreadsheet, ChevronDown, ChevronUp, CheckCircle, Loader2 } from "lucide-react"
+import { createProjectAction, uploadBatchScripts } from "@/app/actions/projects"
 import RichTextEditor from "@/components/RichTextEditor"
+import Papa from "papaparse"
+import * as XLSX from "xlsx"
+
+type ParsedFile = {
+  file: File
+  headers: string[]
+  rawData: any[][]
+  speakerIdx: number
+  audioIdx: number
+  textIdx: number
+  speedIdx: number
+  noteIdx: number
+  orderIdx: number
+  error?: string
+  uploaded?: boolean
+}
 
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo", "Costa Rica", "Croatia", "Cuba", "Cyprus", "Czechia", "Democratic Republic of the Congo", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
@@ -34,6 +50,10 @@ export default function CreateRecordingProjectPage() {
   const [scriptType, setScriptType] = React.useState("STATIC")
   const [scriptMode, setScriptMode] = React.useState("file")
   const [fileName, setFileName] = React.useState("")
+
+  // Batch Code file queue state
+  const [batchFiles, setBatchFiles] = React.useState<ParsedFile[]>([])
+  const [batchExpanded, setBatchExpanded] = React.useState<number | null>(null)
 
   // Step 3 States
   const [executionOption, setExecutionOption] = React.useState("INTERNAL")
@@ -83,6 +103,74 @@ export default function CreateRecordingProjectPage() {
     .replace(/\[lastName\]/g, "Ahmed")
     .replace(/\[gender\]/g, "Male")
     .replace(/\[age\]/g, "25")
+
+  const processRawData = (file: File, allRows: any[][]): ParsedFile => {
+    if (allRows.length === 0) {
+      return { file, headers: [], rawData: [], speakerIdx: -1, audioIdx: -1, textIdx: -1, speedIdx: -1, noteIdx: -1, orderIdx: -1, error: "الملف فارغ" }
+    }
+    const headers = (allRows[0] || []).map((h: any) => String(h || "").trim())
+    const rawData = allRows.slice(1)
+    let speakerIdx = 0, audioIdx = 0, textIdx = 1, noteIdx = -1, speedIdx = -1, orderIdx = -1
+    headers.forEach((h: string, idx: number) => {
+      const lower = h.toLowerCase()
+      if (lower.includes('speaker') || lower.includes('كود') || lower.includes('录音人')) speakerIdx = idx
+      else if (lower.includes('audio id') || lower.includes('صوت') || lower.includes('音频')) audioIdx = idx
+      else if (lower === 'id' && audioIdx === 0) audioIdx = idx
+      else if (lower.includes('text') || lower.includes('script') || lower.includes('نص') || lower.includes('文本')) textIdx = idx
+      else if (lower.includes('note') || lower.includes('ملاحظ') || lower.includes('instruction')) noteIdx = idx
+      else if (lower.includes('speed') || lower.includes('سرع') || lower.includes('语速')) speedIdx = idx
+      else if (lower.includes('order') || lower.includes('رقم') || lower.includes('序号') || lower.includes('index')) orderIdx = idx
+    })
+    if (!headers.some(h => h.toLowerCase().includes('speaker') || h.toLowerCase().includes('كود')) && audioIdx !== 0) speakerIdx = audioIdx
+    const colCount = headers.length
+    if (speakerIdx === 0 && audioIdx === 0 && textIdx === 1 && noteIdx === -1 && speedIdx === -1) {
+      if (colCount >= 5) { speakerIdx = 0; audioIdx = 1; textIdx = 2; noteIdx = 3; speedIdx = 4 }
+      else if (colCount === 4) { speakerIdx = 0; audioIdx = 1; textIdx = 2; noteIdx = 3 }
+      else if (colCount === 3) { speakerIdx = 0; audioIdx = 0; textIdx = 1; noteIdx = 2 }
+    }
+    return { file, headers, rawData, speakerIdx, audioIdx, textIdx, speedIdx, noteIdx, orderIdx }
+  }
+
+  const handleBatchFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    e.target.value = ""
+    const results: ParsedFile[] = []
+    let pending = files.length
+    const done = () => { pending--; if (pending === 0) { setBatchFiles(prev => [...prev, ...results]); setBatchExpanded(0) } }
+    files.forEach(file => {
+      const isExcel = file.name.match(/\.(xlsx|xls)$/i)
+      if (isExcel) {
+        const reader = new FileReader()
+        reader.onload = (evt) => {
+          try {
+            const data = new Uint8Array(evt.target?.result as ArrayBuffer)
+            const workbook = XLSX.read(data, { type: 'array' })
+            const firstSheetName = workbook.SheetNames[0]
+            let rows: any[][] = []
+            if (firstSheetName) {
+              const ws = workbook.Sheets[firstSheetName]
+              rows = (XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][]).filter(r => r && r.length > 0)
+            }
+            results.push(processRawData(file, rows))
+          } catch (err: any) { results.push({ file, headers: [], rawData: [], speakerIdx: -1, audioIdx: -1, textIdx: -1, speedIdx: -1, noteIdx: -1, orderIdx: -1, error: err.message }) }
+          done()
+        }
+        reader.onerror = () => { results.push({ file, headers: [], rawData: [], speakerIdx: -1, audioIdx: -1, textIdx: -1, speedIdx: -1, noteIdx: -1, orderIdx: -1, error: 'فشل قراءة الملف' }); done() }
+        reader.readAsArrayBuffer(file)
+      } else {
+        Papa.parse(file, {
+          header: false, skipEmptyLines: true,
+          complete: (r) => { results.push(processRawData(file, r.data as any[][])); done() },
+          error: (err: any) => { results.push({ file, headers: [], rawData: [], speakerIdx: -1, audioIdx: -1, textIdx: -1, speedIdx: -1, noteIdx: -1, orderIdx: -1, error: err.message }); done() }
+        })
+      }
+    })
+  }
+
+  const updateBatchMapping = (fileIndex: number, field: keyof ParsedFile, value: number) => {
+    setBatchFiles(prev => prev.map((f, i) => i === fileIndex ? { ...f, [field]: value } : f))
+  }
 
   return (
     <div className="flex min-h-screen bg-background p-4 sm:p-6 lg:p-8" dir="rtl">
@@ -134,6 +222,21 @@ export default function CreateRecordingProjectPage() {
           setIsSubmitting(true)
           const res = await createProjectAction(formData)
           if (res.success) {
+            // If BATCH_CODE and we have files queued, upload them before redirecting
+            if (scriptType === "BATCH_CODE" && batchFiles.length > 0) {
+              for (const pf of batchFiles) {
+                if (pf.error || pf.rawData.length === 0) continue
+                const mapped = pf.rawData.map(row => ({
+                  speakerCode: pf.speakerIdx !== -1 ? String(row[pf.speakerIdx] || "").trim() : "",
+                  audioId: pf.audioIdx !== -1 ? String(row[pf.audioIdx] || String(row[pf.speakerIdx] || "")).trim() : "",
+                  text: pf.textIdx !== -1 ? String(row[pf.textIdx] || "").trim() : "",
+                  note: pf.noteIdx !== -1 ? String(row[pf.noteIdx] || "").trim() : "",
+                  speed: pf.speedIdx !== -1 ? String(row[pf.speedIdx] || "normal").trim() : "normal",
+                  order: pf.orderIdx !== -1 ? parseInt(row[pf.orderIdx]) || undefined : undefined,
+                })).filter(item => item.speakerCode && item.text)
+                if (mapped.length > 0) await uploadBatchScripts(res.projectId!, mapped)
+              }
+            }
             router.push(`/admin/projects/edit/${res.projectId}`)
           } else {
             alert(res.error || "حدث خطأ ما")
@@ -324,14 +427,68 @@ export default function CreateRecordingProjectPage() {
                 )}
                 
                 {hasScript && scriptType === "BATCH_CODE" && (
-                  <div className="bg-primary/10 p-6 rounded-2xl border border-primary/20 mt-4 text-center">
-                    <p className="text-primary font-bold">
-                      في نظام (Batch Code)، لا تحتاج لرفع الشيتات هنا.
-                      <br/>
-                      ستتمكن من رفع جميع الشيتات وتعيين أعمدتها المخصصة من خلال أداة متقدمة تظهر لك في <b>أسفل صفحة تعديل المشروع</b> بعد إكمال إنشائه.
-                    </p>
+                <div className="space-y-4 pt-4 border-t border-border">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-semibold">رفع شيتات الأكواد (يمكن رفع عدة ملفات)</label>
+                    <span className="text-xs text-foreground/50">{batchFiles.length} ملف — {batchFiles.reduce((a,f)=>a+f.rawData.length,0)} جملة</span>
                   </div>
-                )}
+
+                  {/* Drop zone */}
+                  <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-primary/30 rounded-xl cursor-pointer bg-background hover:bg-primary/5 transition-colors">
+                    <UploadCloud className="w-7 h-7 text-primary mb-1" />
+                    <p className="text-sm font-semibold text-foreground">اسحب الملفات هنا أو اضغط للاختيار</p>
+                    <p className="text-xs text-foreground/50 mt-0.5">XLSX, CSV — يمكنك اختيار عدة ملفات معاً</p>
+                    <input type="file" accept=".csv,.xlsx,.xls" multiple className="hidden" onChange={handleBatchFilesChange} />
+                  </label>
+
+                  {/* File cards */}
+                  {batchFiles.length > 0 && (
+                    <div className="space-y-2">
+                      {batchFiles.map((pf, idx) => {
+                        const isExpanded = batchExpanded === idx
+                        return (
+                          <div key={idx} className={`border rounded-xl overflow-hidden ${ pf.error ? "border-red-500/30 bg-red-500/5" : "border-border bg-card" }`}>
+                            <div className="flex items-center justify-between p-3 cursor-pointer hover:bg-foreground/5" onClick={() => setBatchExpanded(isExpanded ? null : idx)}>
+                              <div className="flex items-center gap-2 overflow-hidden">
+                                <FileSpreadsheet className={`w-4 h-4 flex-shrink-0 ${pf.error ? "text-red-500" : "text-primary"}`} />
+                                <div className="truncate">
+                                  <p className="text-sm font-bold truncate" dir="ltr">{pf.file.name}</p>
+                                  {pf.error ? <p className="text-xs text-red-500">{pf.error}</p> : <p className="text-xs text-foreground/60">{pf.rawData.length} جملة</p>}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button type="button" onClick={e => { e.stopPropagation(); setBatchFiles(prev => prev.filter((_,i)=>i!==idx)) }} className="p-1.5 text-foreground/40 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"><X className="w-3.5 h-3.5" /></button>
+                                {isExpanded ? <ChevronUp className="w-4 h-4 text-foreground/40" /> : <ChevronDown className="w-4 h-4 text-foreground/40" />}
+                              </div>
+                            </div>
+                            {isExpanded && !pf.error && (
+                              <div className="p-3 border-t border-border bg-background/50 grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <p className="col-span-full text-xs font-bold text-primary">عيّن الأعمدة بشكل صحيح:</p>
+                                {[
+                                  { label: "كود المستقل *", field: "speakerIdx" as keyof ParsedFile, noneLabel: "-- غير محدد --" },
+                                  { label: "رقم الجملة (Audio ID)", field: "audioIdx" as keyof ParsedFile, noneLabel: "-- نفس الكود --" },
+                                  { label: "النص *", field: "textIdx" as keyof ParsedFile, noneLabel: "-- غير محدد --" },
+                                  { label: "السرعة", field: "speedIdx" as keyof ParsedFile, noneLabel: "-- افتراضي --" },
+                                  { label: "ملاحظة", field: "noteIdx" as keyof ParsedFile, noneLabel: "-- بدون --" },
+                                  { label: "ترتيب", field: "orderIdx" as keyof ParsedFile, noneLabel: "-- تلقائي --" },
+                                ].map(({ label, field, noneLabel }) => (
+                                  <div key={field} className="space-y-1">
+                                    <label className="text-xs font-semibold">{label}</label>
+                                    <select value={pf[field] as number} onChange={e => updateBatchMapping(idx, field, parseInt(e.target.value))} className="w-full text-xs p-2 rounded-lg border border-border bg-card outline-none focus:border-primary">
+                                      <option value={-1}>{noneLabel}</option>
+                                      {pf.headers.map((h, i) => <option key={i} value={i}>العمود {i+1}: {h || `(${i+1})`}</option>)}
+                                    </select>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
               </div>
             </div>
 
