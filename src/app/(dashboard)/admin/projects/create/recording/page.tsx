@@ -318,14 +318,24 @@ export default function CreateRecordingProjectPage() {
                     <div className="space-y-2">
                       <label className="text-sm font-semibold">أدخل الجمل (جملة في كل سطر)</label>
                       <textarea name="manualScriptText" className="w-full h-48 px-4 py-3 rounded-xl bg-background border border-border outline-none resize-none" placeholder="الجملة الأولى..." required={currentStep===2 && scriptMode==="manual"} />
-                    </div>
-                  )}
-                </div>
-              )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {hasScript && scriptType === "BATCH_CODE" && (
+                  <div className="bg-primary/10 p-6 rounded-2xl border border-primary/20 mt-4 text-center">
+                    <p className="text-primary font-bold">
+                      في نظام (Batch Code)، لا تحتاج لرفع الشيتات هنا.
+                      <br/>
+                      ستتمكن من رفع جميع الشيتات وتعيين أعمدتها المخصصة من خلال أداة متقدمة تظهر لك في <b>أسفل صفحة تعديل المشروع</b> بعد إكمال إنشائه.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* ================= STEP 3 ================= */}
+            {/* ================= STEP 3 ================= */}
           <div className={currentStep === 3 ? "block space-y-8 animate-fade-in" : "hidden"}>
             <div className="space-y-6">
               <h3 className="text-xl font-bold text-foreground border-b border-border pb-2">إعدادات الصوت وتسمية الملفات</h3>
