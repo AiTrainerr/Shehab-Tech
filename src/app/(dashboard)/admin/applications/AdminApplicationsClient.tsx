@@ -495,8 +495,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                 <FileText className="w-3 h-3" /> Project ID: {app.project.id.slice(0, 8)}...
               </p>
               
-              {app.totalSentences !== undefined && app.totalSentences > 0 && (
-                <div className={`mt-3 p-2.5 rounded-lg border flex flex-col gap-1.5 text-xs font-bold ${
+              <div className={`mt-3 p-2.5 rounded-lg border flex flex-col gap-1.5 text-xs font-bold ${
                   app.reviewCategory === 'COMPLETED' ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.2)]' :
                   app.reviewCategory === 'READY_FIRST' ? 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.2)]' :
                   app.reviewCategory === 'READY_FIXED' ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.2)]' :
@@ -506,7 +505,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       {app.reviewCategory === 'COMPLETED' ? <Check className="w-3.5 h-3.5" /> : <Mic2 className="w-3.5 h-3.5" />}
-                      Recorded: {app.recordedCount || 0} / {app.totalSentences}
+                      Recorded: {app.recordedCount || 0} / {app.totalSentences || 0}
                     </span>
                     <span className="uppercase tracking-wider">
                       {app.reviewCategory === 'COMPLETED' ? 'Completed' :
@@ -515,7 +514,6 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                        app.reviewCategory === 'NEEDS_FIX' ? 'Needs Fix' : 'Working'}
                     </span>
                   </div>
-                  {/* Detail counts */}
                   {(app.reviewCategory !== 'WORKING' && app.reviewCategory !== 'COMPLETED') && (
                     <div className="flex gap-3 mt-1 pt-1 border-t border-current/10 text-[10px] font-semibold opacity-80">
                       <span>Accepted: {app.acceptedCount}</span>
@@ -524,7 +522,6 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                     </div>
                   )}
                 </div>
-              )}
             </div>
 
             <div className="bg-background rounded-xl p-4 border border-border flex-1 mb-6">
@@ -610,28 +607,26 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
 
               {app.status !== 'PENDING' && (
                 <div className="flex flex-col gap-2 w-full">
-                  {(app.totalSentences || 0) > 0 ? (
-                    <Link
-                      href={`/admin/applications/${app.id}/review`}
-                      className={`w-full px-4 py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
-                        app.status === 'UNDER_REVIEW' 
-                          ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/20' 
-                          : 'bg-card border border-border hover:border-primary/50'
-                      }`}
+                  <Link
+                    href={`/admin/applications/${app.id}/review`}
+                    className={`w-full px-4 py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
+                      app.status === 'UNDER_REVIEW' 
+                        ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/20' 
+                        : 'bg-card border border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" /> 
+                    {app.status === 'UNDER_REVIEW' ? 'Review Recordings' : 'View Recordings'}
+                  </Link>
+
+                  {app.status === 'UNDER_REVIEW' && (app.totalSentences || 0) === 0 && (
+                    <button
+                      onClick={() => handleApprove(app.id)}
+                      disabled={loading === app.id}
+                      className="w-full px-4 py-2 bg-yellow-500 text-white hover:bg-yellow-600 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 disabled:opacity-50"
                     >
-                      <FileText className="w-4 h-4" /> 
-                      {app.status === 'UNDER_REVIEW' ? 'Review Recordings' : 'View Recordings'}
-                    </Link>
-                  ) : (
-                    app.status === 'UNDER_REVIEW' && (
-                      <button
-                        onClick={() => handleApprove(app.id)}
-                        disabled={loading === app.id}
-                        className="w-full px-4 py-2 bg-yellow-500 text-white hover:bg-yellow-600 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 disabled:opacity-50"
-                      >
-                        <Check className="w-4 h-4" /> Approve Proof
-                      </button>
-                    )
+                      <Check className="w-4 h-4" /> Approve Proof
+                    </button>
                   )}
 
                   {(app.status === 'WORKING' || app.status === 'UNDER_REVIEW' || app.status === 'ACCEPTED') && (
