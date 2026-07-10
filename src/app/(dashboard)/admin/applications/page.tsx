@@ -129,7 +129,7 @@ export default async function AdminApplicationsPage() {
     const rejectedCount = counts.rejectedCount;
 
     let totalSentences = 0;
-    if (app.speakerCode) {
+    if (app.speakerCode && app.project.scriptType === "BATCH_CODE") {
       totalSentences = sentencesMap.get(`${app.projectId}_${app.speakerCode}`) || 0;
     } else {
       const assignedCount = assignedMap.get(`${app.projectId}_${app.userId}`);
@@ -204,3 +204,4 @@ export default async function AdminApplicationsPage() {
     </div>
   )
 }
+
