@@ -191,21 +191,21 @@ export function ReviewClient({ application, sentences }: { application: any; sen
             >
               <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
                 {/* Order Badge */}
-                <div className={`w-10 h-10 shrink-0 font-black rounded-xl flex items-center justify-center text-sm ${
+                <div className={`w-14 h-10 shrink-0 font-black rounded-xl flex items-center justify-center text-sm ${
                   isAccepted ? "bg-green-500/20 text-green-500" :
                   isRejected ? "bg-red-500/20 text-red-500" :
                   isNeedReRecord ? "bg-yellow-500/20 text-yellow-600" :
                   "bg-primary/10 text-primary"
                 }`}>
-                  {index + 1}
+                  {String(s.order || index + 1).padStart(3, '0')}
                 </div>
 
                 {/* Sentence Text + Play */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground mb-1 leading-relaxed">{s.text}</p>
-                  {s.audioId && (
-                    <p className="text-xs font-mono text-foreground/50 mb-1">ID: {s.audioId}</p>
-                  )}
+                  <p className="text-xs font-mono text-foreground/50 mb-1">
+                    Sentence ID: {s.audioId || String(s.order || index + 1).padStart(3, '0')}
+                  </p>
                   {s.speakerCode && (
                     <p className="text-xs text-foreground/40 mb-2">File: {s.speakerCode}</p>
                   )}
