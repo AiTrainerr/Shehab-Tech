@@ -1335,3 +1335,10 @@ export async function extendApplicationTime(applicationId: string) {
 
 
 
+
+
+export async function translateNotesAction(notes: string[]) {
+  const { translateNotesBatch } = await import("@/lib/translation");
+  const map = await translateNotesBatch(notes);
+  return Array.from(map.entries());
+}

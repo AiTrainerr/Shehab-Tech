@@ -203,6 +203,9 @@ export function ReviewClient({ application, sentences }: { application: any; sen
                 {/* Sentence Text + Play */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground mb-1 leading-relaxed">{s.text}</p>
+                  {s.audioId && (
+                    <p className="text-xs font-mono text-foreground/50 mb-1">ID: {s.audioId}</p>
+                  )}
                   {s.speakerCode && (
                     <p className="text-xs text-foreground/40 mb-2">File: {s.speakerCode}</p>
                   )}
