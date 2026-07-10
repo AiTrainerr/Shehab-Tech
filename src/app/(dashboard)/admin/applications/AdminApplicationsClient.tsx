@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Check, X, Search, FileText, User, BadgeCheck, Mic2, Download, Clock } from "lucide-react"
+import { Check, X, Search, FileText, User, BadgeCheck, Mic2, Download, Clock, ChevronDown } from "lucide-react"
 import { approveApplication, rejectApplication, deleteApplication, extendApplicationTime } from "@/app/actions/projects"
 interface Application {
   id: string
@@ -25,10 +25,48 @@ interface Application {
 
 type TabType = "ALL" | "READY_FIRST" | "READY_FIXED" | "NEEDS_FIX" | "WORKING" | "COMPLETED";
 
+function MultiSelectDropdown({
+  label, options, selectedValues, onChange, allLabel = "All"
+}: {
+  label: string; options: { label: string, value: string }[]; selectedValues: string[]; onChange: (vals: string[]) => void; allLabel?: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", handler); return () => document.removeEventListener("mousedown", handler);
+  }, []);
+  const toggle = (val: string) => selectedValues.includes(val) ? onChange(selectedValues.filter(v => v !== val)) : onChange([...selectedValues, val]);
+  const isAll = selectedValues.length === 0;
+  return (
+    <div className="relative space-y-1.5" ref={ref}>
+      <label className="text-xs font-bold text-foreground/60 uppercase">{label}</label>
+      <div onClick={() => setOpen(!open)} className="w-full bg-background border border-border rounded-xl px-4 py-2 cursor-pointer flex justify-between items-center outline-none hover:border-primary transition-colors font-semibold select-none">
+        <span className="truncate pr-4 text-sm">{isAll ? allLabel : `${selectedValues.length} Selected`}</span>
+        <ChevronDown className={`w-4 h-4 opacity-50 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </div>
+      {open && (
+        <div className="absolute top-full left-0 mt-2 w-full max-h-60 overflow-y-auto bg-card border border-border rounded-xl shadow-xl z-50 py-2">
+          <div onClick={() => { onChange([]); setOpen(false); }} className="flex items-center gap-3 px-4 py-2 hover:bg-foreground/5 cursor-pointer">
+            <input type="checkbox" readOnly checked={isAll} className="w-4 h-4 rounded border-border" />
+            <span className="text-sm font-bold">{allLabel}</span>
+          </div>
+          {options.map(opt => (
+            <div key={opt.value} onClick={() => toggle(opt.value)} className="flex items-center gap-3 px-4 py-2 hover:bg-foreground/5 cursor-pointer">
+              <input type="checkbox" readOnly checked={selectedValues.includes(opt.value)} className="w-4 h-4 rounded border-border" />
+              <span className="text-sm font-medium">{opt.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function AdminApplicationsClient({ applications }: { applications: Application[] }) {
-  const [statusFilter, setStatusFilter] = React.useState<string>("ALL")
-  const [projectFilter, setProjectFilter] = React.useState<string>("ALL")
-  const [downloadStatusFilter, setDownloadStatusFilter] = React.useState<string>("ALL")
+  const [statusFilter, setStatusFilter] = React.useState<string[]>([])
+  const [projectFilter, setProjectFilter] = React.useState<string[]>([])
+  const [downloadStatusFilter, setDownloadStatusFilter] = React.useState<string[]>([])
   const [searchTerm, setSearchTerm] = React.useState<string>("")
   const [loading, setLoading] = React.useState<string | null>(null)
   const [selectedAppIds, setSelectedAppIds] = React.useState<Set<string>>(new Set())
@@ -121,18 +159,29 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       (a.speakerCode && a.speakerCode.toLowerCase().includes(searchTerm.toLowerCase()));
       
     if (!matchesSearch) return false;
-    if (projectFilter !== "ALL" && a.project.id !== projectFilter) return false;
+    if (projectFilter.length > 0 && !projectFilter.includes(a.project.id)) return false;
 
-    if (statusFilter !== "ALL") {
-      if (statusFilter === "PENDING" && a.status !== "PENDING") return false;
-      if (statusFilter === "APPROVED" && a.status !== "APPROVED" && a.status !== "WORKING") return false;
-      if (statusFilter === "REJECTED" && a.status !== "REJECTED") return false;
-      if (statusFilter === "COMPLETED" && a.status !== "COMPLETED" && a.status !== "FINAL_REVIEW" && a.status !== "PAID") return false;
+    if (statusFilter.length > 0) {
+      const isWorking = a.status === "APPROVED" || a.status === "WORKING" || a.status === "ACCEPTED" || a.status === "UNDER_REVIEW";
+      const isCompleted = a.status === "COMPLETED" || a.status === "FINAL_REVIEW" || a.status === "PAID";
+      const isNotStarted = isWorking && (!a.recordedCount || a.recordedCount === 0);
+      const isActuallyWorking = isWorking && (a.recordedCount || 0) > 0;
+      
+      let matchesStatus = false;
+      if (statusFilter.includes("PENDING") && a.status === "PENDING") matchesStatus = true;
+      if (statusFilter.includes("WORKING") && isActuallyWorking) matchesStatus = true;
+      if (statusFilter.includes("NOT_STARTED") && isNotStarted) matchesStatus = true;
+      if (statusFilter.includes("COMPLETED") && isCompleted) matchesStatus = true;
+      if (statusFilter.includes("REJECTED") && a.status === "REJECTED") matchesStatus = true;
+
+      if (!matchesStatus) return false;
     }
 
-    if (downloadStatusFilter !== "ALL") {
-      if (downloadStatusFilter === "DOWNLOADED" && !downloadedAppIds.has(a.id)) return false;
-      if (downloadStatusFilter === "NOT_DOWNLOADED" && downloadedAppIds.has(a.id)) return false;
+    if (downloadStatusFilter.length > 0) {
+      let matchesDl = false;
+      if (downloadStatusFilter.includes("DOWNLOADED") && downloadedAppIds.has(a.id)) matchesDl = true;
+      if (downloadStatusFilter.includes("NOT_DOWNLOADED") && !downloadedAppIds.has(a.id)) matchesDl = true;
+      if (!matchesDl) return false;
     }
     
     return true;
@@ -312,16 +361,17 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       all: { m: 0, f: 0, total: 0 },
       pending: { m: 0, f: 0, total: 0 },
       working: { m: 0, f: 0, total: 0 },
+      notStarted: { m: 0, f: 0, total: 0 },
       completed: { m: 0, f: 0, total: 0 },
       rejected: { m: 0, f: 0, total: 0 },
     }
 
     applications.forEach(a => {
-      if (projectFilter !== "ALL" && a.project.id !== projectFilter) return;
+      if (projectFilter.length > 0 && !projectFilter.includes(a.project.id)) return;
 
       const g = a.user?.gender?.toUpperCase() || ""
-      const isMale = g === "MALE" || g === "ذكر"
-      const isFemale = g === "FEMALE" || g === "أنثى" || g === "انثى"
+      const isMale = g === "MALE" || g === "OUO" || g === "M" || g === "ذكر"
+      const isFemale = g === "FEMALE" || g === "OU+OU%" || g === "O U+OU%" || g === "F" || g === "أنثى"
 
       s.all.total++
       if (isMale) s.all.m++
@@ -332,9 +382,15 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
         if (isMale) s.pending.m++
         if (isFemale) s.pending.f++
       } else if (a.status === "APPROVED" || a.status === "WORKING" || a.status === "ACCEPTED" || a.status === "UNDER_REVIEW") {
-        s.working.total++
-        if (isMale) s.working.m++
-        if (isFemale) s.working.f++
+        if (!a.recordedCount || a.recordedCount === 0) {
+          s.notStarted.total++
+          if (isMale) s.notStarted.m++
+          if (isFemale) s.notStarted.f++
+        } else {
+          s.working.total++
+          if (isMale) s.working.m++
+          if (isFemale) s.working.f++
+        }
       } else if (a.status === "COMPLETED" || a.status === "FINAL_REVIEW" || a.status === "PAID") {
         s.completed.total++
         if (isMale) s.completed.m++
@@ -397,47 +453,38 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
 
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-card p-4 rounded-2xl border border-border">
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-foreground/60 uppercase">Applicant Acceptance Status</label>
-          <select 
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full bg-background border border-border rounded-xl px-4 py-2 outline-none focus:border-primary font-semibold"
-          >
-            <option value="ALL">All Applicants ({stats.all.total}) - M: {stats.all.m} | F: {stats.all.f}</option>
-            <option value="PENDING">Pending Approval ({stats.pending.total}) - M: {stats.pending.m} | F: {stats.pending.f}</option>
-            <option value="APPROVED">Approved / Working ({stats.working.total}) - M: {stats.working.m} | F: {stats.working.f}</option>
-            <option value="COMPLETED">Completed ({stats.completed.total}) - M: {stats.completed.m} | F: {stats.completed.f}</option>
-            <option value="REJECTED">Rejected ({stats.rejected.total}) - M: {stats.rejected.m} | F: {stats.rejected.f}</option>
-          </select>
-        </div>
+        <MultiSelectDropdown 
+          label="Applicant Acceptance Status"
+          allLabel={`All Applicants (${stats.all.total}) - M: ${stats.all.m} | F: ${stats.all.f}`}
+          options={[
+            { value: "PENDING", label: `Pending (${stats.pending.total}) - M: ${stats.pending.m} | F: ${stats.pending.f}` },
+            { value: "WORKING", label: `Working (${stats.working.total}) - M: ${stats.working.m} | F: ${stats.working.f}` },
+            { value: "NOT_STARTED", label: `Not Started (${stats.notStarted.total}) - M: ${stats.notStarted.m} | F: ${stats.notStarted.f}` },
+            { value: "COMPLETED", label: `Completed (${stats.completed.total}) - M: ${stats.completed.m} | F: ${stats.completed.f}` },
+            { value: "REJECTED", label: `Rejected (${stats.rejected.total}) - M: ${stats.rejected.m} | F: ${stats.rejected.f}` }
+          ]}
+          selectedValues={statusFilter}
+          onChange={setStatusFilter}
+        />
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-foreground/60 uppercase">Project Name</label>
-          <select 
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
-            className="w-full bg-background border border-border rounded-xl px-4 py-2 outline-none focus:border-primary font-semibold"
-          >
-            <option value="ALL">All Projects</option>
-            {uniqueProjects.map(p => (
-              <option key={p.id} value={p.id}>{p.title}</option>
-            ))}
-          </select>
-        </div>
+        <MultiSelectDropdown 
+          label="Project Name"
+          allLabel="All Projects"
+          options={uniqueProjects.map(p => ({ label: p.title, value: p.id }))}
+          selectedValues={projectFilter}
+          onChange={setProjectFilter}
+        />
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-foreground/60 uppercase">Download Status</label>
-          <select 
-            value={downloadStatusFilter}
-            onChange={(e) => setDownloadStatusFilter(e.target.value)}
-            className="w-full bg-background border border-border rounded-xl px-4 py-2 outline-none focus:border-primary font-semibold"
-          >
-            <option value="ALL">All</option>
-            <option value="DOWNLOADED">Downloaded</option>
-            <option value="NOT_DOWNLOADED">Not Downloaded</option>
-          </select>
-        </div>
+        <MultiSelectDropdown 
+          label="Download Status"
+          allLabel="All"
+          options={[
+            { label: "Downloaded", value: "DOWNLOADED" },
+            { label: "Not Downloaded", value: "NOT_DOWNLOADED" }
+          ]}
+          selectedValues={downloadStatusFilter}
+          onChange={setDownloadStatusFilter}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -495,7 +542,8 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                 <FileText className="w-3 h-3" /> Project ID: {app.project.id.slice(0, 8)}...
               </p>
               
-              <div className={`mt-3 p-2.5 rounded-lg border flex flex-col gap-1.5 text-xs font-bold ${
+              {app.totalSentences !== undefined && app.totalSentences > 0 && (
+                <div className={`mt-3 p-2.5 rounded-lg border flex flex-col gap-1.5 text-xs font-bold ${
                   app.reviewCategory === 'COMPLETED' ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400 shadow-[0_0_10px_rgba(34,197,94,0.2)]' :
                   app.reviewCategory === 'READY_FIRST' ? 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.2)]' :
                   app.reviewCategory === 'READY_FIXED' ? 'bg-purple-500/10 border-purple-500/20 text-purple-600 dark:text-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.2)]' :
@@ -505,7 +553,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-1.5">
                       {app.reviewCategory === 'COMPLETED' ? <Check className="w-3.5 h-3.5" /> : <Mic2 className="w-3.5 h-3.5" />}
-                      Recorded: {app.recordedCount || 0} / {app.totalSentences || 0}
+                      Recorded: {app.recordedCount || 0} / {app.totalSentences}
                     </span>
                     <span className="uppercase tracking-wider">
                       {app.reviewCategory === 'COMPLETED' ? 'Completed' :
@@ -514,6 +562,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                        app.reviewCategory === 'NEEDS_FIX' ? 'Needs Fix' : 'Working'}
                     </span>
                   </div>
+                  {/* Detail counts */}
                   {(app.reviewCategory !== 'WORKING' && app.reviewCategory !== 'COMPLETED') && (
                     <div className="flex gap-3 mt-1 pt-1 border-t border-current/10 text-[10px] font-semibold opacity-80">
                       <span>Accepted: {app.acceptedCount}</span>
@@ -522,6 +571,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                     </div>
                   )}
                 </div>
+              )}
             </div>
 
             <div className="bg-background rounded-xl p-4 border border-border flex-1 mb-6">
@@ -607,26 +657,28 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
 
               {app.status !== 'PENDING' && (
                 <div className="flex flex-col gap-2 w-full">
-                  <Link
-                    href={`/admin/applications/${app.id}/review`}
-                    className={`w-full px-4 py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
-                      app.status === 'UNDER_REVIEW' 
-                        ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/20' 
-                        : 'bg-card border border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <FileText className="w-4 h-4" /> 
-                    {app.status === 'UNDER_REVIEW' ? 'Review Recordings' : 'View Recordings'}
-                  </Link>
-
-                  {app.status === 'UNDER_REVIEW' && (app.totalSentences || 0) === 0 && (
-                    <button
-                      onClick={() => handleApprove(app.id)}
-                      disabled={loading === app.id}
-                      className="w-full px-4 py-2 bg-yellow-500 text-white hover:bg-yellow-600 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 disabled:opacity-50"
+                  {(app.totalSentences || 0) > 0 ? (
+                    <Link
+                      href={`/admin/applications/${app.id}/review`}
+                      className={`w-full px-4 py-2 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 ${
+                        app.status === 'UNDER_REVIEW' 
+                          ? 'bg-yellow-500 text-white hover:bg-yellow-600 shadow-lg shadow-yellow-500/20' 
+                          : 'bg-card border border-border hover:border-primary/50'
+                      }`}
                     >
-                      <Check className="w-4 h-4" /> Approve Proof
-                    </button>
+                      <FileText className="w-4 h-4" /> 
+                      {app.status === 'UNDER_REVIEW' ? 'Review Recordings' : 'View Recordings'}
+                    </Link>
+                  ) : (
+                    app.status === 'UNDER_REVIEW' && (
+                      <button
+                        onClick={() => handleApprove(app.id)}
+                        disabled={loading === app.id}
+                        className="w-full px-4 py-2 bg-yellow-500 text-white hover:bg-yellow-600 text-sm font-bold rounded-xl transition-colors flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20 disabled:opacity-50"
+                      >
+                        <Check className="w-4 h-4" /> Approve Proof
+                      </button>
+                    )
                   )}
 
                   {(app.status === 'WORKING' || app.status === 'UNDER_REVIEW' || app.status === 'ACCEPTED') && (
@@ -718,3 +770,4 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     </div>
   )
 }
+
