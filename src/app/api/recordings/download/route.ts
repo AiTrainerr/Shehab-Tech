@@ -228,12 +228,17 @@ export async function GET(request: NextRequest) {
 
     // ZIP filename = same as the outer folder name + .zip
     const zipFilename = `${outerFolderName}.zip`
+    const sanitizedFilename = zipFilename.replace(/"/g, '')
+    const encodedFilename = encodeURIComponent(zipFilename)
 
     return new NextResponse(zipBuffer as any, {
       headers: {
         "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(zipFilename)}`,
-        "Content-Length": zipBuffer.byteLength.toString()
+        "Content-Disposition": `attachment; filename="${sanitizedFilename}"; filename*=UTF-8''${encodedFilename}`,
+        "Content-Length": zipBuffer.byteLength.toString(),
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
       }
     })
   } catch (e) {
