@@ -44,20 +44,11 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
       include: { recordings: { where: { userId } } }
     })
   } else if (application.speakerCode && project.scriptType === "BATCH_CODE") {
-    // Only use speakerCode grouping if it's explicitly a BATCH_CODE project type
-    // or if we decide to maintain legacy speakerCode grouping. Currently, we just use application.speakerCode for folder naming.
-    // Safety Check: If the user was previously assigned to a DIFFERENT speakerCode, 
-    // release those old sentences to prevent locking mismatches.
-    await prisma.projectSentence.updateMany({
-      where: { 
-        projectId: id, 
-        assignedUserId: userId,
-        speakerCode: { not: application.speakerCode }
-      },
-      data: { assignedUserId: null }
-    })
+    // IMPORTANT: Do NOT release sentences that the user already has assigned.
+    // Releasing assignments when speakerCode changes causes completed recordings to disappear.
+    // Instead, just fetch sentences by speakerCode and show whatever the user recorded.
 
-    // Ensure the new sentences are locked to this user
+    // Ensure unassigned sentences with this speakerCode are locked to this user
     await prisma.projectSentence.updateMany({
       where: { projectId: id, speakerCode: application.speakerCode, assignedUserId: null },
       data: { assignedUserId: userId }
