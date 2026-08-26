@@ -133,11 +133,11 @@ export async function GET(request: NextRequest) {
       select: { speakerCode: true }
     })
 
-    let fallbackSpeakerCode = "G_PENDING"
-    if (recorded.length > 0 && recorded[0].speakerCode) {
-      fallbackSpeakerCode = recorded[0].speakerCode
-    }
-    const sequentialId = appRecord?.speakerCode || fallbackSpeakerCode
+    const effectiveSpeakerCode = (appRecord?.speakerCode && appRecord.speakerCode !== "G_PENDING") 
+      ? appRecord.speakerCode 
+      : (recorded[0]?.speakerCode && recorded[0].speakerCode !== "G_PENDING") 
+        ? recorded[0].speakerCode 
+        : ""
 
     // zipNamingRule controls the folder naming. 
     // Legacy mapping:
@@ -152,21 +152,26 @@ export async function GET(request: NextRequest) {
     } else if (zipNamingRule === "ANONYMOUS") {
       zipNamingRule = "[speakerCode]_[gender]_[age]"
     } else if (zipNamingRule === "SPEAKER_ONLY") {
-      zipNamingRule = "[speakerCode]"
+      zipNamingRule = effectiveSpeakerCode ? "[speakerCode]" : "[firstName]_[lastName]"
     }
 
-    if (sequentialId === "G_PENDING") {
-      outerFolderName = "PENDING_MEMBER"
-    } else {
-      outerFolderName = zipNamingRule
-        .replace(/\[speakerCode\]/g, sequentialId)
-        .replace(/\[firstName\]/g, candidate.firstName || "N-A")
-        .replace(/\[lastName\]/g, candidate.lastName || "N-A")
-        .replace(/\[gender\]/g, genderForFolder)
-        .replace(/\[age\]/g, ageFolderStr)
-      
-      // Clean up multiple underscores or trailing underscores that might happen if firstName/lastName are missing
-      outerFolderName = outerFolderName.replace(/_+/g, '_').replace(/^_|_$/g, '')
+    outerFolderName = zipNamingRule
+      .replace(/\[speakerCode\]/g, effectiveSpeakerCode)
+      .replace(/\[firstName\]/g, candidate.firstName || "")
+      .replace(/\[lastName\]/g, candidate.lastName || "")
+      .replace(/\[gender\]/g, genderForFolder !== "N-A" ? genderForFolder : "")
+      .replace(/\[age\]/g, ageFolderStr !== "N-A" ? ageFolderStr : "")
+    
+    // Clean up invalid characters, multiple underscores, or leading/trailing underscores
+    outerFolderName = outerFolderName
+      .replace(/[\/\\:\*\?"<>\|]/g, "_")
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
+      .trim()
+
+    // Fallback if the naming rule resulted in empty string (e.g. SPEAKER_ONLY without a speakerCode)
+    if (!outerFolderName) {
+      outerFolderName = `${candidate.firstName || 'User'}_${candidate.lastName || 'Member'}`.replace(/[\/\\:\*\?"<>\|]/g, "_").replace(/_+/g, '_')
     }
 
     // Download each audio file and add to ZIP inside the outer folder
@@ -186,16 +191,20 @@ export async function GET(request: NextRequest) {
           let innerFilename = ""
           
           // Priority: customFileNaming > audioId from batch scripts > TEXT naming > SEQUENCE
-          // Priority: hardcoded U/N > customFileNaming > audioId from batch scripts > TEXT naming > SEQUENCE
           if (project.customFileNaming) {
             let customName = project.customFileNaming
-            customName = customName.replace(/\[speakerCode\]/g, sequentialId)
+            customName = customName.replace(/\[speakerCode\]/g, effectiveSpeakerCode)
+            customName = customName.replace(/\[firstName\]/g, candidate.firstName || "")
+            customName = customName.replace(/\[lastName\]/g, candidate.lastName || "")
             customName = customName.replace(/\[audioId\]/g, sentence.audioId || "NA")
-            customName = customName.replace(/\[gender\]/g, genderForFolder)
-            customName = customName.replace(/\[age\]/g, ageFolderStr)
+            customName = customName.replace(/\[gender\]/g, genderForFolder !== "N-A" ? genderForFolder : "")
+            customName = customName.replace(/\[age\]/g, ageFolderStr !== "N-A" ? ageFolderStr : "")
             customName = customName.replace(/\[order\]/g, sentence.order.toString())
             customName = customName.replace(/\[text\]/g, cleanFilename(sentence.text).slice(0, 30))
-            innerFilename = getUniqueFilename(cleanFilename(customName), ext)
+            
+            customName = cleanFilename(customName).replace(/_+/g, '_').replace(/^_|_$/g, '')
+            if (!customName) customName = sentence.audioId || `${sentence.order}`
+            innerFilename = getUniqueFilename(customName, ext)
           } else if (sentence.audioId) {
             // Use the Audio ID from the batch script as the filename (e.g., N0001.wav)
             innerFilename = getUniqueFilename(sentence.audioId, ext)

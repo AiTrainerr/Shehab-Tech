@@ -273,18 +273,19 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
           else if (g === "female" || g === "أنثى" || g === "انثى") genderForFolder = "female";
           else genderForFolder = app.user.gender;
         }
-        const ageFolderStr = app.user.age ? String(app.user.age) : "N-A";
-        const sequentialId = app.speakerCode || "G_PENDING";
+        const sequentialId = (app.speakerCode && app.speakerCode !== "G_PENDING") ? app.speakerCode : "";
         const zipNamingRule = app.project.zipNamingRule || "FULL";
         
         let computedFileName = "";
-        if (sequentialId !== "G_PENDING" && zipNamingRule === "SPEAKER_ONLY") {
-          computedFileName = sequentialId;
-        } else if (sequentialId !== "G_PENDING" && zipNamingRule === "ANONYMOUS") {
-          computedFileName = `${sequentialId}_${genderForFolder}_${ageFolderStr}`;
+        if (zipNamingRule === "SPEAKER_ONLY") {
+          computedFileName = sequentialId || `${app.user.firstName}_${app.user.lastName}`;
+        } else if (zipNamingRule === "ANONYMOUS") {
+          computedFileName = sequentialId ? `${sequentialId}_${genderForFolder}_${ageFolderStr}` : `${genderForFolder}_${ageFolderStr}`;
         } else {
-          computedFileName = `${sequentialId}_${app.user.firstName}_${app.user.lastName}_${genderForFolder}_${ageFolderStr}`;
+          computedFileName = [sequentialId, app.user.firstName, app.user.lastName, genderForFolder !== "N-A" ? genderForFolder : "", ageFolderStr !== "N-A" ? ageFolderStr : ""].filter(Boolean).join("_");
         }
+        computedFileName = computedFileName.replace(/[\/\\:\*\?"<>\|]/g, "_").replace(/_+/g, '_').replace(/^_|_$/g, '');
+
 
         worksheet.addRow({
           project: app.project.title,
