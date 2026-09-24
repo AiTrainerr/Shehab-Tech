@@ -240,7 +240,7 @@ export function PublicProjectsClient({ initialProjects }: Props) {
               }
 
               return (
-                <div key={p.id} className="glass p-6 rounded-2xl border border-border hover:border-primary/50 transition-all hover:shadow-xl group">
+                <div key={p.id} className="glass p-6 rounded-2xl border border-border/80 card-hover group">
                   <div className="flex flex-col md:flex-row justify-between gap-6">
                     
                     <div className="flex-1">
@@ -310,7 +310,7 @@ export function PublicProjectsClient({ initialProjects }: Props) {
                       </div>
                       <Link 
                         href={`/projects/${p.id}`} 
-                        className="w-full md:w-auto px-6 py-3 bg-card border border-border group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary text-center rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                        className="w-full md:w-auto px-6 py-3 btn-primary text-center rounded-xl font-bold transition-all flex items-center justify-center gap-2 text-sm"
                       >
                         Apply Now <ArrowRight className="w-4 h-4" />
                       </Link>

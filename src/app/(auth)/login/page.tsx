@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { ArrowRight, Mail, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react"
+import { ArrowRight, Mail, Lock, Eye, EyeOff, AlertTriangle, Zap } from "lucide-react"
 import { loginUser } from "@/app/actions/auth"
 import { useRouter } from "next/navigation"
 
@@ -78,7 +78,7 @@ function LoginForm() {
         </div>
       </div>
 
-      <button disabled={isLoading} type="submit" className="w-full py-4 bg-primary text-primary-foreground rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 disabled:opacity-50">
+      <button disabled={isLoading} type="submit" className="w-full py-3.5 btn-primary rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 text-base">
         {isLoading ? "Logging in..." : "Log In"} {!isLoading && <ArrowRight className="w-5 h-5" />}
       </button>
     </form>

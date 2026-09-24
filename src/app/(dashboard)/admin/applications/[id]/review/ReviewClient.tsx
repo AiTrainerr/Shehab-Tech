@@ -191,13 +191,13 @@ export function ReviewClient({ application, sentences }: { application: any; sen
             >
               <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
                 {/* Order Badge */}
-                <div className={`w-14 h-10 shrink-0 font-black rounded-xl flex items-center justify-center text-sm ${
+                <div className={`w-16 h-10 shrink-0 font-black rounded-xl flex items-center justify-center text-sm ${
                   isAccepted ? "bg-green-500/20 text-green-500" :
                   isRejected ? "bg-red-500/20 text-red-500" :
                   isNeedReRecord ? "bg-yellow-500/20 text-yellow-600" :
                   "bg-primary/10 text-primary"
                 }`}>
-                  {String(s.order || index + 1).padStart(3, '0')}
+                  {s.audioId || String(s.order || index + 1).padStart(3, '0')}
                 </div>
 
                 {/* Sentence Text + Play */}

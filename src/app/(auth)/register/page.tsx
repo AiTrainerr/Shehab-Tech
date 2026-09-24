@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { ArrowRight, UserPlus, Shield } from "lucide-react"
+import { ArrowRight, UserPlus, Shield, Zap } from "lucide-react"
 import { registerUser } from "@/app/actions/auth"
 import { useRouter, useSearchParams } from "next/navigation"
 
@@ -311,7 +311,7 @@ export default function RegisterPage() {
                 <div />
               )}
               
-              <button disabled={isLoading || (step === 4 && !verificationChoice)} type="submit" className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button disabled={isLoading || (step === 4 && !verificationChoice)} type="submit" className="px-8 py-3 btn-primary rounded-xl font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
                 {isLoading ? "Processing..." : (step < 4 ? "Continue" : "Complete Registration")} {!isLoading && <ArrowRight className="w-5 h-5" />}
               </button>
             </div>

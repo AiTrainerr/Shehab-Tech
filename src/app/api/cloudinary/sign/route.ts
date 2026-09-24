@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server"
-import { cloudinary } from "@/lib/cloudinary"
+import { createHash } from "crypto"
 
 export async function POST(req: Request) {
   try {
     const timestamp = Math.round(new Date().getTime() / 1000)
     const folder = "shehab-tech/transcription"
-    
-    const signature = cloudinary.utils.api_sign_request(
-      {
-        timestamp,
-        folder,
-      },
-      process.env.CLOUDINARY_TRANSCRIPTION_API_SECRET!
-    )
+    const apiSecret = process.env.CLOUDINARY_TRANSCRIPTION_API_SECRET!
+
+    // Build signature manually (matches Cloudinary's signing algorithm)
+    const paramsToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`
+    const signature = createHash("sha256").update(paramsToSign).digest("hex")
 
     return NextResponse.json({
       timestamp,

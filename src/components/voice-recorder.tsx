@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { Mic, Check, Download, AlertTriangle, Play, Square, RotateCcw, Loader2, ShieldAlert, ChevronLeft, ChevronRight, UploadCloud, Volume2, Lock, X, Send } from "lucide-react"
+import { AudioWaveformVisualizer } from "@/components/audio-waveform-visualizer"
 // @ts-ignore
 import fixWebmDuration from "fix-webm-duration"
 import { uploadVoiceRecording, submitAllRecordings, generateProjectZipUrl } from "@/app/actions/recordings"
@@ -68,6 +69,7 @@ export function VoiceRecorder({
   // Recording stats & indicators
   const [recordingTime, setRecordingTime] = React.useState<number>(0)
   const [volumeLevel, setVolumeLevel] = React.useState<number>(0)
+  const [activeStream, setActiveStream] = React.useState<MediaStream | null>(null)
 
   // Database saved recordings map
   const [recordedMap, setRecordedMap] = React.useState<Record<string, { url: string; status?: string; reason?: string | null }>>(() => {
@@ -216,6 +218,7 @@ export function VoiceRecorder({
 
       const recorder = new MediaRecorder(stream)
       mediaRecorderRef.current = recorder
+      setActiveStream(stream)
 
       // Live volume visualization is temporarily disabled on iOS due to Safari WebKit crashes 
       // when attaching AudioContext to a MediaStream that is already being recorded.
@@ -244,6 +247,7 @@ export function VoiceRecorder({
       }
 
       recorder.onstop = async () => {
+        setActiveStream(null)
         // Stop all track streams
         stream.getTracks().forEach(t => t.stop())
 
@@ -626,19 +630,13 @@ export function VoiceRecorder({
                   Recording... ({recordingTime.toFixed(1)}s)
                 </div>
 
-                {/* Volume Meter Visualizer */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[10px] text-foreground/40 font-bold">
-                    <span className="flex items-center gap-1"><Volume2 className="w-3 h-3" /> Input Level</span>
-                    <span>{volumeLevel}%</span>
-                  </div>
-                  <div className="w-full bg-border rounded-full h-3 overflow-hidden">
-                    <div
-                      className="bg-red-500 h-3 transition-all duration-75"
-                      style={{ width: `${volumeLevel}%` }}
-                    />
-                  </div>
-                </div>
+                {/* Audio Waveform Visualizer */}
+                <AudioWaveformVisualizer
+                  isRecording={true}
+                  stream={activeStream}
+                  recordingTime={recordingTime}
+                  barCount={36}
+                />
 
                 <button
                   onClick={stopRecording}
@@ -653,6 +651,12 @@ export function VoiceRecorder({
                 <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs font-semibold text-yellow-600">
                   Listen to the recording before uploading.
                 </div>
+
+                {/* Audio Waveform Visualizer for Review Playback */}
+                <AudioWaveformVisualizer
+                  isPlaying={playingUrl === localAudioUrl}
+                  barCount={36}
+                />
 
                 <div className="flex gap-2">
                   {/* Local Listen */}
@@ -728,16 +732,22 @@ export function VoiceRecorder({
                 </div>
 
                 {savedRecord.status !== 'NEED_RE_RECORD' && (
-                  <button
-                    onClick={() => playRecording(savedRecord.url)}
-                    className="w-full py-3 bg-card border border-border hover:border-primary/30 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                  >
-                    {playingUrl === savedRecord.url ? (
-                      <><Square className="w-4 h-4 text-primary" /> Stop Playback</>
-                    ) : (
-                      <><Play className="w-4 h-4 text-primary" /> Play Uploaded Audio</>
-                    )}
-                  </button>
+                  <>
+                    <AudioWaveformVisualizer
+                      isPlaying={playingUrl === savedRecord.url}
+                      barCount={36}
+                    />
+                    <button
+                      onClick={() => playRecording(savedRecord.url)}
+                      className="w-full py-3 bg-card border border-border hover:border-primary/30 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                    >
+                      {playingUrl === savedRecord.url ? (
+                        <><Square className="w-4 h-4 text-primary" /> Stop Playback</>
+                      ) : (
+                        <><Play className="w-4 h-4 text-primary" /> Play Uploaded Audio</>
+                      )}
+                    </button>
+                  </>
                 )}
 
                 {!isLocked && (

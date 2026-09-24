@@ -117,11 +117,25 @@ export function NotificationBell({ userId }: { userId: string }) {
     }
   }, [])
 
-  // Poll every 10 seconds
+  // ⚡ API OPTIMIZATION: Smart polling (35s interval, pauses when tab is hidden, immediate refresh on tab focus)
   React.useEffect(() => {
     fetchNotifications()
-    const interval = setInterval(fetchNotifications, 10000)
-    return () => clearInterval(interval)
+
+    const interval = setInterval(() => {
+      // Don't waste API calls if the user is in another tab or minimized
+      if (typeof document !== "undefined" && document.hidden) return
+      fetchNotifications()
+    }, 35000)
+
+    const handleFocus = () => {
+      fetchNotifications()
+    }
+
+    window.addEventListener("focus", handleFocus)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener("focus", handleFocus)
+    }
   }, [fetchNotifications])
 
   // Close on outside click

@@ -16,48 +16,50 @@ export default async function MemberDashboard() {
 
   if (!userId) redirect("/login")
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      role: true,
-      firstName: true,
-      lastName: true,
-      completedCount: true,
-      rating: true,
-      verificationStatus: true,
-      verificationReason: true,
-      notifications: {
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        select: { id: true, title: true, content: true, isRead: true, createdAt: true, link: true }
-      },
-      applications: {
-        where: {
-          status: { in: ["PENDING", "ACCEPTED", "WORKING", "UNDER_REVIEW", "FINAL_REVIEW", "APPROVED", "PAID"] },
-          project: { status: { not: "CANCELLED" } }
+  const [user, paidApps] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        role: true,
+        firstName: true,
+        lastName: true,
+        completedCount: true,
+        rating: true,
+        verificationStatus: true,
+        verificationReason: true,
+        notifications: {
+          orderBy: { createdAt: "desc" },
+          take: 5,
+          select: { id: true, title: true, content: true, isRead: true, createdAt: true, link: true }
         },
-        include: {
-          project: {
-            select: { id: true, title: true, price: true, description: true }
-          }
+        applications: {
+          where: {
+            status: { in: ["PENDING", "ACCEPTED", "WORKING", "UNDER_REVIEW", "FINAL_REVIEW", "APPROVED", "PAID"] },
+            project: { status: { not: "CANCELLED" } }
+          },
+          include: {
+            project: {
+              select: { id: true, title: true, price: true, description: true }
+            }
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 5
         },
-        orderBy: { updatedAt: "desc" },
-        take: 5
       }
-    }
-  })
+    }),
+    prisma.application.findMany({
+      where: { userId, status: { in: ["APPROVED", "PAID"] } },
+      select: { project: { select: { price: true } } }
+    }),
+  ])
 
   if (!user) redirect("/api/auth/logout?reason=deleted")
 
   const unreadCount = user.notifications.filter(n => !n.isRead).length
   const activeProjects = user.applications.length
 
-  const paidApps = await prisma.application.findMany({
-    where: { userId, status: { in: ["APPROVED", "PAID"] } },
-    include: { project: { select: { price: true } } }
-  })
-  const totalEarnings = paidApps.reduce((sum, app) => sum + (app.project?.price || 0), 0)
+  const totalEarnings = paidApps.reduce((sum, app) => sum + (app.project?.price ?? 0), 0)
 
   // Gamification
   const level    = getUserLevel(user.completedCount)

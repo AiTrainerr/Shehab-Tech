@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { createClientServer } from "@/lib/supabase"
-import { uploadAudioToCloudinary, deleteFromCloudinary, cloudinary } from "@/lib/cloudinary"
+import { uploadAudioToCloudinary, deleteFromCloudinary } from "@/lib/cloudinary"
 import { createAuditLog } from "@/app/actions/audit"
 import { revalidatePath } from "next/cache"
 import { createNotification, createManyNotifications } from "@/app/actions/notifications"
@@ -204,17 +204,24 @@ export async function uploadVoiceRecording(
     
     // File name: Use custom naming or default
     let filename = "";
+    const paddedOrder = String(sentence.order).padStart(3, '0');
     const sentenceIdString = sentence.audioId ? sentence.audioId : `Sentence_${sentence.order}`;
     
     if (sentence.project.customFileNaming) {
-      filename = sentence.project.customFileNaming
+      let customName = sentence.project.customFileNaming
         .replace(/\[speakerCode\]/g, application?.speakerCode || "UNKNOWN")
-        .replace(/\[audioId\]/g, sentence.audioId || "0000")
+        .replace(/\[audioId\]/g, sentence.audioId || paddedOrder)
         .replace(/\[gender\]/g, dbUser.gender === "MALE" ? "Male" : dbUser.gender === "FEMALE" ? "Female" : "Unknown")
         .replace(/\[age\]/g, ageStr)
-        .replace(/\[order\]/g, sentence.order.toString())
+        .replace(/\[order\]/g, paddedOrder)
         
-      filename = `${filename}.${ext}`
+      // SAFEGUARD: If the user's custom name does NOT include any unique identifier per sentence
+      // (like order or audioId), they will overwrite each other. Force append the order to prevent this.
+      if (!sentence.project.customFileNaming.includes('[audioId]') && !sentence.project.customFileNaming.includes('[order]')) {
+        customName = `${customName}_${sentenceIdString}`
+      }
+      
+      filename = `${customName}.${ext}`
     } else {
       filename = `${dbUser.firstName}_${dbUser.lastName || ''}_${sentenceIdString}.${ext}`;
     }
@@ -508,26 +515,9 @@ export async function generateProjectZipUrl(projectId: string, targetUserId?: st
     if (!user) return { success: false, error: "Not logged in" }
 
     const uid = targetUserId || user.id
-    
-    const dbUser = await prisma.user.findUnique({
-      where: { id: uid },
-      select: { firstName: true, lastName: true, age: true, gender: true }
-    })
-    
-    if (!dbUser) return { success: false, error: "User not found" }
-
-    const ageStr = dbUser.age ? dbUser.age.toString() : 'N-A'
-    const genderStr = dbUser.gender ? dbUser.gender : 'N-A'
-    const folderName = `shehab-tech/recordings/${uid}_${dbUser.firstName}_${dbUser.lastName}_${ageStr}_${genderStr}`
-
-    // Note: Cloudinary's generate_archive_url creates a signed URL for a zip.
-    // It requires the API key/secret, so we must do it on the server.
-    const zipUrl = cloudinary.utils.download_zip_url({
-      prefixes: folderName,
-      resource_type: "video" // Audio is stored as video in cloudinary
-    })
-
-    return { success: true, url: zipUrl }
+    // Return the download API route URL which handles ZIP generation via JSZip
+    const url = `/api/recordings/download?projectId=${projectId}&userId=${uid}`
+    return { success: true, url }
   } catch (e: any) {
     console.error("ZIP Generation error:", e)
     return { success: false, error: e.message }

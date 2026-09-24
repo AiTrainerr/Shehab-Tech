@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
+import { cookies } from "next/headers";
 
 export const viewport: Viewport = {
-  themeColor: "#0ea5e9",
+  themeColor: "#4f46e5",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
     template: "%s | SHEHAB TECH"
   },
   description: "Join SHEHAB TECH, the leading platform for AI data collection, voice recording, and annotation. Earn money as a freelancer by contributing to the future of AI.",
-  manifest: "/manifest", // Points to the manifest.ts route
+  manifest: "/manifest",
   keywords: ["AI data collection", "freelance arabic", "voice recording tasks", "data annotation", "work from home egypt", "shehab tech"],
   authors: [{ name: "SHEHAB TECH Team" }],
   creator: "SHEHAB TECH",
@@ -59,12 +60,13 @@ export default async function RootLayout({
   let currentUser: any = null;
   
   try {
-    const supabase = await createClientServer();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (user) {
-      const dbUser = await prisma.user.findUnique({
-        where: { id: user.id },
+    // ⚡ API OPTIMIZATION: Check local cookie first to avoid hitting external Supabase API on every single page load
+    const cookieStore = await cookies();
+    const cookieUserId = cookieStore.get("userId")?.value;
+
+    if (cookieUserId) {
+      currentUser = await prisma.user.findUnique({
+        where: { id: cookieUserId },
         select: { 
           id: true, 
           role: true, 
@@ -76,7 +78,28 @@ export default async function RootLayout({
           canApproveApplications: true
         }
       });
-      currentUser = dbUser;
+    }
+
+    // Only fallback to external Supabase network auth if cookie was missing or invalid
+    if (!currentUser) {
+      const supabase = await createClientServer();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        currentUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { 
+            id: true, 
+            role: true, 
+            avatarUrl: true, 
+            verificationStatus: true, 
+            firstName: true, 
+            lastName: true,
+            canReviewQC: true,
+            canApproveApplications: true
+          }
+        });
+      }
     }
   } catch (e) {
     console.error("Layout auth error:", e);
@@ -93,22 +116,22 @@ export default async function RootLayout({
         >
           <Suspense fallback={null}>
             <NextTopLoader
-              color="#0ea5e9"
+              color="#4f46e5"
               initialPosition={0.08}
               crawlSpeed={200}
-              height={4}
+              height={3}
               crawl={true}
-              showSpinner={true}
+              showSpinner={false}
               easing="ease"
               speed={200}
-              shadow="0 0 10px #0ea5e9,0 0 5px #0ea5e9"
+              shadow="0 0 10px #4f46e5,0 0 5px #7c3aed"
               zIndex={1600}
               showAtBottom={false}
             />
           </Suspense>
           <SplashScreen />
           <Navbar user={currentUser} />
-          <main className="flex-grow pt-16">
+          <main className="flex-grow pt-20">
             {children}
           </main>
           <Footer />

@@ -3,10 +3,29 @@
 import * as React from "react"
 import Link from "next/link"
 import { useTheme } from "next-themes"
-import { Moon, Sun, Menu, X, LogOut, User, BadgeCheck } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { Moon, Sun, Menu, X, LogOut, User, BadgeCheck, Zap } from "lucide-react"
 import { logoutUser } from "@/app/actions/logout"
 import { NotificationBell } from "@/components/notification-bell"
 import { DesktopModeToggle } from "./desktop-mode-toggle"
+
+function NavLink({ href, children, onClick }: { href: string; children: React.ReactNode; onClick?: () => void }) {
+  const pathname = usePathname()
+  const isActive = pathname === href || (href !== '/' && href !== '/#about' && pathname.startsWith(href))
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={`relative px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+        isActive
+          ? 'text-primary bg-primary/8'
+          : 'text-foreground/70 hover:text-foreground hover:bg-muted'
+      }`}
+    >
+      {children}
+    </Link>
+  )
+}
 
 export function Navbar({ user }: { user?: any }) {
   const userRole = user?.role
@@ -18,103 +37,83 @@ export function Navbar({ user }: { user?: any }) {
   React.useEffect(() => { setMounted(true) }, [])
 
   return (
-    <nav className="fixed w-full z-50 top-0 start-0 border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <nav className="fixed w-full z-50 top-0 start-0 px-3 pt-3">
+      <div className="glass max-w-7xl mx-auto rounded-2xl border border-border/70 px-4 sm:px-5">
+        <div className="flex items-center justify-between h-14">
 
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-1 shrink-0">
-            <span className="text-2xl font-black text-primary">SHEHAB</span>
-            <span className="text-2xl font-light text-foreground">TECH</span>
+          <Link href="/" className="flex items-center gap-2 shrink-0 group">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+              <Zap className="w-4 h-4 text-white" fill="white" />
+            </div>
+            <span className="text-base font-black tracking-tight"><span className="text-foreground">SHEHAB</span><span className="text-foreground/50 font-light">TECH</span></span>
           </Link>
 
-          {/* Desktop center nav */}
-          <div className="hidden md:flex items-center gap-1 ml-8">
+          {/* Desktop nav links */}
+          <div className="hidden md:flex items-center gap-0.5 ml-4">
             {!userRole ? (
               <>
-                <Link href="/" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Home</Link>
-                <Link href="/#about" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">About</Link>
-                <Link href="/projects" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Projects</Link>
-                <a href="mailto:abdallah.shehabtech@gmail.com" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Contact</a>
+                <NavLink href="/">Home</NavLink>
+                <NavLink href="/#about">About</NavLink>
+                <NavLink href="/projects">Projects</NavLink>
+                <a href="mailto:abdallah.shehabtech@gmail.com" className="px-4 py-2 rounded-xl text-sm font-semibold text-foreground/70 hover:text-foreground hover:bg-muted transition-all">Contact</a>
               </>
             ) : (
               <>
                 {isAdminOrMod ? (
                   <>
-                    <Link href="/admin" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Admin Dashboard</Link>
-                    {userRole === "MODERATOR" && (
-                      <Link href="/member" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Freelancer Dashboard</Link>
-                    )}
-                    <Link href="/admin/projects" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Projects</Link>
+                    <NavLink href="/admin">Admin Dashboard</NavLink>
+                    {userRole === "MODERATOR" && <NavLink href="/member">Freelancer Dashboard</NavLink>}
+                    <NavLink href="/admin/projects">Projects</NavLink>
                   </>
                 ) : (
                   <>
-                    <Link href="/member" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Dashboard</Link>
-                    <Link href="/member/projects" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Available Projects</Link>
-                    <Link href="/member/projects?filter=past" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium">Past Projects</Link>
-                    <Link href="/member/achievements" className="hover:text-primary transition-colors px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1">🏆 Achievements</Link>
+                    <NavLink href="/member">Dashboard</NavLink>
+                    <NavLink href="/member/projects">Projects</NavLink>
+                    <NavLink href="/member/achievements">🏆 Achievements</NavLink>
                   </>
                 )}
               </>
             )}
           </div>
 
-          {/* Right side — shown on ALL screen sizes */}
-          <div className="flex items-center gap-2">
-            {/* Theme toggle */}
+          {/* Right side */}
+          <div className="flex items-center gap-1.5">
             {mounted && (
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-2 rounded-full hover:bg-card transition-colors"
+                className="w-9 h-9 rounded-xl flex items-center justify-center text-foreground/60 hover:text-foreground hover:bg-muted transition-all"
                 aria-label="Toggle theme"
               >
-                {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
             )}
 
             {!userRole ? (
               <>
-                {/* Login/Register only on desktop */}
                 <div className="hidden md:flex items-center gap-2">
-                  <Link href="/login" className="px-4 py-2 text-sm font-medium hover:text-primary transition-colors">Log In</Link>
-                  <Link href="/register" className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors shadow-sm">Register</Link>
+                  <Link href="/login" className="px-4 py-2 text-sm font-semibold text-foreground/70 hover:text-foreground transition-all rounded-xl hover:bg-muted">Log In</Link>
+                  <Link href="/register" className="px-4 py-2 text-sm font-bold rounded-xl text-white" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 2px 12px rgba(99,102,241,0.3)' }}>Register</Link>
                 </div>
-                {/* Mobile hamburger for guests */}
-                <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="md:hidden p-2 rounded-md hover:bg-card transition-colors"
-                >
-                  {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center hover:bg-muted transition-all">
+                  {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
               </>
             ) : (
               <>
-                {/* Notification Bell — always visible for members and admins */}
-                {user?.id && (
-                  <NotificationBell userId={user.id} />
-                )}
+                {user?.id && <NotificationBell userId={user.id} />}
 
-                {/* Avatar — always visible */}
-                <Link
-                  href="/member/profile"
-                  className="relative flex items-center p-0.5 rounded-full border border-transparent hover:border-primary/50 transition-all group"
-                  title="My Profile"
-                >
-                  <div className="w-9 h-9 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center border border-primary/20 group-hover:scale-105 transition-transform">
-                    {user?.avatarUrl ? (
-                      <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-4 h-4 text-primary/60" />
-                    )}
+                <Link href="/member/profile" className="relative flex items-center p-0.5 rounded-full border-2 border-transparent hover:border-primary/40 transition-all" title="My Profile">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center border border-primary/20">
+                    {user?.avatarUrl ? <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-primary/60" />}
                   </div>
                   {user?.verificationStatus === "VERIFIED" && (
-                    <div className="absolute -bottom-0.5 -right-0.5 bg-white dark:bg-background rounded-full p-[1px] shadow">
+                    <div className="absolute -bottom-0.5 -right-0.5 bg-card rounded-full p-[1px] shadow">
                       <BadgeCheck className="w-3.5 h-3.5 text-green-500" />
                     </div>
                   )}
                 </Link>
 
-                {/* Logout — desktop only */}
                 <button
                   onClick={async (e) => { 
                     e.preventDefault(); 
@@ -123,17 +122,13 @@ export function Navbar({ user }: { user?: any }) {
                     try { await logoutUser(); } catch(err) {} 
                     window.location.href = "/login"; 
                   }}
-                  className="hidden md:block p-2 text-foreground/50 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"
+                  className="hidden md:flex w-9 h-9 rounded-xl items-center justify-center text-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-all"
                   title="Log Out"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4" />
                 </button>
 
-                {/* Hamburger — mobile only */}
-                <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="md:hidden p-2 rounded-md hover:bg-card transition-colors"
-                >
+                <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden w-9 h-9 rounded-xl flex items-center justify-center hover:bg-muted transition-all">
                   {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                 </button>
               </>
@@ -143,93 +138,73 @@ export function Navbar({ user }: { user?: any }) {
         </div>
       </div>
 
-      {/* Mobile Dropdown Menu */}
+      {/* Mobile menu */}
       {isMenuOpen && (
-        <div className="md:hidden glass border-t border-border">
-          <div className="px-3 py-3 space-y-1">
+        <div className="glass mt-2 max-w-7xl mx-auto rounded-2xl border border-border/70 md:hidden overflow-hidden">
+          <div className="px-4 py-4 space-y-1">
             {!userRole ? (
               <>
-                <Link href="/" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Home</Link>
-                <Link href="/#about" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">About</Link>
-                <Link href="/projects" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Projects</Link>
-                <a href="mailto:abdallah.shehabtech@gmail.com" className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Contact</a>
-                <div className="flex gap-2 pt-2 border-t border-border">
-                  <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex-1 text-center px-4 py-2.5 text-sm font-semibold hover:text-primary border border-border rounded-xl transition-colors">Log In</Link>
-                  <Link href="/register" onClick={() => setIsMenuOpen(false)} className="flex-1 text-center px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors">Register</Link>
+                <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Home</Link>
+                <Link href="/#about" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">About</Link>
+                <Link href="/projects" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Projects</Link>
+                <a href="mailto:abdallah.shehabtech@gmail.com" className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Contact</a>
+                <div className="flex gap-2 pt-3 border-t border-border">
+                  <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex-1 text-center px-4 py-2.5 text-sm font-semibold border border-border rounded-xl hover:border-primary/40 hover:text-primary transition-all">Log In</Link>
+                  <Link href="/register" onClick={() => setIsMenuOpen(false)} className="flex-1 text-center px-4 py-2.5 text-sm font-bold rounded-xl text-white" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>Register</Link>
                 </div>
               </>
             ) : (
               <>
-                {/* User info header */}
                 <div className="flex items-center gap-3 px-3 py-2 mb-2 border-b border-border pb-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center border border-primary/20 shrink-0">
-                    {user?.avatarUrl ? (
-                      <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-5 h-5 text-primary/60" />
-                    )}
+                  <div className="w-9 h-9 rounded-full bg-primary/10 overflow-hidden flex items-center justify-center border border-primary/20 shrink-0">
+                    {user?.avatarUrl ? <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" /> : <User className="w-4 h-4 text-primary/60" />}
                   </div>
                   <div className="min-w-0">
                     <p className="font-bold text-sm truncate">{user?.firstName} {user?.lastName}</p>
-                    <p className="text-xs text-foreground/50 capitalize">{userRole?.toLowerCase()}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{userRole?.toLowerCase()}</p>
                   </div>
                 </div>
 
                 {isAdminOrMod ? (
-                  <>
-                    <div className="max-h-[60vh] overflow-y-auto mb-2 border-b border-border pb-2 space-y-1">
-                      {userRole !== "MODERATOR" && (
-                        <>
-                          <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Admin Dashboard</Link>
-                          <Link href="/admin/users" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Users</Link>
-                          <Link href="/admin/projects" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Projects</Link>
-                        </>
-                      )}
-                      
-                      {userRole === "MODERATOR" && (
-                        <Link href="/member" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Freelancer Panel</Link>
-                      )}
-
-                      {(!userRole || userRole !== "MODERATOR" || user?.canApproveApplications) && (
-                        <Link href="/admin/applications" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Applications</Link>
-                      )}
-
-                      {(!userRole || userRole !== "MODERATOR" || user?.canReviewQC) && (
-                        <>
-                          <Link href="/admin/qc" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Audio QC Panel</Link>
-                          <Link href="/admin/transcription" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Transcription QA</Link>
-                        </>
-                      )}
-
-                      <Link href="/admin/comments" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Comments</Link>
-                      <Link href="/member/profile" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">My Profile</Link>
-                      
-                      {userRole !== "MODERATOR" && (
-                        <div className="pt-2 mt-2 border-t border-border/50">
-                          <p className="px-3 text-xs font-bold text-foreground/50 uppercase tracking-wider mb-1">Management</p>
-                          <Link href="/admin/analytics" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Analytics</Link>
-                          <Link href="/admin/skills" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Skills</Link>
-                          <Link href="/admin/verification" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Verification Requests</Link>
-                          <Link href="/portfolio" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Portfolios</Link>
-                          <Link href="/admin/payments" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-sm font-medium transition-colors">Payments</Link>
-                        </div>
-                      )}
-                    </div>
-                  </>
+                  <div className="max-h-[55vh] overflow-y-auto space-y-0.5 pb-2 mb-2 border-b border-border">
+                    {userRole !== "MODERATOR" && (
+                      <>
+                        <Link href="/admin" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Admin Dashboard</Link>
+                        <Link href="/admin/users" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Users</Link>
+                        <Link href="/admin/projects" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Projects</Link>
+                      </>
+                    )}
+                    {userRole === "MODERATOR" && <Link href="/member" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Freelancer Panel</Link>}
+                    {(!userRole || userRole !== "MODERATOR" || user?.canApproveApplications) && <Link href="/admin/applications" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Applications</Link>}
+                    {(!userRole || userRole !== "MODERATOR" || user?.canReviewQC) && (
+                      <>
+                        <Link href="/admin/qc" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Audio QC Panel</Link>
+                        <Link href="/admin/transcription" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Transcription QA</Link>
+                      </>
+                    )}
+                    <Link href="/admin/comments" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Comments</Link>
+                    <Link href="/member/profile" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">My Profile</Link>
+                    {userRole !== "MODERATOR" && (
+                      <div className="pt-2 mt-1 border-t border-border/50">
+                        <p className="px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Management</p>
+                        <Link href="/admin/analytics" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Analytics</Link>
+                        <Link href="/admin/skills" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Skills</Link>
+                        <Link href="/admin/verification" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Verification Requests</Link>
+                        <Link href="/admin/payments" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Payments</Link>
+                      </div>
+                    )}
+                  </div>
                 ) : (
-                  <>
-                    <Link href="/member" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Dashboard</Link>
-                    <Link href="/member/projects" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Available Projects</Link>
-                    <Link href="/member/projects?filter=past" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">Past Projects</Link>
-                    <Link href="/member/profile" onClick={() => setIsMenuOpen(false)} className="block hover:bg-card hover:text-primary px-3 py-2.5 rounded-xl text-base font-medium transition-colors">My Profile</Link>
-                  </>
+                  <div className="space-y-0.5 pb-2 mb-2 border-b border-border">
+                    <Link href="/member" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Dashboard</Link>
+                    <Link href="/member/projects" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Available Projects</Link>
+                    <Link href="/member/projects?filter=past" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Past Projects</Link>
+                    <Link href="/member/profile" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">My Profile</Link>
+                  </div>
                 )}
 
-                {/* Logout in mobile menu */}
-                <div className="pt-2 border-t border-border space-y-2">
-                  <div className="px-3">
-                    <DesktopModeToggle />
-                  </div>
+                <div className="space-y-1">
+                  <div className="px-2"><DesktopModeToggle /></div>
                   <button 
                     onClick={async (e) => { 
                       e.preventDefault(); 
@@ -238,7 +213,7 @@ export function Navbar({ user }: { user?: any }) {
                       try { await logoutUser(); } catch(err) {} 
                       window.location.href = "/login"; 
                     }}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 text-red-500 hover:bg-red-500/10 rounded-xl text-base font-medium transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-all"
                   >
                     <LogOut className="w-4 h-4" /> Log Out
                   </button>
