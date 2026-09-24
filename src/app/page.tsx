@@ -77,8 +77,8 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <p className="text-xs font-semibold text-foreground/50 mb-1">Weekly Freelancer Payouts</p>
-                  <div className="text-4xl font-black text-foreground tracking-tight">$1,480<span className="text-xl text-foreground/50">.00</span></div>
+                  <p className="text-xs font-semibold text-foreground/50 mb-1">Task Earning Payout</p>
+                  <div className="text-4xl font-black text-foreground tracking-tight">$45<span className="text-xl text-foreground/50">.00</span></div>
                 </div>
                 
                 {/* Wave / Metric Chart Visualization */}
