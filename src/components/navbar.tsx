@@ -56,7 +56,7 @@ export function Navbar({ user }: { user?: any }) {
                 <NavLink href="/">Home</NavLink>
                 <NavLink href="/#about">About</NavLink>
                 <NavLink href="/projects">Projects</NavLink>
-                <a href="mailto:abdallah.shehabtech@gmail.com" className="px-4 py-2 rounded-xl text-sm font-semibold text-foreground/70 hover:text-foreground hover:bg-muted transition-all">Contact</a>
+                <a href="mailto:info@shehab-tech.com" className="px-4 py-2 rounded-xl text-sm font-semibold text-foreground/70 hover:text-foreground hover:bg-muted transition-all">Contact</a>
               </>
             ) : (
               <>
@@ -147,7 +147,7 @@ export function Navbar({ user }: { user?: any }) {
                 <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Home</Link>
                 <Link href="/#about" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">About</Link>
                 <Link href="/projects" onClick={() => setIsMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Projects</Link>
-                <a href="mailto:abdallah.shehabtech@gmail.com" className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Contact</a>
+                <a href="mailto:info@shehab-tech.com" className="flex items-center px-3 py-2.5 rounded-xl text-sm font-semibold hover:bg-muted hover:text-primary transition-all">Contact</a>
                 <div className="flex gap-2 pt-3 border-t border-border">
                   <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex-1 text-center px-4 py-2.5 text-sm font-semibold border border-border rounded-xl hover:border-primary/40 hover:text-primary transition-all">Log In</Link>
                   <Link href="/register" onClick={() => setIsMenuOpen(false)} className="flex-1 text-center px-4 py-2.5 text-sm font-bold rounded-xl text-white" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>Register</Link>

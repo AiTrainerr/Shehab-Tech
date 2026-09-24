@@ -45,11 +45,11 @@ export function Footer() {
           <div className="space-y-5">
             <h4 className="text-sm font-bold text-foreground">Get In Touch</h4>
             <div className="space-y-3">
-              <a href="mailto:abdallah.shehabtech@gmail.com" className="flex items-center gap-3 text-foreground/60 hover:text-primary transition-all group">
+              <a href="mailto:info@shehab-tech.com" className="flex items-center gap-3 text-foreground/60 hover:text-primary transition-all group">
                 <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-all shrink-0">
                   <Mail className="w-4 h-4" />
                 </div>
-                <span className="text-sm font-medium">abdallah.shehabtech@gmail.com</span>
+                <span className="text-sm font-medium">info@shehab-tech.com</span>
               </a>
               <a href="tel:+201026744042" className="flex items-center gap-3 text-foreground/60 hover:text-primary transition-all group">
                 <div className="w-8 h-8 rounded-lg bg-muted group-hover:bg-primary/10 flex items-center justify-center transition-all shrink-0">

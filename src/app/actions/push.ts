@@ -7,7 +7,7 @@ import webpush from "web-push"
 try {
   if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
     webpush.setVapidDetails(
-      process.env.VAPID_SUBJECT || 'mailto:abdallah.shehabtech@gmail.com',
+      process.env.VAPID_SUBJECT || 'mailto:info@shehab-tech.com',
       process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
       process.env.VAPID_PRIVATE_KEY
     )
