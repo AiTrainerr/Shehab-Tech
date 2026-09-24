@@ -169,7 +169,7 @@ export async function resetPasswordAction(formData: FormData) {
     const supabase = await createClientServer()
     
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/member/profile/edit`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://shehab-tech.com'}/auth/callback?next=/member/profile/edit`,
     })
     
     if (error) {

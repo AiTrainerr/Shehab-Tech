@@ -43,7 +43,7 @@ export default async function TeamDashboardPage() {
   const teamMembers = currentUser.teamMembers
   const tasks = currentUser.teamTasks
 
-  const inviteLink = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/register?team=${userId}`
+  const inviteLink = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://shehab-tech.com'}/register?team=${userId}`
 
   const completedTasks = tasks.filter(t => t.status === "APPROVED_BY_QC" || t.status === "APPROVED")
   const pendingTasks = tasks.filter(t => t.status !== "APPROVED_BY_QC" && t.status !== "APPROVED" && t.status !== "AVAILABLE")
