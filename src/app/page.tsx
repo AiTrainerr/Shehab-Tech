@@ -512,6 +512,34 @@ export default function Home() {
               </div>
             </div>
 
+            {/* ─── SCAN TO CONNECT (4 QR CODES) ─── */}
+            <div className="pt-6 border-t border-border/60 space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-widest text-primary flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 fill-primary" /> Scan to Connect
+                </p>
+                <span className="text-[11px] text-foreground/50">Instant Direct Messaging</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { name: "WhatsApp", file: "/images/qr-whatsapp.png", link: "https://wa.me/201026744042" },
+                  { name: "LinkedIn", file: "/images/qr-linkedin.png", link: "https://www.linkedin.com/in/abdallah-shehab" },
+                  { name: "WeChat", file: "/images/qr-wechat.png", link: "#" },
+                  { name: "DingTalk", file: "/images/qr-dingtalk.png", link: "#" },
+                ].map((qr, i) => (
+                  <div key={i} className="bg-white rounded-2xl p-2.5 shadow-md border border-border/60 text-center space-y-1.5 transition-transform hover:scale-105">
+                    <img 
+                      src={qr.file} 
+                      alt={`${qr.name} QR Code`} 
+                      className="w-full aspect-square object-contain rounded-xl"
+                    />
+                    <p className="text-[10px] font-black tracking-wider text-slate-900 uppercase">{qr.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="pt-2 flex flex-col sm:flex-row gap-3">
               <Link href="/register" className="btn-primary flex-1 text-center py-3.5 rounded-xl font-bold text-sm">
                 Register as Language Expert
