@@ -151,7 +151,7 @@ export default function Home() {
               { label: "Active Contributors", value: "12,500+", icon: Users, color: "#4f46e5" },
               { label: "Dialects & Languages", value: "100+", icon: Globe2, color: "#7c3aed" },
               { label: "AI Quality Approval", value: "99.1%", icon: Award, color: "#10b981" },
-              { label: "Completed Projects", value: "50,000+", icon: Star, color: "#f59e0b" },
+              { label: "Completed Projects", value: "100+", icon: Star, color: "#f59e0b" },
             ].map((stat, i) => (
               <div key={i} className="text-center space-y-2 group">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3 transition-transform group-hover:scale-110" style={{ background: `${stat.color}15` }}>
