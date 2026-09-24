@@ -273,6 +273,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
           else if (g === "female" || g === "أنثى" || g === "انثى") genderForFolder = "female";
           else genderForFolder = app.user.gender;
         }
+        const ageFolderStr = app.user.age ? String(app.user.age) : "N-A";
         const sequentialId = (app.speakerCode && app.speakerCode !== "G_PENDING") ? app.speakerCode : "";
         const zipNamingRule = app.project.zipNamingRule || "FULL";
         
