@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect, notFound } from "next/navigation"
-import { ArrowLeft, MapPin, Users, Clock, AlertCircle, DollarSign, Globe, ArrowRight, Mic, Lock } from "lucide-react"
+import { ArrowLeft, MapPin, Users, Clock, AlertCircle, DollarSign, Globe, ArrowRight, Mic, Lock, CheckCircle } from "lucide-react"
 import { applyToProject } from "@/app/actions/projects"
 import { CommentsSection } from "@/components/comments-section"
 import { TranscriptionTasksList } from "./TranscriptionTasksList"
@@ -247,7 +247,21 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
         {/* Execution Options: Option A (Internal) vs Option B (External) */}
         {isApproved && (
-          project.isTranscriptionProject ? (
+          project.status === "COMPLETED" ? (
+            <div className="glass p-6 rounded-2xl border border-foreground/10 bg-foreground/5 mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-foreground/10 flex items-center justify-center shrink-0">
+                  <CheckCircle className="w-5 h-5 text-foreground/50" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-foreground/70">Project Completed — Recording Closed</h3>
+                  <p className="text-sm text-foreground/50 mt-0.5">
+                    This project has been marked as completed by the admin. No further recordings are accepted. (تم إغلاق المشروع من قِبل الإدارة — لا يمكن التسجيل)
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : project.isTranscriptionProject ? (
             <TranscriptionTasksList tasks={transcriptionTasks} currentUserId={userId} teamRole={currentUser?.teamRole} teamLeaderId={currentUser?.teamLeaderId} />
           ) : project.executionOption === "EXTERNAL" ? (
             <div className="glass p-6 rounded-2xl border border-yellow-500/20 bg-yellow-500/5 mb-8">

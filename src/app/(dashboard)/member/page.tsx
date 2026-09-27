@@ -40,7 +40,7 @@ export default async function MemberDashboard() {
           },
           include: {
             project: {
-              select: { id: true, title: true, price: true, description: true }
+              select: { id: true, title: true, price: true, description: true, status: true }
             }
           },
           orderBy: { updatedAt: "desc" },
@@ -243,13 +243,17 @@ export default async function MemberDashboard() {
                         })()}
                       </div>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-border flex justify-end">
-                      {app.status === "ACCEPTED" || app.status === "WORKING" ? (
-                        <Link href={`/member/projects/${app.project?.id || ""}`} className="flex items-center gap-2 text-sm font-bold bg-primary text-primary-foreground px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+                    <div className="mt-4 pt-4 border-t border-border flex justify-between items-center gap-3">
+                      {app.project?.status === "COMPLETED" ? (
+                        <span className="text-xs font-bold text-foreground/40 flex items-center gap-1.5">
+                          🔒 Recording Closed (تم إغلاق التسجيل)
+                        </span>
+                      ) : (app.status === "ACCEPTED" || app.status === "WORKING") ? (
+                        <Link href={`/member/projects/${app.project?.id || ""}`} className="flex items-center gap-2 text-sm font-bold bg-primary text-primary-foreground px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20 ml-auto">
                           Start Working <ArrowRight className="w-4 h-4" />
                         </Link>
                       ) : (
-                        <Link href={`/member/projects/${app.project?.id || ""}`} className="flex items-center gap-2 text-sm font-bold text-primary hover:underline">
+                        <Link href={`/member/projects/${app.project?.id || ""}`} className="flex items-center gap-2 text-sm font-bold text-primary hover:underline ml-auto">
                           View Details <ArrowRight className="w-4 h-4" />
                         </Link>
                       )}

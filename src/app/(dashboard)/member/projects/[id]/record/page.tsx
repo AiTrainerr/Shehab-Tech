@@ -21,6 +21,11 @@ export default async function ProjectRecordPage({ params }: { params: Promise<{ 
 
   if (!project) notFound()
 
+  // Block recording if project is completed
+  if (project.status === "COMPLETED" || project.status === "CANCELLED") {
+    redirect(`/member/projects/${id}`)
+  }
+
   const userObj = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } })
   if (!userObj) redirect("/login")
 
