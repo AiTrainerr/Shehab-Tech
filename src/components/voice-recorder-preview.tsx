@@ -220,20 +220,6 @@ export function VoiceRecorderPreview({
       mediaRecorderRef.current = recorder
       setActiveStream(stream)
 
-      // Live volume visualization is temporarily disabled on iOS due to Safari WebKit crashes 
-      // when attaching AudioContext to a MediaStream that is already being recorded.
-      setVolumeLevel(50); // Fake a static or safe value if needed, or leave at 0.
-      
-      // We will create a safe interval that just toggles volume slightly for visual feedback without using AudioContext
-      let fakeVol = 30;
-      const visualizerInterval = setInterval(() => {
-        fakeVol = fakeVol === 30 ? 70 : fakeVol === 70 ? 40 : 30;
-        setVolumeLevel(fakeVol);
-      }, 200);
-      
-      // Store the interval to clear it on stop
-      (window as any).visualizerInterval = visualizerInterval;
-
       // Recording timer
       const startTime = Date.now()
       timerIntervalRef.current = setInterval(() => {
@@ -251,10 +237,6 @@ export function VoiceRecorderPreview({
         // Stop all track streams
         stream.getTracks().forEach(t => t.stop())
 
-        // Stop volume analyzer & animation
-        if ((window as any).visualizerInterval) {
-          clearInterval((window as any).visualizerInterval);
-        }
         setVolumeLevel(0)
         if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
 
@@ -632,6 +614,7 @@ export function VoiceRecorderPreview({
                   stream={activeStream}
                   recordingTime={recordingTime}
                   barCount={36}
+                  onVolumeChange={setVolumeLevel}
                 />
 
                 <button
