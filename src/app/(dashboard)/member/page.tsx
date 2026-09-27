@@ -3,7 +3,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
-import { Briefcase, CheckCircle, DollarSign, Star, Bell, Clock, ArrowRight, BookOpen, Shield, BadgeCheck, Trophy, Mic, Lock } from "lucide-react"
+import { Briefcase, CheckCircle, DollarSign, Star, Bell, Clock, ArrowRight, BookOpen, Shield, BadgeCheck, Trophy, Mic, Lock, AlertCircle, FileCheck } from "lucide-react"
 import { MemberDashboardClient } from "@/components/member-dashboard-client"
 import { getUserLevel, getUserBadges, getLevelProgress, getNextLevel } from "@/lib/gamification"
 import { LevelCard } from "@/components/achievement-badge"
@@ -19,7 +19,7 @@ export default async function MemberDashboard() {
 
   if (!userId) redirect("/login")
 
-  const [user, paidApps, recordingStats] = await Promise.all([
+  const [user, paidApps, virtualProjects] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -64,19 +64,58 @@ export default async function MemberDashboard() {
       where: { userId, status: { in: ["APPROVED", "PAID"] } },
       select: { project: { select: { price: true } } }
     }),
-    // Fetch recording stats per project for this user
-    prisma.voiceRecording.groupBy({
-      by: ["userId"],
-      where: { userId },
-      _count: { id: true }
-    }),
+    // Failsafe: find any project where the user has voice recordings, but application was somehow omitted
+    prisma.project.findMany({
+      where: {
+        status: { not: "CANCELLED" },
+        sentences: {
+          some: {
+            recordings: {
+              some: { userId }
+            }
+          }
+        },
+        applications: {
+          none: { userId }
+        }
+      },
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        description: true,
+        status: true,
+        sentencesPerUser: true,
+        scriptType: true,
+        isTranscriptionProject: true,
+        pricingModel: true,
+      }
+    })
   ])
 
   if (!user) redirect("/api/auth/logout?reason=deleted")
 
+  // Merge any virtual projects where user recorded voice
+  const allApplications = [...user.applications]
+  for (const vp of virtualProjects) {
+    allApplications.push({
+      id: `virtual-${vp.id}`,
+      projectId: vp.id,
+      userId,
+      status: "FINAL_REVIEW",
+      proofUrl: null,
+      speakerCode: null,
+      applicationType: "FREELANCER",
+      projectRole: "TRANSCRIBER",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      project: vp
+    } as any)
+  }
+
   // Per-project recording stats
   const projectRecordingStats: Record<string, { total: number; accepted: number; rejected: number }> = {}
-  for (const app of user.applications) {
+  for (const app of allApplications) {
     if (!app.project) continue
     const projectId = app.project.id
     const [totalRec, acceptedRec, rejectedRec] = await Promise.all([
@@ -94,15 +133,27 @@ export default async function MemberDashboard() {
   }
 
   const unreadCount = user.notifications.filter(n => !n.isRead).length
-
   const totalEarnings = paidApps.reduce((sum, app) => sum + (app.project?.price ?? 0), 0)
 
-  // Split apps: active vs completed
-  const ACTIVE_STATUSES = ["PENDING", "ACCEPTED", "WORKING", "UNDER_REVIEW", "FINAL_REVIEW"]
-  const DONE_STATUSES = ["APPROVED", "PAID"]
-  const activeApps = user.applications.filter(a => ACTIVE_STATUSES.includes(a.status))
-  const doneApps = user.applications.filter(a => DONE_STATUSES.includes(a.status))
-  const rejectedApps = user.applications.filter(a => a.status === "REJECTED")
+  // Smart categorization:
+  // A project is considered COMPLETED / IN REVIEW if:
+  // 1. The admin marked the project as COMPLETED
+  // 2. The application is APPROVED or PAID
+  // 3. The application is UNDER_REVIEW or FINAL_REVIEW
+  // 4. The user has finished recording all required sentences
+  const isProjectFinished = (app: any) => {
+    if (app.status === "APPROVED" || app.status === "PAID") return true
+    if (app.status === "FINAL_REVIEW" || app.status === "UNDER_REVIEW") return true
+    if (app.project?.status === "COMPLETED") return true
+    const stats = projectRecordingStats[app.project?.id || ""]
+    const target = app.project?.sentencesPerUser
+    if (target && stats && stats.total >= target && stats.total > 0) return true
+    return false
+  }
+
+  const activeApps = allApplications.filter(a => a.status !== "REJECTED" && !isProjectFinished(a))
+  const completedApps = allApplications.filter(a => a.status !== "REJECTED" && isProjectFinished(a))
+  const rejectedApps = allApplications.filter(a => a.status === "REJECTED")
 
   // Gamification
   const level    = getUserLevel(user.completedCount)
@@ -117,14 +168,14 @@ export default async function MemberDashboard() {
 
   function StatusBadge({ status }: { status: string }) {
     const cfg =
-      status === "PAID"         ? { cls: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",     label: "💰 Paid" } :
-      status === "APPROVED"     ? { cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400", label: "✅ Client Approved" } :
-      status === "FINAL_REVIEW" ? { cls: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400",   label: "🔍 QA2 Review" } :
-      status === "UNDER_REVIEW" ? { cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",   label: "🔎 QA1 Review" } :
-      status === "WORKING"      ? { cls: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",           label: "⚡ In Progress" } :
-      status === "ACCEPTED"     ? { cls: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400",   label: "✔ Accepted" } :
-      status === "REJECTED"     ? { cls: "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400",              label: "✗ Rejected" } :
-                                  { cls: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400",  label: "⏳ Pending" }
+      status === "PAID"         ? { cls: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",     label: "💰 Paid — تم الصرف" } :
+      status === "APPROVED"     ? { cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400", label: "✅ Client Approved — تم القبول" } :
+      status === "FINAL_REVIEW" ? { cls: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400",   label: "🔍 QA2 Review — مراجعة نهائية" } :
+      status === "UNDER_REVIEW" ? { cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",   label: "🔎 QA1 Review — مراجعة أولى" } :
+      status === "WORKING"      ? { cls: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",           label: "⚡ In Progress — قيد العمل" } :
+      status === "ACCEPTED"     ? { cls: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400",   label: "✔ Accepted — مقبول للبدء" } :
+      status === "REJECTED"     ? { cls: "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400",              label: "✗ Rejected — مرفوض" } :
+                                  { cls: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400",  label: "⏳ Pending — قيد المراجعة" }
     return (
       <div className={`text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 border ${cfg.cls}`}>
         {cfg.label}
@@ -146,7 +197,7 @@ export default async function MemberDashboard() {
               <BadgeCheck className="w-8 h-8 text-white fill-blue-500" />
             )}
           </h1>
-          <p className="text-foreground/70">Here&apos;s everything happening with your projects.</p>
+          <p className="text-foreground/70">Here&apos;s everything happening with your projects, reviews, and payouts.</p>
           <div className="flex gap-4 mt-2">
             {user.verificationStatus !== "VERIFIED" && (
               <Link href="/member/verification" className="text-xs font-semibold text-orange-500 hover:underline">
@@ -186,15 +237,15 @@ export default async function MemberDashboard() {
           {
             label: "Active Projects",
             value: activeApps.length.toString(),
-            sub: activeApps.length > 0 ? `${activeApps.length} in progress` : "Apply to a project",
+            sub: activeApps.length > 0 ? `${activeApps.length} open for recording` : "No open tasks",
             icon: Briefcase,
             color: "green",
             delay: "stagger-2",
           },
           {
-            label: "Completed",
-            value: doneApps.length.toString(),
-            sub: "Approved or paid projects",
+            label: "Completed Projects",
+            value: completedApps.length.toString(),
+            sub: completedApps.length > 0 ? `${completedApps.length} finished in review/paid` : "Finish tasks to see here",
             icon: CheckCircle,
             color: "purple",
             delay: "stagger-3",
@@ -258,31 +309,20 @@ export default async function MemberDashboard() {
             nextLevel={nextLevel}
           />
 
-          {/* ── ACTIVE PROJECTS ── */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-primary" />
-                Active Projects
-                {activeApps.length > 0 && (
+          {/* ── 1. ACTIVE & OPEN PROJECTS ── */}
+          {activeApps.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-primary" />
+                  Active Projects (مشاريع قيد التسجيل والعمل)
                   <span className="text-xs font-bold px-2 py-0.5 bg-primary/10 text-primary rounded-full">{activeApps.length}</span>
-                )}
-              </h2>
-              <Link href="/member/projects" className="text-sm font-semibold text-primary hover:underline">Browse More</Link>
-            </div>
+                </h2>
+                <Link href="/member/projects" className="text-sm font-semibold text-primary hover:underline">Browse More</Link>
+              </div>
 
-            <div className="space-y-4">
-              {activeApps.length === 0 ? (
-                <div className="glass p-12 rounded-2xl border border-border text-center">
-                  <Briefcase className="w-12 h-12 mx-auto mb-4 text-foreground/20" />
-                  <h3 className="text-lg font-bold text-foreground/50 mb-2">No active projects yet</h3>
-                  <p className="text-sm text-foreground/40 mb-6">Browse available projects and apply to start earning.</p>
-                  <Link href="/member/projects" className="px-6 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-sm text-sm">
-                    Browse Projects
-                  </Link>
-                </div>
-              ) : (
-                activeApps.map((app) => {
+              <div className="space-y-4">
+                {activeApps.map((app) => {
                   const stats = projectRecordingStats[app.project?.id || ""]
                   const sentencesTarget = app.project?.sentencesPerUser ?? null
                   const isCompleted = app.project?.status === "COMPLETED"
@@ -314,8 +354,8 @@ export default async function MemberDashboard() {
 
                       {/* Recording Stats (voice projects only) */}
                       {stats && !app.project?.isTranscriptionProject && (stats.total > 0 || sentencesTarget) && (
-                        <div className="mb-4 p-3 bg-background/60 rounded-xl border border-border">
-                          <p className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">Recording Progress</p>
+                        <div className="mb-4 p-3.5 bg-background/60 rounded-xl border border-border">
+                          <p className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">Recording Progress (تقدم التسجيل)</p>
                           <div className="flex items-center gap-4 flex-wrap text-sm">
                             <span className="flex items-center gap-1.5 font-semibold">
                               <Mic className="w-3.5 h-3.5 text-primary" />
@@ -361,33 +401,58 @@ export default async function MemberDashboard() {
                       </div>
                     </div>
                   )
-                })
-              )}
-            </div>
-          </div>
-
-          {/* ── COMPLETED PROJECTS ── */}
-          {doneApps.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  Completed Projects
-                  <span className="text-xs font-bold px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded-full">{doneApps.length}</span>
-                </h2>
+                })}
               </div>
-              <div className="space-y-4">
-                {doneApps.map((app) => {
+            </div>
+          )}
+
+          {/* ── 2. COMPLETED & IN REVIEW / PAYOUT PROJECTS ── */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-emerald-500" />
+                Completed Projects (المشاريع المكتملة ومرحلة القبول والدفع)
+                {completedApps.length > 0 && (
+                  <span className="text-xs font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full">{completedApps.length}</span>
+                )}
+              </h2>
+            </div>
+
+            <div className="space-y-4">
+              {completedApps.length === 0 ? (
+                <div className="glass p-8 rounded-2xl border border-border text-center">
+                  <FileCheck className="w-10 h-10 mx-auto mb-3 text-foreground/25" />
+                  <h3 className="text-base font-bold text-foreground/60 mb-1">No completed projects yet</h3>
+                  <p className="text-xs text-foreground/40">When you complete tasks or projects finish, their reviews and payout stages will appear here.</p>
+                </div>
+              ) : (
+                completedApps.map((app) => {
                   const stats = projectRecordingStats[app.project?.id || ""]
                   const sentencesTarget = app.project?.sentencesPerUser ?? null
+                  const isPaid = app.status === "PAID"
+                  const isApproved = app.status === "APPROVED"
+
                   return (
-                    <div key={app.id} className={`glass p-6 rounded-2xl border transition-all ${
-                      app.status === "PAID" ? "border-green-500/20 bg-green-500/5" : "border-emerald-500/20 bg-emerald-500/5"
-                    }`}>
-                      <div className="flex flex-col sm:flex-row justify-between gap-3 mb-3">
+                    <div
+                      key={app.id}
+                      className={`glass p-6 rounded-2xl border transition-all animate-slide-up ${
+                        isPaid
+                          ? "border-green-500/30 bg-green-500/5 hover:border-green-500/50"
+                          : isApproved
+                          ? "border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50"
+                          : "border-primary/20 bg-primary/5 hover:border-primary/40"
+                      }`}
+                    >
+                      {/* Header Row */}
+                      <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-bold truncate mb-0.5">{app.project?.title || "Unknown Project"}</h3>
-                          <p className="text-sm text-foreground/60 line-clamp-1">{stripHtml(app.project?.description || "")}</p>
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <h3 className="text-lg font-bold truncate">{app.project?.title || "Unknown Project"}</h3>
+                            <span className="text-[10px] font-bold px-2 py-0.5 bg-foreground/10 text-foreground/60 rounded-full border border-border shrink-0">
+                              🔒 التسجيل مكتمل (Closed)
+                            </span>
+                          </div>
+                          <p className="text-sm text-foreground/60 line-clamp-2">{stripHtml(app.project?.description || "")}</p>
                         </div>
                         <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
                           <div className="text-xl font-black text-primary">${app.project?.price?.toFixed(2) ?? "—"}</div>
@@ -395,44 +460,92 @@ export default async function MemberDashboard() {
                         </div>
                       </div>
 
-                      {/* Compact stats row */}
-                      {stats && !app.project?.isTranscriptionProject && stats.total > 0 && (
-                        <div className="flex items-center gap-4 flex-wrap text-xs text-foreground/60 mb-3 pt-3 border-t border-border">
-                          <span className="flex items-center gap-1">
-                            <Mic className="w-3 h-3" />
-                            {stats.total}{sentencesTarget ? ` / ${sentencesTarget}` : ""} recorded
-                          </span>
-                          {stats.accepted > 0 && (
-                            <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
-                              <CheckCircle className="w-3 h-3" /> {stats.accepted} accepted
-                            </span>
-                          )}
-                          {app.status === "PAID" && (
-                            <span className="text-green-600 dark:text-green-400 font-bold">
-                              💰 Payment released
-                            </span>
-                          )}
-                          {app.status === "APPROVED" && (
-                            <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                              ✅ Awaiting payment
-                            </span>
-                          )}
-                        </div>
-                      )}
+                      {/* Approval Stage Stepper */}
+                      <div className="mb-4 pt-4 border-t border-border">
+                        <p className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">مراحل القبول والدفع (Approval & Payout Stages):</p>
+                        <ApplicationStepper status={app.status} />
+                      </div>
 
-                      <div className="flex justify-end pt-2">
-                        <Link href={`/member/projects/${app.project?.id || ""}`} className="flex items-center gap-2 text-xs font-bold text-foreground/50 hover:text-primary transition-colors">
-                          View Details <ArrowRight className="w-3.5 h-3.5" />
+                      {/* Detailed Recording Progress & Payout Info */}
+                      <div className="mb-4 p-3.5 bg-background/70 rounded-xl border border-border">
+                        <div className="flex items-center justify-between gap-2 flex-wrap text-sm mb-2">
+                          <span className="font-bold text-foreground/70 flex items-center gap-1.5">
+                            <Mic className="w-4 h-4 text-primary" />
+                            إجمالي الجمل المسجلة: {stats?.total || 0}{sentencesTarget ? ` / ${sentencesTarget}` : ""} جملة
+                          </span>
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-400">
+                            ✓ اكتمل تسجيل الجمل
+                          </span>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="w-full bg-border rounded-full h-2 mb-3">
+                          <div
+                            className="bg-green-500 h-2 rounded-full transition-all"
+                            style={{ width: "100%" }}
+                          />
+                        </div>
+
+                        {/* Payout & Review Details Box */}
+                        <div className="pt-2 border-t border-border/60 flex items-center justify-between flex-wrap gap-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-foreground/60">حالة الصرف والدفع:</span>
+                            {isPaid ? (
+                              <span className="font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
+                                💰 تم صرف الدفعة بنجاح (Paid)
+                              </span>
+                            ) : isApproved ? (
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                ✅ تم القبول النهائي — بانتظار تحويل المستحقات
+                              </span>
+                            ) : app.status === "FINAL_REVIEW" ? (
+                              <span className="font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                                🔍 قيد المراجعة النهائية (QA2 / Client)
+                              </span>
+                            ) : (
+                              <span className="font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1">
+                                🔎 قيد المراجعة الأولى (QA1 Review)
+                              </span>
+                            )}
+                          </div>
+
+                          {stats?.accepted && stats.accepted > 0 ? (
+                            <span className="text-green-600 dark:text-green-400 font-bold">
+                              {stats.accepted} جملة مقبولة ✓
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="flex justify-end pt-1">
+                        <Link
+                          href={`/member/projects/${app.project?.id || ""}`}
+                          className="flex items-center gap-2 text-xs font-bold text-primary hover:underline"
+                        >
+                          عرض تفاصيل وسجل المشروع بالكامل <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </div>
                     </div>
                   )
-                })}
-              </div>
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Empty state if both are empty */}
+          {activeApps.length === 0 && completedApps.length === 0 && (
+            <div className="glass p-12 rounded-2xl border border-border text-center">
+              <Briefcase className="w-12 h-12 mx-auto mb-4 text-foreground/20" />
+              <h3 className="text-lg font-bold text-foreground/50 mb-2">No projects yet</h3>
+              <p className="text-sm text-foreground/40 mb-6">Browse available projects and apply to start earning.</p>
+              <Link href="/member/projects" className="px-6 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-sm text-sm">
+                Browse Projects
+              </Link>
             </div>
           )}
 
-          {/* ── REJECTED (collapsed) ── */}
+          {/* ── 3. REJECTED (collapsed) ── */}
           {rejectedApps.length > 0 && (
             <div>
               <h2 className="text-base font-bold text-foreground/50 flex items-center gap-2 mb-3">
