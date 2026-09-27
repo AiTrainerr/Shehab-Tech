@@ -259,7 +259,8 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
 
     if (statusFilter.length > 0) {
       const isClosedWithoutRecording = a.project.status === "COMPLETED" && (!a.recordedCount || a.recordedCount === 0);
-      const isWorking = (a.status === "APPROVED" || a.status === "WORKING" || a.status === "ACCEPTED" || a.status === "UNDER_REVIEW") && !isClosedWithoutRecording;
+      const isClosedIncomplete = a.project.status === "COMPLETED" && a.status !== "FINAL_REVIEW" && a.status !== "APPROVED" && a.status !== "PAID" && (a.recordedCount || 0) < (a.totalSentences || 80);
+      const isWorking = (a.status === "APPROVED" || a.status === "WORKING" || a.status === "ACCEPTED" || a.status === "UNDER_REVIEW") && !isClosedWithoutRecording && !isClosedIncomplete;
       const isCompleted = a.status === "COMPLETED" || a.status === "FINAL_REVIEW" || a.status === "PAID";
       const isNotStarted = isWorking && (!a.recordedCount || a.recordedCount === 0);
       const isActuallyWorking = isWorking && (a.recordedCount || 0) > 0;
@@ -269,7 +270,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       if (statusFilter.includes("FINAL_REVIEW") && a.status === "FINAL_REVIEW") matchesStatus = true;
       if (statusFilter.includes("WORKING") && isActuallyWorking) matchesStatus = true;
       if (statusFilter.includes("NOT_STARTED") && isNotStarted) matchesStatus = true;
-      if (statusFilter.includes("CLOSED_NOT_RECORDED") && isClosedWithoutRecording) matchesStatus = true;
+      if (statusFilter.includes("CLOSED_NOT_RECORDED") && (isClosedWithoutRecording || isClosedIncomplete)) matchesStatus = true;
       if (statusFilter.includes("COMPLETED") && isCompleted) matchesStatus = true;
       if (statusFilter.includes("REJECTED") && a.status === "REJECTED") matchesStatus = true;
 
@@ -481,8 +482,9 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       if (isFemale) s.all.f++
 
       const isClosedWithoutRecording = a.project.status === "COMPLETED" && (!a.recordedCount || a.recordedCount === 0);
+      const isClosedIncomplete = a.project.status === "COMPLETED" && a.status !== "FINAL_REVIEW" && a.status !== "APPROVED" && a.status !== "PAID" && (a.recordedCount || 0) < (a.totalSentences || 80);
 
-      if (isClosedWithoutRecording) {
+      if (isClosedWithoutRecording || isClosedIncomplete) {
         s.closedNotRecorded.total++
         if (isMale) s.closedNotRecorded.m++
         if (isFemale) s.closedNotRecorded.f++
@@ -588,7 +590,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             { value: "FINAL_REVIEW", label: `Final Review (${stats.finalReview.total}) - M: ${stats.finalReview.m} | F: ${stats.finalReview.f}` },
             { value: "WORKING", label: `Working (${stats.working.total}) - M: ${stats.working.m} | F: ${stats.working.f}` },
             { value: "NOT_STARTED", label: `Not Started (${stats.notStarted.total}) - M: ${stats.notStarted.m} | F: ${stats.notStarted.f}` },
-            { value: "CLOSED_NOT_RECORDED", label: `🔒 Closed (0 Recorded) (${stats.closedNotRecorded.total}) - M: ${stats.closedNotRecorded.m} | F: ${stats.closedNotRecorded.f}` },
+            { value: "CLOSED_NOT_RECORDED", label: `🔒 Closed Incomplete/0 (${stats.closedNotRecorded.total}) - M: ${stats.closedNotRecorded.m} | F: ${stats.closedNotRecorded.f}` },
             { value: "COMPLETED", label: `Completed/Approved (${stats.completed.total}) - M: ${stats.completed.m} | F: ${stats.completed.f}` },
             { value: "REJECTED", label: `Rejected (${stats.rejected.total}) - M: ${stats.rejected.m} | F: ${stats.rejected.f}` }
           ]}
@@ -656,6 +658,10 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                 {app.project.status === 'COMPLETED' && (!app.recordedCount || app.recordedCount === 0) ? (
                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-500/15 text-zinc-400 border border-zinc-500/30">
                     <Lock className="w-3 h-3" /> Closed (0 Recorded)
+                  </span>
+                ) : app.project.status === 'COMPLETED' && app.status !== 'FINAL_REVIEW' && app.status !== 'APPROVED' && app.status !== 'PAID' && (app.recordedCount || 0) < (app.totalSentences || 80) ? (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/10 text-rose-500 border border-rose-500/25">
+                    <Lock className="w-3 h-3" /> Closed Incomplete ({app.recordedCount || 0}/{app.totalSentences || 0})
                   </span>
                 ) : (
                   <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${

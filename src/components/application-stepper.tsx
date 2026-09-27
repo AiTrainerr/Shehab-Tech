@@ -74,6 +74,16 @@ export function ApplicationStepper({ status, className = "" }: ApplicationSteppe
     )
   }
 
+  // If closed without completing required sentences
+  if (status === "CLOSED_INCOMPLETE" || status === "INCOMPLETE" || status === "FAILED") {
+    return (
+      <div className={`p-4 rounded-xl border border-rose-500/25 bg-rose-500/5 text-rose-600 dark:text-rose-400 text-sm font-semibold flex items-center gap-2 ${className}`}>
+        <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+        <span>Task Incomplete (Closed) — Project closed before required recordings were completed.</span>
+      </div>
+    )
+  }
+
   // If pending initial approval
   if (status === "PENDING") {
     return (

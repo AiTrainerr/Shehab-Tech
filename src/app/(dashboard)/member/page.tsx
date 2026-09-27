@@ -3,7 +3,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
-import { Briefcase, CheckCircle, DollarSign, Star, Bell, ArrowRight, BookOpen, Shield, BadgeCheck, Trophy, Mic, Lock, FileCheck } from "lucide-react"
+import { Briefcase, CheckCircle, DollarSign, Star, Bell, ArrowRight, BookOpen, Shield, BadgeCheck, Trophy, Mic, Lock, FileCheck, X, XCircle, AlertCircle } from "lucide-react"
 import { MemberDashboardClient } from "@/components/member-dashboard-client"
 import { getUserLevel, getUserBadges, getLevelProgress, getNextLevel } from "@/lib/gamification"
 import { LevelCard } from "@/components/achievement-badge"
@@ -12,6 +12,20 @@ import { stripHtml } from "@/lib/string-utils"
 import { ApplicationStepper } from "@/components/application-stepper"
 
 export const dynamic = 'force-dynamic'
+
+function getSentencesTarget(project: any): number | null {
+  if (!project) return null
+  if (project.sentencesPerUser && project.sentencesPerUser > 0) return project.sentencesPerUser
+  if (project._count?.sentences && project._count.sentences > 0) return project._count.sentences
+  if (project.title) {
+    const match = project.title.match(/(\d+)\s*(?:sentences|sentence|جملة|جمل)/i)
+    if (match) {
+      const parsed = parseInt(match[1])
+      if (parsed > 0) return parsed
+    }
+  }
+  return null
+}
 
 export default async function MemberDashboard() {
   const cookieStore = await cookies()
@@ -53,6 +67,7 @@ export default async function MemberDashboard() {
                 scriptType: true,
                 isTranscriptionProject: true,
                 pricingModel: true,
+                _count: { select: { sentences: true } }
               }
             }
           },
@@ -89,6 +104,7 @@ export default async function MemberDashboard() {
         scriptType: true,
         isTranscriptionProject: true,
         pricingModel: true,
+        _count: { select: { sentences: true } }
       }
     })
   ])
@@ -136,22 +152,27 @@ export default async function MemberDashboard() {
   const totalEarnings = paidApps.reduce((sum, app) => sum + (app.project?.price ?? 0), 0)
 
   // Smart categorization:
-  // Finished / Review:
-  // - Admin marked project as COMPLETED
-  // - Or application status is APPROVED, PAID, FINAL_REVIEW, UNDER_REVIEW
-  // - Or user recorded all sentences
-  const isProjectFinished = (app: any) => {
+  // A task is successfully completed/under-review if:
+  // - Application status is APPROVED, PAID, FINAL_REVIEW, UNDER_REVIEW
+  // - Or user recorded all required sentences
+  const isProjectCompletedSuccess = (app: any) => {
     if (app.status === "APPROVED" || app.status === "PAID") return true
     if (app.status === "FINAL_REVIEW" || app.status === "UNDER_REVIEW") return true
-    if (app.project?.status === "COMPLETED") return true
     const stats = projectRecordingStats[app.project?.id || ""]
-    const target = app.project?.sentencesPerUser
+    const target = getSentencesTarget(app.project)
     if (target && stats && stats.total >= target && stats.total > 0) return true
     return false
   }
 
-  const activeApps = allApplications.filter(a => a.status !== "REJECTED" && !isProjectFinished(a))
-  const completedApps = allApplications.filter(a => a.status !== "REJECTED" && isProjectFinished(a))
+  // If project is closed (COMPLETED by admin), but user did not complete the required sentences
+  const isProjectIncomplete = (app: any) => {
+    const isClosed = app.project?.status === "COMPLETED"
+    return isClosed && !isProjectCompletedSuccess(app) && app.status !== "REJECTED"
+  }
+
+  const activeApps = allApplications.filter(a => a.status !== "REJECTED" && !isProjectCompletedSuccess(a) && !isProjectIncomplete(a))
+  const completedApps = allApplications.filter(a => a.status !== "REJECTED" && isProjectCompletedSuccess(a))
+  const incompleteApps = allApplications.filter(a => isProjectIncomplete(a))
   const rejectedApps = allApplications.filter(a => a.status === "REJECTED")
 
   // Gamification
@@ -167,14 +188,15 @@ export default async function MemberDashboard() {
 
   function StatusBadge({ status }: { status: string }) {
     const cfg =
-      status === "PAID"         ? { cls: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",     label: "💰 Paid" } :
-      status === "APPROVED"     ? { cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400", label: "✅ Client Approved" } :
-      status === "FINAL_REVIEW" ? { cls: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400",   label: "🔍 Final Client Review" } :
-      status === "UNDER_REVIEW" ? { cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",   label: "🔎 Platform QA Review" } :
-      status === "WORKING"      ? { cls: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",           label: "⚡ In Progress" } :
-      status === "ACCEPTED"     ? { cls: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400",   label: "✔ Accepted" } :
-      status === "REJECTED"     ? { cls: "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400",              label: "✗ Rejected" } :
-                                  { cls: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400",  label: "⏳ Pending" }
+      status === "PAID"              ? { cls: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",     label: "💰 Paid" } :
+      status === "APPROVED"          ? { cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400", label: "✅ Client Approved" } :
+      status === "FINAL_REVIEW"      ? { cls: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400",   label: "🔍 Final Client Review" } :
+      status === "UNDER_REVIEW"      ? { cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",   label: "🔎 Platform QA Review" } :
+      status === "WORKING"           ? { cls: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",           label: "⚡ In Progress" } :
+      status === "ACCEPTED"          ? { cls: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400",   label: "✔ Accepted" } :
+      status === "CLOSED_INCOMPLETE" ? { cls: "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:text-rose-400",           label: "❌ Incomplete / Closed" } :
+      status === "REJECTED"          ? { cls: "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400",              label: "✗ Rejected" } :
+                                       { cls: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400",  label: "⏳ Pending" }
     return (
       <div className={`text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 border ${cfg.cls}`}>
         {cfg.label}
@@ -183,19 +205,35 @@ export default async function MemberDashboard() {
   }
 
   // Unified Project Card Component
-  const ProjectCard = ({ app, isCompletedSection = false }: { app: any; isCompletedSection?: boolean }) => {
+  const ProjectCard = ({ 
+    app, 
+    isCompletedSection = false,
+    isIncompleteSection = false 
+  }: { 
+    app: any; 
+    isCompletedSection?: boolean;
+    isIncompleteSection?: boolean;
+  }) => {
     const stats = projectRecordingStats[app.project?.id || ""] || { total: 0, accepted: 0, rejected: 0 }
-    const sentencesTarget = app.project?.sentencesPerUser || (stats.total > 0 ? stats.total : null)
+    const sentencesTarget = getSentencesTarget(app.project)
     const isClosed = app.project?.status === "COMPLETED"
 
     // Real progress percentage
-    const percent = sentencesTarget ? Math.min(100, Math.round((stats.total / sentencesTarget) * 100)) : (stats.total > 0 ? 100 : 0)
-    const isFullyRecorded = sentencesTarget ? stats.total >= sentencesTarget : stats.total > 0
+    const rawPercent = sentencesTarget ? (stats.total / sentencesTarget) * 100 : (stats.total > 0 ? 100 : 0)
+    const percentStr = rawPercent > 0 && rawPercent < 1 ? rawPercent.toFixed(1) : Math.min(100, Math.round(rawPercent)).toString()
+    const percentNum = Math.min(100, Math.max(0, rawPercent))
+    const isFullyRecorded = Boolean(sentencesTarget && stats.total >= sentencesTarget && stats.total > 0)
+    const isUnderReviewOrApproved = app.status === "APPROVED" || app.status === "PAID" || app.status === "FINAL_REVIEW" || app.status === "UNDER_REVIEW"
+
+    const isIncompleteClosed = isIncompleteSection || (isClosed && !isFullyRecorded && !isUnderReviewOrApproved)
+    const effectiveStatus = isIncompleteClosed ? "CLOSED_INCOMPLETE" : app.status
 
     return (
       <div
         className={`glass p-6 rounded-2xl border transition-all animate-slide-up ${
-          app.status === "PAID"
+          isIncompleteClosed
+            ? "border-rose-500/20 bg-rose-500/5 hover:border-rose-500/40"
+            : app.status === "PAID"
             ? "border-green-500/30 bg-green-500/5 hover:border-green-500/50"
             : app.status === "APPROVED"
             ? "border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50"
@@ -210,16 +248,30 @@ export default async function MemberDashboard() {
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <h3 className="text-lg font-bold truncate">{app.project?.title || "Unknown Project"}</h3>
               {isClosed && (
-                <span className="text-[10px] font-bold px-2 py-0.5 bg-foreground/10 text-foreground/60 rounded-full border border-border shrink-0 flex items-center gap-1">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 flex items-center gap-1 ${
+                  isIncompleteClosed
+                    ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
+                    : "bg-foreground/10 text-foreground/60 border-border"
+                }`}>
                   <Lock className="w-2.5 h-2.5" /> Closed
                 </span>
               )}
             </div>
             <p className="text-sm text-foreground/60 line-clamp-2">{stripHtml(app.project?.description || "")}</p>
           </div>
-          <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
-            <div className="text-xl font-black text-primary">${app.project?.price?.toFixed(2) ?? "—"}</div>
-            <StatusBadge status={app.status} />
+          <div className="text-right shrink-0 flex flex-col items-end gap-1">
+            {isIncompleteClosed ? (
+              <div className="flex flex-col items-end">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-foreground/40 line-through">${app.project?.price?.toFixed(2) ?? "—"}</span>
+                  <span className="text-sm font-black text-rose-500">$0.00</span>
+                </div>
+                <span className="text-[10px] font-bold text-rose-500/80">Unearned / Incomplete</span>
+              </div>
+            ) : (
+              <div className="text-xl font-black text-primary">${app.project?.price?.toFixed(2) ?? "—"}</div>
+            )}
+            <StatusBadge status={effectiveStatus} />
           </div>
         </div>
 
@@ -228,20 +280,26 @@ export default async function MemberDashboard() {
           <p className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">
             Approval & Payout Stages:
           </p>
-          <ApplicationStepper status={app.status} />
+          <ApplicationStepper status={effectiveStatus} />
         </div>
 
         {/* Detailed Recording Progress & Review Status Box */}
         {!app.project?.isTranscriptionProject && (stats.total > 0 || sentencesTarget) && (
-          <div className="mb-4 p-3.5 bg-background/60 rounded-xl border border-border">
+          <div className={`mb-4 p-3.5 rounded-xl border ${
+            isIncompleteClosed ? "bg-rose-500/5 border-rose-500/20" : "bg-background/60 border-border"
+          }`}>
             <div className="flex items-center justify-between gap-2 flex-wrap text-sm mb-2">
               <span className="font-bold text-foreground/80 flex items-center gap-1.5">
                 <Mic className="w-4 h-4 text-primary" />
-                Recorded Sentences: {stats.total}{sentencesTarget ? ` / ${sentencesTarget}` : ""} ({percent}%)
+                Recorded Sentences: {stats.total}{sentencesTarget ? ` / ${sentencesTarget}` : ""} ({percentStr}%)
               </span>
               {isFullyRecorded ? (
                 <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-400">
                   ✓ Recording Complete
+                </span>
+              ) : isIncompleteClosed ? (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center gap-1">
+                  <X className="w-3 h-3" /> Incomplete ({stats.total}/{sentencesTarget || '?'})
                 </span>
               ) : isClosed ? (
                 <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-zinc-500/10 text-zinc-500 dark:text-zinc-400">
@@ -258,9 +316,9 @@ export default async function MemberDashboard() {
             <div className="w-full bg-border rounded-full h-2 mb-3 overflow-hidden">
               <div
                 className={`h-2 rounded-full transition-all duration-300 ${
-                  isFullyRecorded ? "bg-green-500" : isClosed ? "bg-zinc-500/50" : "bg-primary"
+                  isFullyRecorded ? "bg-green-500" : isIncompleteClosed ? "bg-rose-500" : isClosed ? "bg-zinc-500/50" : "bg-primary"
                 }`}
-                style={{ width: `${percent}%` }}
+                style={{ width: `${percentNum}%` }}
               />
             </div>
 
@@ -268,7 +326,11 @@ export default async function MemberDashboard() {
             <div className="pt-2 border-t border-border/60 flex items-center justify-between flex-wrap gap-2 text-xs">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-foreground/50">Status:</span>
-                {app.status === "PAID" ? (
+                {isIncompleteClosed ? (
+                  <span className="font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" /> Task Incomplete — Project Closed by Admin (No Payout)
+                  </span>
+                ) : app.status === "PAID" ? (
                   <span className="font-bold text-green-600 dark:text-green-400">
                     💰 Payout Processed & Paid in Full
                   </span>
@@ -311,7 +373,14 @@ export default async function MemberDashboard() {
 
         {/* Footer Action Button */}
         <div className="flex justify-end pt-1">
-          {isClosed ? (
+          {isIncompleteClosed ? (
+            <Link
+              href={`/member/projects/${app.project?.id || ""}`}
+              className="flex items-center gap-2 text-xs font-bold text-rose-500 hover:underline transition-colors"
+            >
+              View Closed Details <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          ) : isClosed ? (
             <Link
               href={`/member/projects/${app.project?.id || ""}`}
               className="flex items-center gap-2 text-xs font-bold text-foreground/60 hover:text-primary transition-colors"
@@ -511,8 +580,31 @@ export default async function MemberDashboard() {
             </div>
           </div>
 
-          {/* Empty state if both are empty */}
-          {activeApps.length === 0 && completedApps.length === 0 && (
+          {/* ── 3. INCOMPLETE / CLOSED TASKS ── */}
+          {incompleteApps.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                  <span className="p-1 rounded-lg bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                    <Lock className="w-4 h-4" />
+                  </span>
+                  Incomplete / Closed Tasks
+                  <span className="text-xs font-bold px-2 py-0.5 bg-rose-500/10 text-rose-500 rounded-full border border-rose-500/20">
+                    {incompleteApps.length}
+                  </span>
+                </h2>
+              </div>
+
+              <div className="space-y-4">
+                {incompleteApps.map((app) => (
+                  <ProjectCard key={app.id} app={app} isIncompleteSection={true} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state if all are empty */}
+          {activeApps.length === 0 && completedApps.length === 0 && incompleteApps.length === 0 && (
             <div className="glass p-12 rounded-2xl border border-border text-center">
               <Briefcase className="w-12 h-12 mx-auto mb-4 text-foreground/20" />
               <h3 className="text-lg font-bold text-foreground/50 mb-2">No projects yet</h3>
@@ -523,7 +615,7 @@ export default async function MemberDashboard() {
             </div>
           )}
 
-          {/* ── 3. REJECTED APPLICATIONS ── */}
+          {/* ── 4. REJECTED APPLICATIONS ── */}
           {rejectedApps.length > 0 && (
             <div>
               <h2 className="text-base font-bold text-foreground/50 flex items-center gap-2 mb-3">
