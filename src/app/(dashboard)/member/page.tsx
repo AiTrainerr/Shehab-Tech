@@ -3,7 +3,7 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
-import { Briefcase, CheckCircle, DollarSign, Star, Bell, Clock, ArrowRight, BookOpen, Shield, BadgeCheck, Trophy, Mic, Lock, AlertCircle, FileCheck } from "lucide-react"
+import { Briefcase, CheckCircle, DollarSign, Star, Bell, ArrowRight, BookOpen, Shield, BadgeCheck, Trophy, Mic, Lock, FileCheck } from "lucide-react"
 import { MemberDashboardClient } from "@/components/member-dashboard-client"
 import { getUserLevel, getUserBadges, getLevelProgress, getNextLevel } from "@/lib/gamification"
 import { LevelCard } from "@/components/achievement-badge"
@@ -136,11 +136,10 @@ export default async function MemberDashboard() {
   const totalEarnings = paidApps.reduce((sum, app) => sum + (app.project?.price ?? 0), 0)
 
   // Smart categorization:
-  // A project is considered COMPLETED / IN REVIEW if:
-  // 1. The admin marked the project as COMPLETED
-  // 2. The application is APPROVED or PAID
-  // 3. The application is UNDER_REVIEW or FINAL_REVIEW
-  // 4. The user has finished recording all required sentences
+  // Finished / Review:
+  // - Admin marked project as COMPLETED
+  // - Or application status is APPROVED, PAID, FINAL_REVIEW, UNDER_REVIEW
+  // - Or user recorded all sentences
   const isProjectFinished = (app: any) => {
     if (app.status === "APPROVED" || app.status === "PAID") return true
     if (app.status === "FINAL_REVIEW" || app.status === "UNDER_REVIEW") return true
@@ -156,10 +155,10 @@ export default async function MemberDashboard() {
   const rejectedApps = allApplications.filter(a => a.status === "REJECTED")
 
   // Gamification
-  const level    = getUserLevel(user.completedCount)
+  const level = getUserLevel(user.completedCount)
   const progress = getLevelProgress(user.completedCount)
   const nextLevel = getNextLevel(user.completedCount)
-  const badges   = getUserBadges({
+  const badges = getUserBadges({
     completedCount: user.completedCount,
     rating: user.rating,
     verificationStatus: user.verificationStatus,
@@ -168,17 +167,173 @@ export default async function MemberDashboard() {
 
   function StatusBadge({ status }: { status: string }) {
     const cfg =
-      status === "PAID"         ? { cls: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",     label: "💰 Paid — تم الصرف" } :
-      status === "APPROVED"     ? { cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400", label: "✅ Client Approved — تم القبول" } :
-      status === "FINAL_REVIEW" ? { cls: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400",   label: "🔍 مراجعة العميل النهائي (Final Client Review)" } :
-      status === "UNDER_REVIEW" ? { cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",   label: "🔎 مراجعة المنصة (Platform QA)" } :
-      status === "WORKING"      ? { cls: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",           label: "⚡ In Progress — قيد العمل" } :
-      status === "ACCEPTED"     ? { cls: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400",   label: "✔ Accepted — مقبول للبدء" } :
-      status === "REJECTED"     ? { cls: "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400",              label: "✗ Rejected — مرفوض" } :
-                                  { cls: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400",  label: "⏳ Pending — قيد المراجعة" }
+      status === "PAID"         ? { cls: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",     label: "💰 Paid" } :
+      status === "APPROVED"     ? { cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400", label: "✅ Client Approved" } :
+      status === "FINAL_REVIEW" ? { cls: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400",   label: "🔍 Final Client Review" } :
+      status === "UNDER_REVIEW" ? { cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",   label: "🔎 Platform QA Review" } :
+      status === "WORKING"      ? { cls: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",           label: "⚡ In Progress" } :
+      status === "ACCEPTED"     ? { cls: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400",   label: "✔ Accepted" } :
+      status === "REJECTED"     ? { cls: "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400",              label: "✗ Rejected" } :
+                                  { cls: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400",  label: "⏳ Pending" }
     return (
       <div className={`text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 border ${cfg.cls}`}>
         {cfg.label}
+      </div>
+    )
+  }
+
+  // Unified Project Card Component
+  const ProjectCard = ({ app, isCompletedSection = false }: { app: any; isCompletedSection?: boolean }) => {
+    const stats = projectRecordingStats[app.project?.id || ""] || { total: 0, accepted: 0, rejected: 0 }
+    const sentencesTarget = app.project?.sentencesPerUser || (stats.total > 0 ? stats.total : null)
+    const isClosed = app.project?.status === "COMPLETED"
+
+    // Real progress percentage
+    const percent = sentencesTarget ? Math.min(100, Math.round((stats.total / sentencesTarget) * 100)) : (stats.total > 0 ? 100 : 0)
+    const isFullyRecorded = sentencesTarget ? stats.total >= sentencesTarget : stats.total > 0
+
+    return (
+      <div
+        className={`glass p-6 rounded-2xl border transition-all animate-slide-up ${
+          app.status === "PAID"
+            ? "border-green-500/30 bg-green-500/5 hover:border-green-500/50"
+            : app.status === "APPROVED"
+            ? "border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50"
+            : app.status === "FINAL_REVIEW"
+            ? "border-purple-500/20 bg-purple-500/5 hover:border-purple-500/40"
+            : "border-border hover:border-primary/30"
+        }`}
+      >
+        {/* Header Row */}
+        <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className="text-lg font-bold truncate">{app.project?.title || "Unknown Project"}</h3>
+              {isClosed && (
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-foreground/10 text-foreground/60 rounded-full border border-border shrink-0 flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" /> Closed
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-foreground/60 line-clamp-2">{stripHtml(app.project?.description || "")}</p>
+          </div>
+          <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
+            <div className="text-xl font-black text-primary">${app.project?.price?.toFixed(2) ?? "—"}</div>
+            <StatusBadge status={app.status} />
+          </div>
+        </div>
+
+        {/* Stepper */}
+        <div className="mb-4 pt-4 border-t border-border">
+          <p className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">
+            Approval & Payout Stages:
+          </p>
+          <ApplicationStepper status={app.status} />
+        </div>
+
+        {/* Detailed Recording Progress & Review Status Box */}
+        {!app.project?.isTranscriptionProject && (stats.total > 0 || sentencesTarget) && (
+          <div className="mb-4 p-3.5 bg-background/60 rounded-xl border border-border">
+            <div className="flex items-center justify-between gap-2 flex-wrap text-sm mb-2">
+              <span className="font-bold text-foreground/80 flex items-center gap-1.5">
+                <Mic className="w-4 h-4 text-primary" />
+                Recorded Sentences: {stats.total}{sentencesTarget ? ` / ${sentencesTarget}` : ""} ({percent}%)
+              </span>
+              {isFullyRecorded ? (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-400">
+                  ✓ Recording Complete
+                </span>
+              ) : isClosed ? (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-zinc-500/10 text-zinc-500 dark:text-zinc-400">
+                  🔒 Closed Incomplete
+                </span>
+              ) : (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-500">
+                  ⚡ In Progress
+                </span>
+              )}
+            </div>
+
+            {/* Dynamic Progress Bar */}
+            <div className="w-full bg-border rounded-full h-2 mb-3 overflow-hidden">
+              <div
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  isFullyRecorded ? "bg-green-500" : isClosed ? "bg-zinc-500/50" : "bg-primary"
+                }`}
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+
+            {/* Payout & Review Details */}
+            <div className="pt-2 border-t border-border/60 flex items-center justify-between flex-wrap gap-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-foreground/50">Status:</span>
+                {app.status === "PAID" ? (
+                  <span className="font-bold text-green-600 dark:text-green-400">
+                    💰 Payout Processed & Paid in Full
+                  </span>
+                ) : app.status === "APPROVED" ? (
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    ✅ Client Approved — Payout Scheduled
+                  </span>
+                ) : app.status === "FINAL_REVIEW" ? (
+                  <span className="font-bold text-purple-600 dark:text-purple-400">
+                    🔍 Under Final Client Review & Verification
+                  </span>
+                ) : app.status === "UNDER_REVIEW" ? (
+                  <span className="font-bold text-orange-600 dark:text-orange-400">
+                    🔎 Under Platform QA1 Review
+                  </span>
+                ) : isClosed ? (
+                  <span className="font-medium text-foreground/50">
+                    🔒 Project Closed by Admin — Recording Closed
+                  </span>
+                ) : (
+                  <span className="font-medium text-primary">
+                    ⚡ Session Active — Follow Instructions to Record
+                  </span>
+                )}
+              </div>
+
+              {stats.accepted > 0 && (
+                <span className="text-green-600 dark:text-green-400 font-bold">
+                  {stats.accepted} accepted
+                </span>
+              )}
+              {stats.rejected > 0 && (
+                <span className="text-red-500 font-bold">
+                  ⚠ {stats.rejected} need re-record
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Footer Action Button */}
+        <div className="flex justify-end pt-1">
+          {isClosed ? (
+            <Link
+              href={`/member/projects/${app.project?.id || ""}`}
+              className="flex items-center gap-2 text-xs font-bold text-foreground/60 hover:text-primary transition-colors"
+            >
+              View Project Details <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          ) : (app.status === "ACCEPTED" || app.status === "WORKING") ? (
+            <Link
+              href={`/member/projects/${app.project?.id || ""}`}
+              className="flex items-center gap-2 text-sm font-bold bg-primary text-primary-foreground px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20"
+            >
+              Start Working <ArrowRight className="w-4 h-4" />
+            </Link>
+          ) : (
+            <Link
+              href={`/member/projects/${app.project?.id || ""}`}
+              className="flex items-center gap-2 text-xs font-bold text-primary hover:underline"
+            >
+              View Details <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          )}
+        </div>
       </div>
     )
   }
@@ -237,7 +392,7 @@ export default async function MemberDashboard() {
           {
             label: "Active Projects",
             value: activeApps.length.toString(),
-            sub: activeApps.length > 0 ? `${activeApps.length} open for recording` : "No open tasks",
+            sub: activeApps.length > 0 ? `${activeApps.length} open for recording` : "No active projects",
             icon: Briefcase,
             color: "green",
             delay: "stagger-2",
@@ -315,103 +470,26 @@ export default async function MemberDashboard() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                   <Briefcase className="w-5 h-5 text-primary" />
-                  Active Projects (مشاريع قيد التسجيل والعمل)
+                  Active Projects
                   <span className="text-xs font-bold px-2 py-0.5 bg-primary/10 text-primary rounded-full">{activeApps.length}</span>
                 </h2>
                 <Link href="/member/projects" className="text-sm font-semibold text-primary hover:underline">Browse More</Link>
               </div>
 
               <div className="space-y-4">
-                {activeApps.map((app) => {
-                  const stats = projectRecordingStats[app.project?.id || ""]
-                  const sentencesTarget = app.project?.sentencesPerUser ?? null
-                  const isCompleted = app.project?.status === "COMPLETED"
-                  return (
-                    <div key={app.id} className="glass p-6 rounded-2xl border border-border hover:border-primary/30 transition-all animate-slide-up">
-                      {/* Header Row */}
-                      <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <h3 className="text-lg font-bold truncate">{app.project?.title || "Unknown Project"}</h3>
-                            {isCompleted && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 bg-foreground/10 text-foreground/40 rounded-full border border-foreground/10 shrink-0">
-                                🔒 Closed
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-foreground/60 line-clamp-2">{stripHtml(app.project?.description || "")}</p>
-                        </div>
-                        <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
-                          <div className="text-xl font-black text-primary">${app.project?.price?.toFixed(2) ?? "—"}</div>
-                          <StatusBadge status={app.status} />
-                        </div>
-                      </div>
-
-                      {/* Stepper */}
-                      <div className="mb-4 pt-4 border-t border-border">
-                        <ApplicationStepper status={app.status} />
-                      </div>
-
-                      {/* Recording Stats (voice projects only) */}
-                      {stats && !app.project?.isTranscriptionProject && (stats.total > 0 || sentencesTarget) && (
-                        <div className="mb-4 p-3.5 bg-background/60 rounded-xl border border-border">
-                          <p className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">Recording Progress (تقدم التسجيل)</p>
-                          <div className="flex items-center gap-4 flex-wrap text-sm">
-                            <span className="flex items-center gap-1.5 font-semibold">
-                              <Mic className="w-3.5 h-3.5 text-primary" />
-                              {stats.total}{sentencesTarget ? ` / ${sentencesTarget}` : ""} recorded
-                            </span>
-                            {stats.accepted > 0 && (
-                              <span className="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold">
-                                <CheckCircle className="w-3.5 h-3.5" /> {stats.accepted} accepted
-                              </span>
-                            )}
-                            {stats.rejected > 0 && (
-                              <span className="flex items-center gap-1 text-red-500 font-semibold">
-                                ⚠ {stats.rejected} need re-record
-                              </span>
-                            )}
-                          </div>
-                          {sentencesTarget && stats.total > 0 && (
-                            <div className="mt-2 w-full bg-border rounded-full h-1.5">
-                              <div
-                                className="bg-primary h-1.5 rounded-full transition-all"
-                                style={{ width: `${Math.min(100, (stats.total / sentencesTarget) * 100)}%` }}
-                              />
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Action Button */}
-                      <div className="flex justify-end">
-                        {isCompleted ? (
-                          <span className="text-xs font-bold text-foreground/40 flex items-center gap-1.5">
-                            <Lock className="w-3.5 h-3.5" /> Recording Closed
-                          </span>
-                        ) : (app.status === "ACCEPTED" || app.status === "WORKING") ? (
-                          <Link href={`/member/projects/${app.project?.id || ""}`} className="flex items-center gap-2 text-sm font-bold bg-primary text-primary-foreground px-5 py-2.5 rounded-lg hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
-                            Start Working <ArrowRight className="w-4 h-4" />
-                          </Link>
-                        ) : (
-                          <Link href={`/member/projects/${app.project?.id || ""}`} className="flex items-center gap-2 text-sm font-bold text-primary hover:underline">
-                            View Details <ArrowRight className="w-4 h-4" />
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+                {activeApps.map((app) => (
+                  <ProjectCard key={app.id} app={app} isCompletedSection={false} />
+                ))}
               </div>
             </div>
           )}
 
-          {/* ── 2. COMPLETED & IN REVIEW / PAYOUT PROJECTS ── */}
+          {/* ── 2. COMPLETED & IN-REVIEW PROJECTS ── */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-emerald-500" />
-                Completed Projects (المشاريع المكتملة ومرحلة القبول والدفع)
+                Completed Projects & Review
                 {completedApps.length > 0 && (
                   <span className="text-xs font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full">{completedApps.length}</span>
                 )}
@@ -426,109 +504,9 @@ export default async function MemberDashboard() {
                   <p className="text-xs text-foreground/40">When you complete tasks or projects finish, their reviews and payout stages will appear here.</p>
                 </div>
               ) : (
-                completedApps.map((app) => {
-                  const stats = projectRecordingStats[app.project?.id || ""]
-                  const sentencesTarget = app.project?.sentencesPerUser ?? null
-                  const isPaid = app.status === "PAID"
-                  const isApproved = app.status === "APPROVED"
-
-                  return (
-                    <div
-                      key={app.id}
-                      className={`glass p-6 rounded-2xl border transition-all animate-slide-up ${
-                        isPaid
-                          ? "border-green-500/30 bg-green-500/5 hover:border-green-500/50"
-                          : isApproved
-                          ? "border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50"
-                          : "border-primary/20 bg-primary/5 hover:border-primary/40"
-                      }`}
-                    >
-                      {/* Header Row */}
-                      <div className="flex flex-col sm:flex-row justify-between gap-3 mb-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <h3 className="text-lg font-bold truncate">{app.project?.title || "Unknown Project"}</h3>
-                            <span className="text-[10px] font-bold px-2 py-0.5 bg-foreground/10 text-foreground/60 rounded-full border border-border shrink-0">
-                              🔒 التسجيل مكتمل (Closed)
-                            </span>
-                          </div>
-                          <p className="text-sm text-foreground/60 line-clamp-2">{stripHtml(app.project?.description || "")}</p>
-                        </div>
-                        <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
-                          <div className="text-xl font-black text-primary">${app.project?.price?.toFixed(2) ?? "—"}</div>
-                          <StatusBadge status={app.status} />
-                        </div>
-                      </div>
-
-                      {/* Approval Stage Stepper */}
-                      <div className="mb-4 pt-4 border-t border-border">
-                        <p className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-2">مراحل القبول والدفع (Approval & Payout Stages):</p>
-                        <ApplicationStepper status={app.status} />
-                      </div>
-
-                      {/* Detailed Recording Progress & Payout Info */}
-                      <div className="mb-4 p-3.5 bg-background/70 rounded-xl border border-border">
-                        <div className="flex items-center justify-between gap-2 flex-wrap text-sm mb-2">
-                          <span className="font-bold text-foreground/70 flex items-center gap-1.5">
-                            <Mic className="w-4 h-4 text-primary" />
-                            إجمالي الجمل المسجلة: {stats?.total || 0}{sentencesTarget ? ` / ${sentencesTarget}` : ""} جملة
-                          </span>
-                          <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-400">
-                            ✓ اكتمل تسجيل الجمل
-                          </span>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="w-full bg-border rounded-full h-2 mb-3">
-                          <div
-                            className="bg-green-500 h-2 rounded-full transition-all"
-                            style={{ width: "100%" }}
-                          />
-                        </div>
-
-                        {/* Payout & Review Details Box */}
-                        <div className="pt-2 border-t border-border/60 flex items-center justify-between flex-wrap gap-2 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground/60">حالة الصرف والدفع:</span>
-                            {isPaid ? (
-                              <span className="font-bold text-green-600 dark:text-green-400 flex items-center gap-1">
-                                💰 تم صرف الدفعة بنجاح (Paid)
-                              </span>
-                            ) : isApproved ? (
-                              <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                ✅ تم القبول النهائي — بانتظار تحويل المستحقات
-                              </span>
-                            ) : app.status === "FINAL_REVIEW" ? (
-                              <span className="font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
-                                🔍 قيد مراجعة العميل النهائي (Final Client Review) — بانتظار الاعتماد وصرف المستحقات
-                              </span>
-                            ) : (
-                              <span className="font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1">
-                                🔎 قيد مراجعة جودة المنصة (QA1 Review)
-                              </span>
-                            )}
-                          </div>
-
-                          {stats?.accepted && stats.accepted > 0 ? (
-                            <span className="text-green-600 dark:text-green-400 font-bold">
-                              {stats.accepted} جملة مقبولة ✓
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-
-                      {/* Footer Actions */}
-                      <div className="flex justify-end pt-1">
-                        <Link
-                          href={`/member/projects/${app.project?.id || ""}`}
-                          className="flex items-center gap-2 text-xs font-bold text-primary hover:underline"
-                        >
-                          عرض تفاصيل وسجل المشروع بالكامل <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
-                      </div>
-                    </div>
-                  )
-                })
+                completedApps.map((app) => (
+                  <ProjectCard key={app.id} app={app} isCompletedSection={true} />
+                ))
               )}
             </div>
           </div>
@@ -545,7 +523,7 @@ export default async function MemberDashboard() {
             </div>
           )}
 
-          {/* ── 3. REJECTED (collapsed) ── */}
+          {/* ── 3. REJECTED APPLICATIONS ── */}
           {rejectedApps.length > 0 && (
             <div>
               <h2 className="text-base font-bold text-foreground/50 flex items-center gap-2 mb-3">

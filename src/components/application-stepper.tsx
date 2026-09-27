@@ -1,25 +1,29 @@
-import { CheckCircle, Clock, DollarSign, Search, Users, Lock } from "lucide-react"
+"use client"
+
+import * as React from "react"
+import { Clock, Search, Users, DollarSign, CheckCircle } from "lucide-react"
 
 interface ApplicationStepperProps {
   status: string
+  className?: string
 }
 
 interface Step {
   id: number
   label: string
-  labelAr: string
+  sublabel: string
   description: string
   icon: React.ElementType
-  statuses: string[] // DB statuses that map to "this step is active/current"
-  completedStatuses: string[] // DB statuses that mean this step is DONE
+  statuses: string[]
+  completedStatuses: string[]
 }
 
 const STEPS: Step[] = [
   {
     id: 1,
     label: "Recording",
-    labelAr: "قيد التسجيل",
-    description: "تم قبول طلبك وتسجيل الجمل قيد التنفيذ.",
+    sublabel: "Task Session",
+    description: "Application accepted. Recording tasks in progress.",
     icon: Clock,
     statuses: ["ACCEPTED", "WORKING"],
     completedStatuses: ["UNDER_REVIEW", "FINAL_REVIEW", "APPROVED", "PAID"],
@@ -27,8 +31,8 @@ const STEPS: Step[] = [
   {
     id: 2,
     label: "Platform Review",
-    labelAr: "مراجعة المنصة (QA1)",
-    description: "تم تسليم تسجيلاتك وتخضع لفحص الجودة الأولي.",
+    sublabel: "QA1 Check",
+    description: "Recordings submitted. Under initial quality check.",
     icon: Search,
     statuses: ["UNDER_REVIEW"],
     completedStatuses: ["FINAL_REVIEW", "APPROVED", "PAID"],
@@ -36,8 +40,8 @@ const STEPS: Step[] = [
   {
     id: 3,
     label: "Client Review",
-    labelAr: "مراجعة العميل النهائي",
-    description: "اجتزت فحص المنصة بنجاح — التسجيلات حالياً تحت مراجعة العميل النهائي للاعتماد.",
+    sublabel: "Final Review",
+    description: "Platform QA passed. Under final client review & verification.",
     icon: Users,
     statuses: ["FINAL_REVIEW"],
     completedStatuses: ["APPROVED", "PAID"],
@@ -45,8 +49,8 @@ const STEPS: Step[] = [
   {
     id: 4,
     label: "Payout",
-    labelAr: "الاعتماد والدفع",
-    description: "تم اعتماد العمل وقبوله نهائياً وصرف المستحقات المالية.",
+    sublabel: "Completion",
+    description: "Final approval granted. Payment released & transferred.",
     icon: DollarSign,
     statuses: ["APPROVED", "PAID"],
     completedStatuses: [],
@@ -59,44 +63,37 @@ function getStepState(step: Step, status: string): "completed" | "current" | "up
   return "upcoming"
 }
 
-export function ApplicationStepper({ status }: ApplicationStepperProps) {
-  const isRejected = status === "REJECTED"
-  const isPending = status === "PENDING"
-
-  if (isPending) {
+export function ApplicationStepper({ status, className = "" }: ApplicationStepperProps) {
+  // If rejected, show clear rejection banner
+  if (status === "REJECTED") {
     return (
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
-        <Clock className="w-5 h-5 text-yellow-500 shrink-0 animate-pulse" />
-        <div>
-          <p className="font-bold text-yellow-600 dark:text-yellow-400">Pending Review</p>
-          <p className="text-xs text-foreground/60 mt-0.5">Your application is awaiting admin approval. (قيد الانتظار)</p>
-        </div>
+      <div className={`p-4 rounded-xl border border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400 text-sm font-semibold flex items-center gap-2 ${className}`}>
+        <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
+        <span>Application Rejected — This submission did not meet the required specifications.</span>
       </div>
     )
   }
 
-  if (isRejected) {
+  // If pending initial approval
+  if (status === "PENDING") {
     return (
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-        <Lock className="w-5 h-5 text-red-500 shrink-0" />
-        <div>
-          <p className="font-bold text-red-500">Application Rejected</p>
-          <p className="text-xs text-foreground/60 mt-0.5">Unfortunately your application was not accepted. (تم الرفض)</p>
-        </div>
+      <div className={`p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-yellow-700 dark:text-yellow-400 text-sm font-semibold flex items-center gap-2 ${className}`}>
+        <span className="w-2 h-2 rounded-full bg-yellow-500 shrink-0 animate-ping" />
+        <span>Application Pending Review — Awaiting project supervisor approval.</span>
       </div>
     )
   }
 
   return (
-    <div className="w-full">
-      {/* Mobile: vertical layout */}
-      <div className="flex flex-col gap-0 sm:hidden">
+    <div className={`w-full ${className}`}>
+      {/* Mobile: vertical stepper */}
+      <div className="block sm:hidden space-y-4">
         {STEPS.map((step, idx) => {
           const state = getStepState(step, status)
           const Icon = step.icon
           return (
-            <div key={step.id} className="flex gap-4">
-              {/* Left: dot + line */}
+            <div key={step.id} className="flex items-start gap-3">
+              {/* Left: icon with connecting line */}
               <div className="flex flex-col items-center">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
                   state === "completed"
@@ -125,7 +122,7 @@ export function ApplicationStepper({ status }: ApplicationStepperProps) {
                   "text-foreground/40"
                 }`}>
                   {step.label}
-                  <span className="font-normal text-foreground/50 mr-1 text-xs"> · {step.labelAr}</span>
+                  <span className="font-normal text-foreground/50 ml-1 text-xs"> · {step.sublabel}</span>
                 </p>
                 {state === "current" && (
                   <p className="text-xs text-foreground/60 mt-0.5 leading-relaxed">{step.description}</p>
@@ -163,8 +160,8 @@ export function ApplicationStepper({ status }: ApplicationStepperProps) {
                 </div>
                 {/* Connector line between steps */}
                 {idx < STEPS.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-1 transition-all duration-300 ${
-                    state === "completed" ? "bg-green-400" : "bg-border"
+                  <div className={`flex-1 h-0.5 mx-2 transition-all duration-300 ${
+                    state === "completed" ? "bg-green-500" : "bg-border"
                   }`} />
                 )}
               </div>
@@ -177,7 +174,7 @@ export function ApplicationStepper({ status }: ApplicationStepperProps) {
           {STEPS.map((step) => {
             const state = getStepState(step, status)
             return (
-              <div key={step.id} className="flex-1 last:flex-none pr-2">
+              <div key={step.id} className="flex-1 last:flex-none pr-3">
                 <p className={`text-xs font-bold leading-tight ${
                   state === "current" ? "text-primary" :
                   state === "completed" ? "text-green-600 dark:text-green-400" :
@@ -185,13 +182,13 @@ export function ApplicationStepper({ status }: ApplicationStepperProps) {
                 }`}>
                   {step.label}
                 </p>
-                <p className={`text-[10px] mt-0.5 ${
+                <p className={`text-[11px] mt-0.5 font-medium ${
                   state === "current" ? "text-foreground/60" : "text-foreground/30"
                 }`}>
-                  {step.labelAr}
+                  {step.sublabel}
                 </p>
                 {state === "current" && (
-                  <p className="text-[10px] text-primary/70 mt-1 leading-relaxed max-w-[120px]">
+                  <p className="text-[11px] text-primary/80 mt-1 leading-relaxed max-w-[130px]">
                     {step.description}
                   </p>
                 )}
@@ -214,11 +211,11 @@ export function ApplicationStepper({ status }: ApplicationStepperProps) {
           : "bg-primary/10 text-primary border-primary/20"
       }`}>
         <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-        {status === "PAID" && "💰 تم صرف المستحقات بالكامل (Paid)"}
-        {status === "APPROVED" && "✅ معتمد نهائياً من العميل — بانتظار إرسال الدفعة (Client Approved)"}
-        {status === "FINAL_REVIEW" && "🔍 تحت مراجعة العميل النهائي (Final Client Review)"}
-        {status === "UNDER_REVIEW" && "🔎 تحت مراجعة جودة المنصة (QA1 Review)"}
-        {(status === "WORKING" || status === "ACCEPTED") && "⚡ قيد تسجيل المهام (In Progress)"}
+        {status === "PAID" && "💰 Paid — Payment Processed"}
+        {status === "APPROVED" && "✅ Client Approved — Payout Scheduled"}
+        {status === "FINAL_REVIEW" && "🔍 Final Client Review — Under Client Verification"}
+        {status === "UNDER_REVIEW" && "🔎 Platform Review — Under QA1 Check"}
+        {(status === "WORKING" || status === "ACCEPTED") && "⚡ In Progress — Recording Tasks Active"}
       </div>
     </div>
   )
