@@ -17,36 +17,36 @@ interface Step {
 const STEPS: Step[] = [
   {
     id: 1,
-    label: "Working",
-    labelAr: "قيد التنفيذ",
-    description: "You have been accepted and are completing your tasks.",
+    label: "Recording",
+    labelAr: "قيد التسجيل",
+    description: "تم قبول طلبك وتسجيل الجمل قيد التنفيذ.",
     icon: Clock,
     statuses: ["ACCEPTED", "WORKING"],
     completedStatuses: ["UNDER_REVIEW", "FINAL_REVIEW", "APPROVED", "PAID"],
   },
   {
     id: 2,
-    label: "QA1 Review",
-    labelAr: "مراجعة QA1",
-    description: "Your work is being reviewed by our first quality reviewer.",
+    label: "Platform Review",
+    labelAr: "مراجعة المنصة (QA1)",
+    description: "تم تسليم تسجيلاتك وتخضع لفحص الجودة الأولي.",
     icon: Search,
     statuses: ["UNDER_REVIEW"],
     completedStatuses: ["FINAL_REVIEW", "APPROVED", "PAID"],
   },
   {
     id: 3,
-    label: "QA2 / Client",
-    labelAr: "QA2 / العميل",
-    description: "Final review stage — approved by client or second QA.",
+    label: "Client Review",
+    labelAr: "مراجعة العميل النهائي",
+    description: "اجتزت فحص المنصة بنجاح — التسجيلات حالياً تحت مراجعة العميل النهائي للاعتماد.",
     icon: Users,
     statuses: ["FINAL_REVIEW"],
     completedStatuses: ["APPROVED", "PAID"],
   },
   {
     id: 4,
-    label: "Paid",
-    labelAr: "تم الدفع",
-    description: "Your payout has been processed successfully.",
+    label: "Payout",
+    labelAr: "الاعتماد والدفع",
+    description: "تم اعتماد العمل وقبوله نهائياً وصرف المستحقات المالية.",
     icon: DollarSign,
     statuses: ["APPROVED", "PAID"],
     completedStatuses: [],
@@ -214,11 +214,11 @@ export function ApplicationStepper({ status }: ApplicationStepperProps) {
           : "bg-primary/10 text-primary border-primary/20"
       }`}>
         <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
-        {status === "PAID" && "💰 Paid — تم الدفع"}
-        {status === "APPROVED" && "✅ Client Approved — تم قبول العميل"}
-        {status === "FINAL_REVIEW" && "🔍 QA2 Review — المراجعة الثانية"}
-        {status === "UNDER_REVIEW" && "🔎 QA1 Review — المراجعة الأولى"}
-        {(status === "WORKING" || status === "ACCEPTED") && "⚡ Working — قيد التنفيذ"}
+        {status === "PAID" && "💰 تم صرف المستحقات بالكامل (Paid)"}
+        {status === "APPROVED" && "✅ معتمد نهائياً من العميل — بانتظار إرسال الدفعة (Client Approved)"}
+        {status === "FINAL_REVIEW" && "🔍 تحت مراجعة العميل النهائي (Final Client Review)"}
+        {status === "UNDER_REVIEW" && "🔎 تحت مراجعة جودة المنصة (QA1 Review)"}
+        {(status === "WORKING" || status === "ACCEPTED") && "⚡ قيد تسجيل المهام (In Progress)"}
       </div>
     </div>
   )

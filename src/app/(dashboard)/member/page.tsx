@@ -170,8 +170,8 @@ export default async function MemberDashboard() {
     const cfg =
       status === "PAID"         ? { cls: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",     label: "💰 Paid — تم الصرف" } :
       status === "APPROVED"     ? { cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400", label: "✅ Client Approved — تم القبول" } :
-      status === "FINAL_REVIEW" ? { cls: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400",   label: "🔍 QA2 Review — مراجعة نهائية" } :
-      status === "UNDER_REVIEW" ? { cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",   label: "🔎 QA1 Review — مراجعة أولى" } :
+      status === "FINAL_REVIEW" ? { cls: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400",   label: "🔍 مراجعة العميل النهائي (Final Client Review)" } :
+      status === "UNDER_REVIEW" ? { cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",   label: "🔎 مراجعة المنصة (Platform QA)" } :
       status === "WORKING"      ? { cls: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",           label: "⚡ In Progress — قيد العمل" } :
       status === "ACCEPTED"     ? { cls: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400",   label: "✔ Accepted — مقبول للبدء" } :
       status === "REJECTED"     ? { cls: "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400",              label: "✗ Rejected — مرفوض" } :
@@ -500,11 +500,11 @@ export default async function MemberDashboard() {
                               </span>
                             ) : app.status === "FINAL_REVIEW" ? (
                               <span className="font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1">
-                                🔍 قيد المراجعة النهائية (QA2 / Client)
+                                🔍 قيد مراجعة العميل النهائي (Final Client Review) — بانتظار الاعتماد وصرف المستحقات
                               </span>
                             ) : (
                               <span className="font-bold text-orange-600 dark:text-orange-400 flex items-center gap-1">
-                                🔎 قيد المراجعة الأولى (QA1 Review)
+                                🔎 قيد مراجعة جودة المنصة (QA1 Review)
                               </span>
                             )}
                           </div>
