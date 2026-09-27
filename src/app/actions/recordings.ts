@@ -593,3 +593,102 @@ export async function reviewAllRecordings(applicationId: string, action: "APPROV
     return { success: false, error: e.message }
   }
 }
+
+// ─── Set Accepted Sentences Count & Update Status ───────────────────────────
+export async function setAcceptedSentencesCount(
+  applicationId: string,
+  acceptedCount: number,
+  targetStatus: "FINAL_REVIEW" | "APPROVED" = "FINAL_REVIEW"
+) {
+  try {
+    const supabase = await createClientServer()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in" }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true, firstName: true, lastName: true, canReviewQC: true }
+    })
+    const isAllowed = dbUser?.role === "ADMIN" || dbUser?.role === "SUPER_ADMIN" || dbUser?.role === "QC_REVIEWER" || (dbUser?.role === "MODERATOR" && dbUser.canReviewQC)
+    if (!isAllowed) {
+      return { success: false, error: "Unauthorized" }
+    }
+
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { project: true }
+    })
+    if (!application) return { success: false, error: "Application not found" }
+
+    const recordings = await prisma.voiceRecording.findMany({
+      where: {
+        userId: application.userId,
+        sentence: { projectId: application.projectId }
+      },
+      orderBy: [
+        { sentence: { order: "asc" } },
+        { createdAt: "asc" }
+      ]
+    })
+
+    if (recordings.length === 0) return { success: false, error: "No recordings found for this user." }
+
+    const countToAccept = Math.max(0, Math.min(recordings.length, acceptedCount))
+    const toAcceptIds = recordings.slice(0, countToAccept).map(r => r.id)
+    const toRejectIds = recordings.slice(countToAccept).map(r => r.id)
+
+    const reviewerName = `${dbUser?.firstName || 'Admin'} ${dbUser?.lastName || ''}`.trim()
+
+    await prisma.$transaction(async (tx) => {
+      if (toAcceptIds.length > 0) {
+        await tx.voiceRecording.updateMany({
+          where: { id: { in: toAcceptIds } },
+          data: {
+            status: "ACCEPTED",
+            reviewedBy: reviewerName,
+            rejectionReason: null
+          }
+        })
+      }
+
+      if (toRejectIds.length > 0) {
+        await tx.voiceRecording.updateMany({
+          where: { id: { in: toRejectIds } },
+          data: {
+            status: "REJECTED",
+            reviewedBy: reviewerName,
+            rejectionReason: "Exceeded accepted sentences count."
+          }
+        })
+      }
+
+      await tx.application.update({
+        where: { id: applicationId },
+        data: { status: targetStatus }
+      })
+    })
+
+    await createNotification(
+      application.userId,
+      targetStatus === "APPROVED" ? "🎉 Application Approved!" : "📋 Sentences Accepted & Under Final Review",
+      `${countToAccept} recordings for "${application.project.title}" have been approved. Status: ${targetStatus}.`,
+      `/member/projects/${application.projectId}`
+    )
+
+    await createAuditLog(
+      "SET_ACCEPTED_SENTENCES",
+      `${reviewerName} accepted ${countToAccept}/${recordings.length} sentences for application ${applicationId}, status set to ${targetStatus}.`
+    )
+
+    revalidatePath("/admin/applications")
+    revalidatePath(`/admin/applications/${applicationId}/review`)
+    revalidatePath(`/member`)
+    revalidatePath(`/member/projects/${application.projectId}`)
+
+    return { success: true, acceptedCount: countToAccept }
+  } catch (e: any) {
+    console.error("setAcceptedSentencesCount error:", e)
+    return { success: false, error: e.message }
+  }
+}
+

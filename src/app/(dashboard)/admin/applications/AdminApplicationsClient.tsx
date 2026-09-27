@@ -2,8 +2,10 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Check, X, Search, FileText, User, BadgeCheck, Mic2, Download, Clock, ChevronDown } from "lucide-react"
+import { Check, X, Search, FileText, User, BadgeCheck, Mic2, Download, Clock, ChevronDown, Lock, CheckCircle2, Sliders } from "lucide-react"
 import { approveApplication, rejectApplication, deleteApplication, extendApplicationTime } from "@/app/actions/projects"
+import { setAcceptedSentencesCount } from "@/app/actions/recordings"
+
 interface Application {
   id: string
   status: string
@@ -19,7 +21,7 @@ interface Application {
   speakerCode?: string | null
   proofUrl?: string | null
   projectRole?: string
-  project: { id: string; title: string; pricingModel: string; workflowType?: string; zipNamingRule?: string }
+  project: { id: string; title: string; status?: string; pricingModel: string; workflowType?: string; zipNamingRule?: string }
   user: { id: string; firstName: string; lastName: string; email: string; phone?: string | null; gender?: string | null; age?: number | null; ranking: string; verificationStatus: string }
 }
 
@@ -69,8 +71,51 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
   const [downloadStatusFilter, setDownloadStatusFilter] = React.useState<string[]>([])
   const [searchTerm, setSearchTerm] = React.useState<string>("")
   const [loading, setLoading] = React.useState<string | null>(null)
+  const [bulkLoading, setBulkLoading] = React.useState<boolean>(false)
   const [selectedAppIds, setSelectedAppIds] = React.useState<Set<string>>(new Set())
   const [downloadedAppIds, setDownloadedAppIds] = React.useState<Set<string>>(new Set())
+  
+  // Custom accepted sentences modal state
+  const [acceptSentencesModal, setAcceptSentencesModal] = React.useState<{
+    appId: string;
+    applicantName: string;
+    projectTitle: string;
+    recordedCount: number;
+    currentAccepted: number;
+  } | null>(null)
+  const [acceptSentencesInput, setAcceptSentencesInput] = React.useState<number>(80)
+  const [acceptTargetStatus, setAcceptTargetStatus] = React.useState<"FINAL_REVIEW" | "APPROVED">("FINAL_REVIEW")
+
+  // Load persistent project filter from localStorage
+  React.useEffect(() => {
+    try {
+      const savedProjects = localStorage.getItem("admin_selected_projects")
+      if (savedProjects) {
+        const parsed = JSON.parse(savedProjects)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setProjectFilter(parsed)
+        }
+      }
+    } catch (e) {}
+  }, [])
+
+  const handleProjectFilterChange = (vals: string[]) => {
+    setProjectFilter(vals)
+    try {
+      if (vals.length > 0) {
+        localStorage.setItem("admin_selected_projects", JSON.stringify(vals))
+      } else {
+        localStorage.removeItem("admin_selected_projects")
+      }
+    } catch (e) {}
+  }
+
+  const clearProjectFilter = () => {
+    setProjectFilter([])
+    try {
+      localStorage.removeItem("admin_selected_projects")
+    } catch (e) {}
+  }
 
   React.useEffect(() => {
     try {
@@ -151,6 +196,57 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     setLoading(null)
   }
 
+  const handleBulkApprove = async () => {
+    const toApprove = filtered.filter(app => selectedAppIds.has(app.id));
+    if (toApprove.length === 0) {
+      alert("Please select at least one application to approve.");
+      return;
+    }
+    if (!confirm(`Are you sure you want to approve ${toApprove.length} selected applications?`)) return;
+
+    setBulkLoading(true);
+    let successCount = 0;
+    for (const app of toApprove) {
+      const res = await approveApplication(app.id);
+      if (res.success) successCount++;
+    }
+    setBulkLoading(false);
+    alert(`Successfully approved ${successCount} out of ${toApprove.length} applications.`);
+    setSelectedAppIds(new Set());
+    window.location.reload();
+  }
+
+  const openAcceptSentencesModal = (app: Application) => {
+    const total = app.recordedCount || 0
+    setAcceptSentencesModal({
+      appId: app.id,
+      applicantName: `${app.user.firstName} ${app.user.lastName}`,
+      projectTitle: app.project.title,
+      recordedCount: total,
+      currentAccepted: app.acceptedCount || total,
+    })
+    setAcceptSentencesInput(total || 80)
+    setAcceptTargetStatus(app.status === "FINAL_REVIEW" ? "APPROVED" : "FINAL_REVIEW")
+  }
+
+  const handleConfirmAcceptSentences = async () => {
+    if (!acceptSentencesModal) return
+    setLoading(acceptSentencesModal.appId)
+    const res = await setAcceptedSentencesCount(
+      acceptSentencesModal.appId, 
+      acceptSentencesInput, 
+      acceptTargetStatus
+    )
+    setLoading(null)
+    if (!res.success) {
+      alert(res.error || "Failed to set accepted sentences count")
+    } else {
+      alert(`Success: Accepted ${res.acceptedCount} sentences and set status to ${acceptTargetStatus}!`)
+      setAcceptSentencesModal(null)
+      window.location.reload()
+    }
+  }
+
   const filtered = applications.filter(a => {
     const matchesSearch = 
       a.project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,15 +258,18 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     if (projectFilter.length > 0 && !projectFilter.includes(a.project.id)) return false;
 
     if (statusFilter.length > 0) {
-      const isWorking = a.status === "APPROVED" || a.status === "WORKING" || a.status === "ACCEPTED" || a.status === "UNDER_REVIEW";
+      const isClosedWithoutRecording = a.project.status === "COMPLETED" && (!a.recordedCount || a.recordedCount === 0);
+      const isWorking = (a.status === "APPROVED" || a.status === "WORKING" || a.status === "ACCEPTED" || a.status === "UNDER_REVIEW") && !isClosedWithoutRecording;
       const isCompleted = a.status === "COMPLETED" || a.status === "FINAL_REVIEW" || a.status === "PAID";
       const isNotStarted = isWorking && (!a.recordedCount || a.recordedCount === 0);
       const isActuallyWorking = isWorking && (a.recordedCount || 0) > 0;
       
       let matchesStatus = false;
       if (statusFilter.includes("PENDING") && a.status === "PENDING") matchesStatus = true;
+      if (statusFilter.includes("FINAL_REVIEW") && a.status === "FINAL_REVIEW") matchesStatus = true;
       if (statusFilter.includes("WORKING") && isActuallyWorking) matchesStatus = true;
       if (statusFilter.includes("NOT_STARTED") && isNotStarted) matchesStatus = true;
+      if (statusFilter.includes("CLOSED_NOT_RECORDED") && isClosedWithoutRecording) matchesStatus = true;
       if (statusFilter.includes("COMPLETED") && isCompleted) matchesStatus = true;
       if (statusFilter.includes("REJECTED") && a.status === "REJECTED") matchesStatus = true;
 
@@ -364,6 +463,8 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       pending: { m: 0, f: 0, total: 0 },
       working: { m: 0, f: 0, total: 0 },
       notStarted: { m: 0, f: 0, total: 0 },
+      closedNotRecorded: { m: 0, f: 0, total: 0 },
+      finalReview: { m: 0, f: 0, total: 0 },
       completed: { m: 0, f: 0, total: 0 },
       rejected: { m: 0, f: 0, total: 0 },
     }
@@ -379,10 +480,25 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       if (isMale) s.all.m++
       if (isFemale) s.all.f++
 
+      const isClosedWithoutRecording = a.project.status === "COMPLETED" && (!a.recordedCount || a.recordedCount === 0);
+
+      if (isClosedWithoutRecording) {
+        s.closedNotRecorded.total++
+        if (isMale) s.closedNotRecorded.m++
+        if (isFemale) s.closedNotRecorded.f++
+      }
+
       if (a.status === "PENDING") {
         s.pending.total++
         if (isMale) s.pending.m++
         if (isFemale) s.pending.f++
+      } else if (a.status === "FINAL_REVIEW") {
+        s.finalReview.total++
+        if (isMale) s.finalReview.m++
+        if (isFemale) s.finalReview.f++
+        s.completed.total++
+        if (isMale) s.completed.m++
+        if (isFemale) s.completed.f++
       } else if (a.status === "APPROVED" || a.status === "WORKING" || a.status === "ACCEPTED" || a.status === "UNDER_REVIEW") {
         if (!a.recordedCount || a.recordedCount === 0) {
           s.notStarted.total++
@@ -393,7 +509,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
           if (isMale) s.working.m++
           if (isFemale) s.working.f++
         }
-      } else if (a.status === "COMPLETED" || a.status === "FINAL_REVIEW" || a.status === "PAID") {
+      } else if (a.status === "COMPLETED" || a.status === "PAID") {
         s.completed.total++
         if (isMale) s.completed.m++
         if (isFemale) s.completed.f++
@@ -432,6 +548,15 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
           >
             <Check className="w-4 h-4" /> {selectedAppIds.size === filtered.length && filtered.length > 0 ? "Deselect All" : "Select All"}
           </button>
+          {selectedAppIds.size > 0 && (
+            <button 
+              onClick={handleBulkApprove}
+              disabled={bulkLoading}
+              className="flex-1 sm:flex-none px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <CheckCircle2 className="w-4 h-4" /> {bulkLoading ? "Approving..." : `Approve Selected (${selectedAppIds.size})`}
+            </button>
+          )}
           <button 
             onClick={handleExportExcel}
             className="flex-1 sm:flex-none px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
@@ -460,22 +585,37 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
           allLabel={`All Applicants (${stats.all.total}) - M: ${stats.all.m} | F: ${stats.all.f}`}
           options={[
             { value: "PENDING", label: `Pending (${stats.pending.total}) - M: ${stats.pending.m} | F: ${stats.pending.f}` },
+            { value: "FINAL_REVIEW", label: `Final Review (${stats.finalReview.total}) - M: ${stats.finalReview.m} | F: ${stats.finalReview.f}` },
             { value: "WORKING", label: `Working (${stats.working.total}) - M: ${stats.working.m} | F: ${stats.working.f}` },
             { value: "NOT_STARTED", label: `Not Started (${stats.notStarted.total}) - M: ${stats.notStarted.m} | F: ${stats.notStarted.f}` },
-            { value: "COMPLETED", label: `Completed (${stats.completed.total}) - M: ${stats.completed.m} | F: ${stats.completed.f}` },
+            { value: "CLOSED_NOT_RECORDED", label: `🔒 Closed (0 Recorded) (${stats.closedNotRecorded.total}) - M: ${stats.closedNotRecorded.m} | F: ${stats.closedNotRecorded.f}` },
+            { value: "COMPLETED", label: `Completed/Approved (${stats.completed.total}) - M: ${stats.completed.m} | F: ${stats.completed.f}` },
             { value: "REJECTED", label: `Rejected (${stats.rejected.total}) - M: ${stats.rejected.m} | F: ${stats.rejected.f}` }
           ]}
           selectedValues={statusFilter}
           onChange={setStatusFilter}
         />
 
-        <MultiSelectDropdown 
-          label="Project Name"
-          allLabel="All Projects"
-          options={uniqueProjects.map(p => ({ label: p.title, value: p.id }))}
-          selectedValues={projectFilter}
-          onChange={setProjectFilter}
-        />
+        <div className="flex flex-col gap-1">
+          <MultiSelectDropdown 
+            label="Project Name"
+            allLabel={projectFilter.length > 0 ? `${projectFilter.length} Selected (Saved)` : "All Projects"}
+            options={uniqueProjects.map(p => ({ 
+              label: p.status === "COMPLETED" ? `${p.title} (Closed 🔒)` : p.title, 
+              value: p.id 
+            }))}
+            selectedValues={projectFilter}
+            onChange={handleProjectFilterChange}
+          />
+          {projectFilter.length > 0 && (
+            <button 
+              onClick={clearProjectFilter}
+              className="text-xs text-primary font-bold hover:underline self-start flex items-center gap-1 pt-1"
+            >
+              <X className="w-3 h-3" /> Clear Saved Project Filter ({projectFilter.length})
+            </button>
+          )}
+        </div>
 
         <MultiSelectDropdown 
           label="Download Status"
@@ -513,16 +653,25 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                     setSelectedAppIds(newSet);
                   }}
                 />
-                <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                  app.status === 'APPROVED' ? 'bg-green-500/10 text-green-500' :
-                  app.status === 'WORKING' ? 'bg-blue-500/10 text-blue-500' :
-                  app.status === 'UNDER_REVIEW' ? 'bg-yellow-500/10 text-yellow-500' :
-                  app.status === 'FINAL_REVIEW' ? 'bg-purple-500/10 text-purple-500' :
-                  app.status === 'REJECTED' ? 'bg-red-500/10 text-red-500' :
-                  'bg-primary/10 text-primary'
-                }`}>
-                  {app.status.replace("_", " ")}
-                </span>
+                {app.project.status === 'COMPLETED' && (!app.recordedCount || app.recordedCount === 0) ? (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-500/15 text-zinc-400 border border-zinc-500/30">
+                    <Lock className="w-3 h-3" /> Closed (0 Recorded)
+                  </span>
+                ) : (
+                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                    app.status === 'APPROVED' || app.status === 'PAID' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' :
+                    app.status === 'WORKING' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                    app.status === 'UNDER_REVIEW' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                    app.status === 'FINAL_REVIEW' ? 'bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.2)]' :
+                    app.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
+                    'bg-slate-500/10 text-slate-400 border-slate-500/20'
+                  }`}>
+                    {app.status === 'APPROVED' || app.status === 'PAID' ? <Check className="w-3 h-3" /> : null}
+                    {app.status === 'FINAL_REVIEW' || app.status === 'UNDER_REVIEW' ? <Clock className="w-3 h-3" /> : null}
+                    {app.status === 'REJECTED' ? <X className="w-3 h-3" /> : null}
+                    {app.status.replace("_", " ")}
+                  </span>
+                )}
                 {downloadedAppIds.has(app.id) && (
                   <span className="inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-green-500/20 text-green-600 dark:text-green-400">
                     ✅ Downloaded
@@ -537,9 +686,16 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             </div>
 
             <div className="flex-1">
-              <h3 className="text-xl font-black text-foreground mb-1">
-                {app.project.title}
-              </h3>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h3 className="text-xl font-black text-foreground">
+                  {app.project.title}
+                </h3>
+                {app.project.status === 'COMPLETED' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-zinc-500/15 text-zinc-400 border border-zinc-500/20">
+                    <Lock className="w-2.5 h-2.5" /> Project Closed
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-foreground/50 flex items-center gap-1 mt-2">
                 <FileText className="w-3 h-3" /> Project ID: {app.project.id.slice(0, 8)}...
               </p>
@@ -609,7 +765,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                   <User className="w-4 h-4" /> Profile
                 </Link>
                 
-                {(app.status === 'PENDING' || app.status === 'FINAL_REVIEW') && (
+                {(app.status === 'PENDING' || app.status === 'FINAL_REVIEW' || app.status === 'UNDER_REVIEW') && (
                   <>
                     <button 
                       onClick={() => setRejectId(app.id)}
@@ -668,6 +824,18 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                     <FileText className="w-4 h-4" /> 
                     {app.status === 'UNDER_REVIEW' ? 'Review Recordings' : 'View Recordings'}
                   </Link>
+
+                  {(app.recordedCount || 0) > 0 && (
+                    <button
+                      onClick={() => openAcceptSentencesModal(app)}
+                      disabled={loading === app.id}
+                      className="w-full px-3 py-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 border border-emerald-500/20 disabled:opacity-50"
+                      title="Set accepted sentences count and approve"
+                    >
+                      <Sliders className="w-3.5 h-3.5" /> Accept Sentences ({app.acceptedCount ?? app.recordedCount}/{app.recordedCount})
+                    </button>
+                  )}
+
                   {app.status === 'UNDER_REVIEW' && (app.totalSentences || 0) === 0 && (
                     <button
                       onClick={() => handleApprove(app.id)}
@@ -759,6 +927,94 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
                 className="flex-1 px-4 py-2 rounded-xl font-bold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
               >
                 {loading === rejectId ? "Rejecting..." : "Confirm Rejection"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {acceptSentencesModal && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-card w-full max-w-md rounded-3xl border border-border shadow-2xl p-6">
+            <div className="flex items-center gap-2 mb-2 text-emerald-500 font-black">
+              <Sliders className="w-5 h-5" />
+              <h3 className="text-xl font-bold text-foreground">Set Accepted Sentences</h3>
+            </div>
+            <p className="text-sm text-foreground/70 mb-4">
+              Specify how many recorded sentences to accept for <span className="font-bold text-foreground">{acceptSentencesModal.applicantName}</span> in project <span className="font-bold text-foreground">{acceptSentencesModal.projectTitle}</span>.
+            </p>
+
+            <div className="bg-background border border-border rounded-2xl p-4 mb-4 space-y-4">
+              <div>
+                <label className="text-xs font-bold text-foreground/60 uppercase block mb-1">
+                  Number of Accepted Sentences (Max: {acceptSentencesModal.recordedCount})
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    max={acceptSentencesModal.recordedCount}
+                    value={acceptSentencesInput}
+                    onChange={(e) => setAcceptSentencesInput(Math.min(acceptSentencesModal.recordedCount, Math.max(0, parseInt(e.target.value) || 0)))}
+                    className="w-full bg-card border border-border rounded-xl px-4 py-2 font-bold text-lg outline-none focus:border-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAcceptSentencesInput(acceptSentencesModal.recordedCount)}
+                    className="px-3 py-2 bg-primary/10 text-primary text-xs font-bold rounded-xl hover:bg-primary/20 whitespace-nowrap"
+                  >
+                    All ({acceptSentencesModal.recordedCount})
+                  </button>
+                </div>
+                <p className="text-[11px] text-foreground/50 mt-1">
+                  Sentences 1 to {acceptSentencesInput} will be marked <span className="text-emerald-500 font-bold">ACCEPTED</span>. The remaining {Math.max(0, acceptSentencesModal.recordedCount - acceptSentencesInput)} will be marked <span className="text-rose-500 font-bold">REJECTED</span>.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-foreground/60 uppercase block mb-1">
+                  Target Application Status
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAcceptTargetStatus("FINAL_REVIEW")}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                      acceptTargetStatus === "FINAL_REVIEW"
+                        ? "bg-purple-500 text-white border-purple-500 shadow-md shadow-purple-500/20"
+                        : "bg-card border-border hover:bg-foreground/5"
+                    }`}
+                  >
+                    Final Review
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAcceptTargetStatus("APPROVED")}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                      acceptTargetStatus === "APPROVED"
+                        ? "bg-emerald-500 text-white border-emerald-500 shadow-md shadow-emerald-500/20"
+                        : "bg-card border-border hover:bg-foreground/5"
+                    }`}
+                  >
+                    Approved
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setAcceptSentencesModal(null)}
+                className="flex-1 px-4 py-2 rounded-xl font-bold bg-background border border-border hover:bg-foreground/5 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAcceptSentences}
+                disabled={loading === acceptSentencesModal.appId}
+                className="flex-1 px-4 py-2 rounded-xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading === acceptSentencesModal.appId ? "Saving..." : "Apply & Save"}
               </button>
             </div>
           </div>

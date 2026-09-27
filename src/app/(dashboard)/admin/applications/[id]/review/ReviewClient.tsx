@@ -50,6 +50,28 @@ export function ReviewClient({ application, sentences }: { application: any; sen
     }))
   }
 
+  const [customAcceptCount, setCustomAcceptCount] = React.useState<number>(() => {
+    return sentences.filter(s => s.recordings[0]).length || 80
+  })
+
+  const handleAcceptFirstN = (count: number) => {
+    const updated: Record<string, Decision> = { ...decisions }
+    const recSentences = sentences.filter(s => s.recordings[0])
+    
+    recSentences.forEach((s, idx) => {
+      const rec = s.recordings[0]
+      if (rec) {
+        if (idx < count) {
+          updated[rec.id] = { recordingId: rec.id, status: "ACCEPTED", reason: "" }
+        } else {
+          updated[rec.id] = { recordingId: rec.id, status: "REJECTED", reason: "Exceeded accepted sentences limit." }
+        }
+      }
+    })
+    setDecisions(updated)
+    setExpandedReason(null)
+  }
+
   const handleBatchDecision = (status: "ACCEPTED" | "NEED_RE_RECORD" | "REJECTED") => {
     const updated: Record<string, Decision> = { ...decisions }
     sentences.forEach((s) => {
@@ -131,6 +153,23 @@ export function ReviewClient({ application, sentences }: { application: any; sen
           >
             ✓ Accept All
           </button>
+          <div className="flex items-center gap-1.5 bg-background border border-border rounded-xl px-2.5 py-1.5">
+            <span className="text-xs font-bold text-foreground/70 whitespace-nowrap">Accept first:</span>
+            <input
+              type="number"
+              min="0"
+              max={totalWithRecording}
+              value={customAcceptCount}
+              onChange={(e) => setCustomAcceptCount(parseInt(e.target.value) || 0)}
+              className="w-14 px-1.5 py-1 text-center font-bold text-xs bg-card border border-border rounded-lg outline-none focus:border-primary"
+            />
+            <button
+              onClick={() => handleAcceptFirstN(customAcceptCount)}
+              className="px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white font-bold text-xs rounded-lg transition-colors whitespace-nowrap shadow-sm"
+            >
+              Apply
+            </button>
+          </div>
         </div>
       </div>
 

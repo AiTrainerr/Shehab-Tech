@@ -23,7 +23,7 @@ export default async function AdminApplicationsPage() {
   }
 
   const whereClause: any = {
-    project: { status: { in: ["OPEN", "IN_PROGRESS"] } }
+    project: { status: { in: ["OPEN", "IN_PROGRESS", "COMPLETED"] } }
   }
   if (currentUser?.role === "MODERATOR") {
     const assignedIds = currentUser.assignedProjects?.map(p => p.id) || []
@@ -39,7 +39,7 @@ export default async function AdminApplicationsPage() {
   const applicationsData = await prisma.application.findMany({
     where: whereClause,
     include: {
-      project: { select: { id: true, title: true, pricingModel: true, workflowType: true, sentencesPerUser: true, scriptType: true, zipNamingRule: true } },
+      project: { select: { id: true, title: true, status: true, pricingModel: true, workflowType: true, sentencesPerUser: true, scriptType: true, zipNamingRule: true } },
       user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, gender: true, age: true, ranking: true, verificationStatus: true } }
     },
     orderBy: { createdAt: "desc" }
