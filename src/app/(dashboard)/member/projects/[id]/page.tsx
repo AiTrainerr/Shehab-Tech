@@ -2,12 +2,13 @@ import { prisma } from "@/lib/prisma"
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect, notFound } from "next/navigation"
-import { ArrowLeft, MapPin, Users, Clock, CheckCircle, AlertCircle, DollarSign, Globe, ArrowRight, Mic, Lock } from "lucide-react"
+import { ArrowLeft, MapPin, Users, Clock, AlertCircle, DollarSign, Globe, ArrowRight, Mic, Lock } from "lucide-react"
 import { applyToProject } from "@/app/actions/projects"
 import { CommentsSection } from "@/components/comments-section"
 import { TranscriptionTasksList } from "./TranscriptionTasksList"
 import { RichTextDisplay } from "@/components/RichTextDisplay"
 import { ApplyButton } from "./ApplyButton"
+import { ApplicationStepper } from "@/components/application-stepper"
 
 export const dynamic = 'force-dynamic';
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -211,23 +212,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           </div>
         )}
 
-        {/* Apply Section */}
+        {/* Apply / Status Section */}
         <div className="glass p-6 rounded-2xl border border-border mb-6">
           {existingApplication ? (
-            <div className="flex items-center gap-4">
-              <CheckCircle className={`w-8 h-8 shrink-0 ${
-                existingApplication.status === "APPROVED" || existingApplication.status === "PAID" ? "text-green-500" :
-                existingApplication.status === "REJECTED" ? "text-red-500" : "text-yellow-500"
-              }`} />
-              <div>
-                <p className="font-bold text-lg">Application Submitted</p>
-                <p className="text-sm text-foreground/60">Status: <span className={`font-bold ${
-                  existingApplication.status === "APPROVED" || existingApplication.status === "PAID" ? "text-green-500" :
-                  existingApplication.status === "REJECTED" ? "text-red-500" : "text-yellow-500"
-                }`}>
-                  {existingApplication.status === "FINAL_REVIEW" ? "Under Final Client Review (تحت مراجعة العميل النهائي)" : existingApplication.status}
-                </span></p>
-              </div>
+            <div>
+              <p className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-4">Application Status</p>
+              <ApplicationStepper status={existingApplication.status} />
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

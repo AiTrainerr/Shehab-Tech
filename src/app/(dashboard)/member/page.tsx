@@ -224,20 +224,23 @@ export default async function MemberDashboard() {
                       </div>
                       <div className="text-right shrink-0">
                         <div className="text-lg font-bold text-primary">${app.project?.price?.toFixed(2) ?? "—"}</div>
-                        <div className={`text-xs font-semibold px-2 py-1 rounded-md inline-block mt-1 ${
-                          app.status === "APPROVED" || app.status === "PAID" ? "bg-green-500/10 text-green-500" :
-                          app.status === "WORKING" || app.status === "ACCEPTED" ? "bg-yellow-500/10 text-yellow-500" :
-                          app.status === "FINAL_REVIEW" ? "bg-purple-500/10 text-purple-500" :
-                          app.status === "PENDING" ? "bg-blue-500/10 text-blue-500" :
-                          "bg-orange-500/10 text-orange-500"
-                        }`}>
-                          {app.status === "APPROVED" ? "Approved" :
-                           app.status === "PAID" ? "Paid (تم الدفع)" :
-                           app.status === "FINAL_REVIEW" ? "Final Client Review" :
-                           app.status === "WORKING" ? "In Progress" :
-                           app.status === "ACCEPTED" ? "Accepted (تمت الموافقة)" :
-                           app.status === "PENDING" ? "Pending (قيد الانتظار)" : "Under Review"}
-                        </div>
+                        {(() => {
+                          const s = app.status
+                          const cfg =
+                            s === "PAID"         ? { cls: "bg-green-500/10 text-green-600 border-green-500/20 dark:text-green-400",    label: "💰 Paid" } :
+                            s === "APPROVED"     ? { cls: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400", label: "✅ Client Approved" } :
+                            s === "FINAL_REVIEW" ? { cls: "bg-purple-500/10 text-purple-600 border-purple-500/20 dark:text-purple-400",  label: "🔍 QA2 Review" } :
+                            s === "UNDER_REVIEW" ? { cls: "bg-orange-500/10 text-orange-600 border-orange-500/20 dark:text-orange-400",  label: "🔎 QA1 Review" } :
+                            s === "WORKING"      ? { cls: "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400",          label: "⚡ In Progress" } :
+                            s === "ACCEPTED"     ? { cls: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:text-indigo-400",  label: "✔ Accepted" } :
+                            s === "REJECTED"     ? { cls: "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400",             label: "✗ Rejected" } :
+                                                   { cls: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400", label: "⏳ Pending" }
+                          return (
+                            <div className={`text-xs font-bold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 mt-1.5 border ${cfg.cls}`}>
+                              {cfg.label}
+                            </div>
+                          )
+                        })()}
                       </div>
                     </div>
                     <div className="mt-4 pt-4 border-t border-border flex justify-end">
