@@ -7,11 +7,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'public-ano
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Function to create a server-side client with cookies (for SSR/Actions)
-// This is typically handled by @supabase/ssr in Next.js 14/15
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
 
 export async function createClientServer() {
+  const { cookies } = await import('next/headers')
   const cookieStore = await cookies()
 
   return createServerClient(
