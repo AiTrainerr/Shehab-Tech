@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import NextTopLoader from "nextjs-toploader";
@@ -64,8 +64,17 @@ export default async function RootLayout({
   try {
     const cookieStore = await cookies();
     const rawLocale = cookieStore.get("app_locale")?.value;
-    if (rawLocale === "en") {
-      locale = "en";
+    if (rawLocale === "en" || rawLocale === "ar") {
+      locale = rawLocale;
+    } else {
+      // Fallback: detect from browser Accept-Language header
+      const headerList = await headers();
+      const acceptLanguage = headerList.get("accept-language") || "";
+      if (acceptLanguage.toLowerCase().startsWith("en")) {
+        locale = "en";
+      } else {
+        locale = "ar"; // Default Arabic
+      }
     }
 
     const cookieUserId = cookieStore.get("userId")?.value;

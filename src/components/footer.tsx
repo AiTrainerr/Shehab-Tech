@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Shield, Globe2, Mail, Phone, Zap, MessageCircle } from "lucide-react"
+import { Shield, Globe2, Mail, Phone, Zap, MessageCircle, Lock } from "lucide-react"
 
 export function Footer() {
   const pathname = usePathname()
@@ -112,11 +112,11 @@ export function Footer() {
             &copy; 2026 SHEHAB TECH. ALL RIGHTS RESERVED. · COMPANY PROFILE 2026
           </p>
           <div className="flex items-center gap-5">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-success">
-              <Shield className="w-3.5 h-3.5" /> PCI-DSS COMPLIANT
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground/70">
+              <Shield className="w-3.5 h-3.5 text-primary" /> STRICT NDAs
             </div>
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-              <Globe2 className="w-3.5 h-3.5" /> GDPR READY
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground/70">
+              <Lock className="w-3.5 h-3.5 text-primary" /> RESTRICTED ACCESS
             </div>
           </div>
         </div>
