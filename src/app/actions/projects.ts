@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { uploadToSupabase } from "@/lib/storage"
 import * as XLSX from "xlsx"
 import { createNotification, createManyNotifications } from "@/app/actions/notifications"
+import { createAuditLog } from "@/app/actions/audit"
 import { deleteFromCloudinary } from "@/lib/cloudinary"
 
 function colToIndex(col: string | null): number | null {
@@ -525,6 +526,74 @@ export async function approveApplication(applicationId: string) {
   } catch (error: any) {
     console.error("Approve application error:", error)
     return { success: false, error: "Failed to approve application" }
+  }
+}
+
+export async function bulkApproveApplications(applicationIds: string[]) {
+  try {
+    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { success: false, error: "Not logged in", approved: 0 }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true, firstName: true, lastName: true }
+    })
+    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
+      return { success: false, error: "Unauthorized", approved: 0 }
+    }
+
+    const applications = await prisma.application.findMany({
+      where: { id: { in: applicationIds } },
+      include: { project: true }
+    })
+
+    let approvedCount = 0
+    const errors: string[] = []
+
+    for (const app of applications) {
+      try {
+        let newStatus = "ACCEPTED"
+        if (app.status === "FINAL_REVIEW") {
+          newStatus = "APPROVED"
+        } else if (app.status === "UNDER_REVIEW") {
+          newStatus = "FINAL_REVIEW"
+        }
+
+        await prisma.application.update({
+          where: { id: app.id },
+          data: { status: newStatus }
+        })
+
+        await createNotification(
+          app.userId,
+          newStatus === "APPROVED" ? "🎉 Your work has been approved!" : "✅ Your application has been approved!",
+          newStatus === "APPROVED"
+            ? `Your work on "${app.project.title}" has been approved. Payment is now pending.`
+            : `Your application for "${app.project.title}" has been accepted. Click to start!`,
+          `/member/projects/${app.projectId}`
+        )
+
+        approvedCount++
+      } catch (err: any) {
+        errors.push(`${app.id}: ${err.message}`)
+      }
+    }
+
+    await createAuditLog(
+      "BULK_APPROVE",
+      `${dbUser?.firstName} ${dbUser?.lastName} bulk approved ${approvedCount}/${applicationIds.length} applications.`
+    )
+
+    const { revalidatePath } = await import("next/cache")
+    revalidatePath("/admin/applications")
+    revalidatePath("/admin/payments")
+    revalidatePath("/member")
+
+    return { success: true, approved: approvedCount, total: applicationIds.length, errors }
+  } catch (error: any) {
+    console.error("Bulk approve error:", error)
+    return { success: false, error: error.message, approved: 0 }
   }
 }
 

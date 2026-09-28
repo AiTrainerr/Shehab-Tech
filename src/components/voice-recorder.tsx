@@ -201,22 +201,40 @@ export function VoiceRecorder({
     chunksRef.current = []
 
     try {
-      // Simplify constraints for max iOS compatibility, but enforce high quality like Easy Voice Recorder
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          noiseSuppression: !!enableNoiseCancellation, // Only enable if strictly required by project setting, otherwise false (RAW)
-          echoCancellation: false, // Strict AI RAW requirement
-          autoGainControl: false, // Strict AI RAW requirement
-          sampleRate: sampleRate || 48000,
-          channelCount: channels === "STEREO" ? 2 : 1
-        }
-      })
+      // iOS Safari fallback chain: try strict constraints first, fall back to basic if OverconstrainedError
+      let stream: MediaStream
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            noiseSuppression: !!enableNoiseCancellation,
+            echoCancellation: false,
+            autoGainControl: false,
+            sampleRate: sampleRate || 48000,
+            channelCount: channels === "STEREO" ? 2 : 1
+          }
+        })
+      } catch (constraintErr: any) {
+        // iOS Safari often rejects specific constraints — retry with basic audio
+        console.warn("Strict audio constraints failed, falling back to basic:", constraintErr.name)
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      }
       
       if (typeof window.MediaRecorder === 'undefined') {
         throw new Error("Your browser/device does not support audio recording (MediaRecorder missing). Please update your iOS or use a different browser.")
       }
 
-      const recorder = new MediaRecorder(stream)
+      // MIME type auto-detection for cross-browser/iOS compatibility
+      const mimeTypes = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+        "audio/aac",
+        "audio/ogg;codecs=opus",
+      ]
+      const supportedMime = mimeTypes.find(m => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m))
+      const recorder = supportedMime 
+        ? new MediaRecorder(stream, { mimeType: supportedMime })
+        : new MediaRecorder(stream)
       mediaRecorderRef.current = recorder
       setActiveStream(stream)
 

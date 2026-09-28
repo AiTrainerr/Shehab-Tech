@@ -30,11 +30,11 @@ export default async function MemberPaymentsPage() {
   const totalPending = pending.reduce((s, a) => s + (a.project?.price || 0), 0)
 
   const statusLabel: Record<string, string> = {
-    PAID: "مدفوع",
-    APPROVED: "بانتظار الدفع",
-    WORKING: "قيد التنفيذ",
-    UNDER_REVIEW: "تحت المراجعة",
-    FINAL_REVIEW: "مراجعة نهائية",
+    PAID: "Paid",
+    APPROVED: "Awaiting Payout",
+    WORKING: "In Progress",
+    UNDER_REVIEW: "Under Review",
+    FINAL_REVIEW: "Final Client Review",
   }
 
   const statusColor: Record<string, string> = {
@@ -52,32 +52,32 @@ export default async function MemberPaymentsPage() {
         <span className="text-sm font-bold text-primary uppercase tracking-wider">Finance</span>
         <h1 className="text-3xl font-black text-foreground mt-1 flex items-center gap-3">
           <Wallet className="w-8 h-8 text-green-500" />
-          سجل المدفوعات
+          Payment History
         </h1>
-        <p className="text-foreground/60 mt-1">تابع أرباحك وحالة مدفوعاتك</p>
+        <p className="text-foreground/60 mt-1">Track your earnings and payout statuses</p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 animate-slide-up stagger-1">
         {[
           {
-            label: "إجمالي الأرباح",
+            label: "Total Earnings",
             value: `$${totalEarned.toFixed(2)}`,
-            sub: `${paid.length} مشروع مدفوع`,
+            sub: `${paid.length} paid projects`,
             icon: TrendingUp,
             color: "text-green-500 bg-green-500/10",
           },
           {
-            label: "بانتظار الدفع",
+            label: "Pending Payout",
             value: `$${totalPending.toFixed(2)}`,
-            sub: `${pending.length} مشروع معتمد`,
+            sub: `${pending.length} approved projects`,
             icon: Clock,
             color: "text-yellow-500 bg-yellow-500/10",
           },
           {
-            label: "قيد التنفيذ",
+            label: "In Progress",
             value: inProgress.length.toString(),
-            sub: "مشاريع نشطة",
+            sub: "active projects",
             icon: DollarSign,
             color: "text-blue-500 bg-blue-500/10",
           },
@@ -100,23 +100,23 @@ export default async function MemberPaymentsPage() {
       {/* Transactions Table */}
       <div className="glass rounded-2xl border border-border overflow-hidden animate-slide-up stagger-2">
         <div className="p-6 border-b border-border">
-          <h2 className="text-lg font-bold">سجل المعاملات</h2>
+          <h2 className="text-lg font-bold">Transaction History</h2>
         </div>
         {applications.length === 0 ? (
           <div className="p-16 text-center">
             <DollarSign className="w-12 h-12 text-foreground/20 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-foreground/40 mb-2">لا توجد معاملات بعد</h3>
-            <p className="text-sm text-foreground/30">أكمل مشاريعك لتظهر هنا</p>
+            <h3 className="text-lg font-bold text-foreground/40 mb-2">No transactions yet</h3>
+            <p className="text-sm text-foreground/30">Complete your projects to see them here</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-card/30">
-                  <th className="text-right px-6 py-3 font-bold text-foreground/50 text-xs uppercase tracking-wider">المشروع</th>
-                  <th className="text-right px-6 py-3 font-bold text-foreground/50 text-xs uppercase tracking-wider">المبلغ</th>
-                  <th className="text-right px-6 py-3 font-bold text-foreground/50 text-xs uppercase tracking-wider">الحالة</th>
-                  <th className="text-right px-6 py-3 font-bold text-foreground/50 text-xs uppercase tracking-wider">التاريخ</th>
+                  <th className="text-right px-6 py-3 font-bold text-foreground/50 text-xs uppercase tracking-wider">Project</th>
+                  <th className="text-right px-6 py-3 font-bold text-foreground/50 text-xs uppercase tracking-wider">Amount</th>
+                  <th className="text-right px-6 py-3 font-bold text-foreground/50 text-xs uppercase tracking-wider">Status</th>
+                  <th className="text-right px-6 py-3 font-bold text-foreground/50 text-xs uppercase tracking-wider">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -139,7 +139,7 @@ export default async function MemberPaymentsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-foreground/50 text-xs">
-                      {new Date(app.updatedAt).toLocaleDateString("ar-EG", {
+                      {new Date(app.updatedAt).toLocaleDateString("en-GB", {
                         year: "numeric", month: "short", day: "numeric"
                       })}
                     </td>

@@ -9,6 +9,7 @@ import { stripHtml } from "@/lib/string-utils"
 export function AdminProjectsClient({ initialProjects }: { initialProjects: any[] }) {
   const [projects, setProjects] = React.useState(initialProjects)
   const [updatingId, setUpdatingId] = React.useState<string | null>(null)
+  const [activeTab, setActiveTab] = React.useState<"active" | "completed" | "cancelled">("active")
   const [role, setRole] = React.useState<string | null>(null)
 
   React.useEffect(() => {
@@ -126,48 +127,66 @@ export function AdminProjectsClient({ initialProjects }: { initialProjects: any[
   )
 
   return (
-    <div className="space-y-12">
-      {/* Active Projects */}
-      <div>
-        <h2 className="text-2xl font-black mb-6 flex items-center gap-2">
-          Active Projects <span className="text-sm font-bold bg-primary/10 text-primary px-3 py-1 rounded-full">{activeProjects.length}</span>
-        </h2>
-        {activeProjects.length === 0 ? (
-          <p className="text-foreground/50 italic p-4 bg-background/50 rounded-xl border border-border">No active projects right now.</p>
-        ) : (
-          <div className="space-y-4">
-            {activeProjects.map(p => <ProjectCard key={p.id} project={p} />)}
-          </div>
-        )}
+    <div className="space-y-8">
+      {/* Tab Navigation */}
+      <div className="flex gap-2 mb-6">
+        {[
+          { key: "active" as const, label: `Active (${activeProjects.length})`, color: "bg-green-500" },
+          { key: "completed" as const, label: `Completed (${pastProjects.length})`, color: "bg-blue-500" },
+          { key: "cancelled" as const, label: `Archived / Cancelled (${cancelledProjects.length})`, color: "bg-red-500/60" },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              activeTab === tab.key
+                ? `${tab.color} text-white shadow-lg`
+                : "bg-card border border-border text-foreground/60 hover:text-foreground hover:border-primary/30"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Past Projects */}
-      <div>
-        <h2 className="text-2xl font-black mb-6 flex items-center gap-2 text-foreground/60">
-          Past Projects <span className="text-sm font-bold bg-foreground/10 text-foreground px-3 py-1 rounded-full">{pastProjects.length}</span>
-        </h2>
-        {pastProjects.length === 0 ? (
-          <p className="text-foreground/50 italic p-4 bg-background/50 rounded-xl border border-border">No past projects.</p>
-        ) : (
-          <div className="space-y-4 opacity-75 hover:opacity-100 transition-opacity">
-            {pastProjects.map(p => <ProjectCard key={p.id} project={p} />)}
-          </div>
-        )}
-      </div>
+      {/* Active Projects Tab */}
+      {activeTab === "active" && (
+        <div>
+          {activeProjects.length === 0 ? (
+            <p className="text-foreground/50 italic p-4 bg-background/50 rounded-xl border border-border">No active projects right now.</p>
+          ) : (
+            <div className="space-y-4">
+              {activeProjects.map(p => <ProjectCard key={p.id} project={p} />)}
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* Cancelled Projects (Dedicated Section) */}
-      <div className="pt-6 border-t border-red-500/10">
-        <h2 className="text-2xl font-black mb-6 flex items-center gap-2 text-red-500/80">
-          Cancelled Projects <span className="text-sm font-bold bg-red-500/10 text-red-500 px-3 py-1 rounded-full">{cancelledProjects.length}</span>
-        </h2>
-        {cancelledProjects.length === 0 ? (
-          <p className="text-foreground/50 italic p-4 bg-background/50 rounded-xl border border-border">No cancelled projects.</p>
-        ) : (
-          <div className="space-y-4 opacity-60 hover:opacity-100 transition-opacity">
-            {cancelledProjects.map(p => <ProjectCard key={p.id} project={p} />)}
-          </div>
-        )}
-      </div>
+      {/* Completed Projects Tab */}
+      {activeTab === "completed" && (
+        <div>
+          {pastProjects.length === 0 ? (
+            <p className="text-foreground/50 italic p-4 bg-background/50 rounded-xl border border-border">No completed projects.</p>
+          ) : (
+            <div className="space-y-4">
+              {pastProjects.map(p => <ProjectCard key={p.id} project={p} />)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Archived / Cancelled Projects Tab */}
+      {activeTab === "cancelled" && (
+        <div>
+          {cancelledProjects.length === 0 ? (
+            <p className="text-foreground/50 italic p-4 bg-background/50 rounded-xl border border-border">No cancelled projects.</p>
+          ) : (
+            <div className="space-y-4">
+              {cancelledProjects.map(p => <ProjectCard key={p.id} project={p} />)}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

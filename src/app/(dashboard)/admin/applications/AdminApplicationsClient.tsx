@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { Check, X, Search, FileText, User, BadgeCheck, Mic2, Download, Clock, ChevronDown, Lock, CheckCircle2, Sliders } from "lucide-react"
-import { approveApplication, rejectApplication, deleteApplication, extendApplicationTime } from "@/app/actions/projects"
+import { approveApplication, rejectApplication, deleteApplication, extendApplicationTime, bulkApproveApplications } from "@/app/actions/projects"
 import { setAcceptedSentencesCount } from "@/app/actions/recordings"
 
 interface Application {
@@ -151,7 +151,19 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
         map.set(a.project.id, a.project);
       }
     });
-    return Array.from(map.values());
+    const list = Array.from(map.values());
+    const statusWeight: Record<string, number> = {
+      OPEN: 1,
+      IN_PROGRESS: 2,
+      COMPLETED: 3,
+      CANCELLED: 4,
+    };
+    return list.sort((a, b) => {
+      const wa = statusWeight[a.status || ""] || 3;
+      const wb = statusWeight[b.status || ""] || 3;
+      if (wa !== wb) return wa - wb;
+      return (a.title || "").localeCompare(b.title || "");
+    });
   }, [applications]);
 
   const [rejectId, setRejectId] = React.useState<string | null>(null)
@@ -205,13 +217,14 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
     if (!confirm(`Are you sure you want to approve ${toApprove.length} selected applications?`)) return;
 
     setBulkLoading(true);
-    let successCount = 0;
-    for (const app of toApprove) {
-      const res = await approveApplication(app.id);
-      if (res.success) successCount++;
-    }
+    const res = await bulkApproveApplications(toApprove.map(a => a.id));
     setBulkLoading(false);
-    alert(`Successfully approved ${successCount} out of ${toApprove.length} applications.`);
+
+    if (res.success) {
+      alert(`Successfully approved ${res.approved} out of ${res.total} applications.`);
+    } else {
+      alert(`Error: ${res.error}. Approved ${res.approved || 0} applications.`);
+    }
     setSelectedAppIds(new Set());
     window.location.reload();
   }
@@ -347,23 +360,65 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Applications');
 
+      // Define columns schema upfront (keys and widths) without automatic headers
       worksheet.columns = [
-        { header: 'Project', key: 'project', width: 25 },
-        { header: 'File Name', key: 'fileName', width: 35 },
-        { header: 'Name', key: 'name', width: 25 },
-        { header: 'Email', key: 'email', width: 30 },
-        { header: 'Phone', key: 'phone', width: 15 },
-        { header: 'Speaker Code', key: 'speakerCode', width: 15 },
-        { header: 'Gender', key: 'gender', width: 10 },
-        { header: 'Age', key: 'age', width: 10 },
-        { header: 'Status', key: 'status', width: 15 },
-        { header: 'Total Sentences', key: 'totalSentences', width: 15 },
-        { header: 'Recorded (Valid)', key: 'recorded', width: 18 },
-        { header: 'Accepted', key: 'accepted', width: 12 },
-        { header: 'Need Re-record', key: 'needRerecord', width: 15 },
-        { header: 'Rejected', key: 'rejected', width: 12 },
-        { header: 'Pending (Empty)', key: 'pending', width: 18 },
+        { key: 'project', width: 25 },
+        { key: 'fileName', width: 35 },
+        { key: 'name', width: 25 },
+        { key: 'email', width: 30 },
+        { key: 'phone', width: 15 },
+        { key: 'speakerCode', width: 15 },
+        { key: 'gender', width: 10 },
+        { key: 'age', width: 10 },
+        { key: 'status', width: 15 },
+        { key: 'totalSentences', width: 15 },
+        { key: 'recorded', width: 18 },
+        { key: 'accepted', width: 12 },
+        { key: 'needRerecord', width: 15 },
+        { key: 'rejected', width: 12 },
+        { key: 'pending', width: 18 },
       ];
+
+      // === Summary KPI rows ===
+      const totalSpeakers = filtered.length;
+      const maleCount = filtered.filter(a => { const g = (a.user.gender || '').toLowerCase(); return g === 'male' || g === 'ذكر'; }).length;
+      const femaleCount = filtered.filter(a => { const g = (a.user.gender || '').toLowerCase(); return g === 'female' || g === 'أنثى' || g === 'انثى'; }).length;
+      const totalAccepted = filtered.reduce((s, a) => s + (a.acceptedCount || 0), 0);
+      const totalRecorded = filtered.reduce((s, a) => s + (a.recordedCount || 0), 0);
+      const totalRejected = filtered.reduce((s, a) => s + (a.rejectedCount || 0), 0);
+      const totalReRecord = filtered.reduce((s, a) => s + (a.reRecordCount || 0), 0);
+
+      const kpiStyle = { font: { bold: true, size: 12 }, alignment: { horizontal: 'left' as const, vertical: 'middle' as const } };
+      const kpiValueStyle = { font: { bold: true, size: 12, color: { argb: 'FF002060' } }, alignment: { horizontal: 'left' as const, vertical: 'middle' as const } };
+
+      const kpiRows = [
+        ['DELIVERY SUMMARY REPORT', '', '', '', '', '', `Generated: ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`],
+        [],
+        ['Total Speakers:', totalSpeakers, '', 'Male:', maleCount, 'Female:', femaleCount],
+        ['Total Recorded:', totalRecorded, '', 'Accepted:', totalAccepted, 'Rejected:', totalRejected],
+        ['Need Re-record:', totalReRecord],
+        [],
+      ];
+
+      kpiRows.forEach((row, idx) => {
+        const r = worksheet.addRow(row);
+        if (idx === 0) {
+          r.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF002060' } };
+          r.getCell(7).font = { italic: true, size: 10, color: { argb: 'FF666666' } };
+        } else if (idx === 2 || idx === 3 || idx === 4) {
+          r.getCell(1).font = kpiStyle.font;
+          r.getCell(2).font = kpiValueStyle.font;
+          if (row[3]) { r.getCell(4).font = kpiStyle.font; r.getCell(5).font = kpiValueStyle.font; }
+          if (row[5]) { r.getCell(6).font = kpiStyle.font; r.getCell(7).font = kpiValueStyle.font; }
+        }
+      });
+
+      // Data header row placed right after KPI block
+      const dataHeaderRow = worksheet.addRow([
+        'Project', 'File Name', 'Name', 'Email', 'Phone', 'Speaker Code',
+        'Gender', 'Age', 'Status', 'Total Sentences', 'Recorded (Valid)',
+        'Accepted', 'Need Re-record', 'Rejected', 'Pending (Empty)'
+      ]);
 
       filtered.forEach(app => {
         let genderForFolder = "N-A";
@@ -407,8 +462,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
         });
       });
 
-      const headerRow = worksheet.getRow(1);
-      headerRow.eachCell((cell) => {
+      dataHeaderRow.eachCell((cell) => {
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
@@ -427,8 +481,9 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
         };
       });
 
+      const dataStartRow = dataHeaderRow.number;
       worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber === 1) return;
+        if (rowNumber <= dataStartRow) return;
         row.eachCell((cell, colNumber) => {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
           cell.border = {
@@ -449,7 +504,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = "Applications_Report.xlsx";
+      a.download = `Applications_Report_${new Date().toISOString().slice(0, 10)}.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
@@ -603,7 +658,7 @@ export function AdminApplicationsClient({ applications }: { applications: Applic
             label="Project Name"
             allLabel={projectFilter.length > 0 ? `${projectFilter.length} Selected (Saved)` : "All Projects"}
             options={uniqueProjects.map(p => ({ 
-              label: p.status === "COMPLETED" ? `${p.title} (Closed 🔒)` : p.title, 
+              label: p.status === "COMPLETED" ? `${p.title} (Closed 🔒)` : p.status === "CANCELLED" ? `${p.title} (Archived 📦)` : p.title, 
               value: p.id 
             }))}
             selectedValues={projectFilter}
