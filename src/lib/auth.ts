@@ -111,11 +111,14 @@ export async function requireApiAuth(allowedRoles?: AppRole[]): Promise<{ user: 
     const user = allowedRoles ? await requireRole(allowedRoles) : await requireUser()
     return { user }
   } catch (error: any) {
-    const status = error instanceof AuthError ? error.statusCode : 401
-    const message = error?.message || "Unauthorized"
-    const code = error instanceof AuthError ? error.code : "UNAUTHORIZED"
+    if (error instanceof AuthError) {
+      return {
+        errorResponse: NextResponse.json({ error: error.message, code: error.code }, { status: error.statusCode })
+      }
+    }
+    console.error("requireApiAuth internal error:", error)
     return {
-      errorResponse: NextResponse.json({ error: message, code }, { status })
+      errorResponse: NextResponse.json({ error: "Internal server error", code: "INTERNAL_ERROR" }, { status: 500 })
     }
   }
 }

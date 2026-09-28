@@ -4,20 +4,17 @@ import { ArrowLeft, AlertCircle, CheckCircle, XCircle } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { approveVerification, rejectVerification } from "@/app/actions/verification"
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { getCurrentUser } from "@/lib/auth"
 import { redirect } from "next/navigation"
 
 export const dynamic = 'force-dynamic'
 
 export default async function VerificationPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, role: true, moderatorType: true }
-  })
+  const currentUser = await getCurrentUser()
+  if (!currentUser) redirect("/login")
+  if (!["ADMIN", "SUPER_ADMIN", "MODERATOR"].includes(currentUser.role)) {
+    redirect("/member")
+  }
 
   const whereClause: any = { verificationStatus: "PENDING" }
   if (currentUser?.role === "MODERATOR") {

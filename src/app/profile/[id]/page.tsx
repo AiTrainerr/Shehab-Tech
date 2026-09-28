@@ -1,7 +1,7 @@
 import * as React from "react"
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
-import { cookies } from "next/headers"
+import { getCurrentUser } from "@/lib/auth"
 import { Star, CheckCircle, MapPin, Briefcase, Award, Shield, XCircle, FileImage, BadgeCheck, Calendar } from "lucide-react"
 import { approveVerification, rejectVerification } from "@/app/actions/verification"
 import { revalidatePath } from "next/cache"
@@ -10,8 +10,8 @@ import { PortfolioGrid } from "@/components/portfolio-grid"
 export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   
-  const cookieStore = await cookies()
-  const viewerRole = cookieStore.get("userRole")?.value
+  const currentUser = await getCurrentUser()
+  const canViewAdminDetails = currentUser?.role === "ADMIN" || currentUser?.role === "SUPER_ADMIN"
 
   
   const user = await prisma.user.findUnique({
@@ -152,7 +152,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
       </div>
 
-      {viewerRole === "ADMIN" && (
+      {canViewAdminDetails && (
         <div className="max-w-4xl mx-auto mt-8">
           <div className="glass rounded-3xl p-8 border-2 border-orange-500/20 bg-orange-500/5 relative overflow-hidden">
             <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-orange-500">
