@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma"
 import { headers } from "next/headers"
 import { createClientServer } from "@/lib/supabase"
+import { requireRole } from "@/lib/auth"
 
 export async function createAuditLog(action: string, details: string) {
   try {
@@ -39,14 +40,7 @@ export async function createAuditLog(action: string, details: string) {
 
 export async function getAuditLogs() {
   try {
-    const supabase = await createClientServer()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error("Unauthorized")
-
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
-    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
-      throw new Error("Unauthorized")
-    }
+    await requireRole(["ADMIN", "SUPER_ADMIN"])
 
     return await prisma.auditLog.findMany({
       orderBy: { createdAt: "desc" },

@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUser } from "@/lib/auth"
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim()
-  const isAdmin = req.nextUrl.searchParams.get("admin") === "true"
 
   if (!q || q.length < 2) {
     return NextResponse.json({ results: [] })
   }
 
   try {
+    const user = await getCurrentUser()
+    const isRealAdmin = !!(user && (user.role === "ADMIN" || user.role === "SUPER_ADMIN"))
+
     const results: any[] = []
 
     // Search projects
@@ -31,12 +34,12 @@ export async function GET(req: NextRequest) {
         id: p.id,
         title: p.title,
         subtitle: `${p.status} · ${p.pricingModel || ""}`,
-        href: isAdmin ? `/admin/projects` : `/member/projects/${p.id}`,
+        href: isRealAdmin ? `/admin/projects` : `/member/projects/${p.id}`,
       })
     })
 
-    // Admin-only: search users
-    if (isAdmin) {
+    // Admin-only: search users (requires server-verified ADMIN / SUPER_ADMIN)
+    if (isRealAdmin) {
       const users = await prisma.user.findMany({
         where: {
           OR: [

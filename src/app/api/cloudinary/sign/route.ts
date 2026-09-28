@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server"
 import { createHash } from "crypto"
+import { requireApiAuth } from "@/lib/auth"
 
 export async function POST(req: Request) {
+  const auth = await requireApiAuth()
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+
   try {
     const timestamp = Math.round(new Date().getTime() / 1000)
     const folder = "shehab-tech/transcription"
     const apiSecret = process.env.CLOUDINARY_TRANSCRIPTION_API_SECRET!
+
+    if (!apiSecret) {
+      return NextResponse.json({ error: "Cloudinary configuration missing" }, { status: 500 })
+    }
 
     // Build signature manually (matches Cloudinary's signing algorithm)
     const paramsToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`

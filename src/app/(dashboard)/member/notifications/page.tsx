@@ -1,18 +1,21 @@
 import * as React from "react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
+import { requireUser } from "@/lib/auth"
 import { ArrowLeft, Bell, CheckCircle, Star, DollarSign, Briefcase } from "lucide-react"
 import { markAllNotificationsRead } from "@/app/actions/notifications"
 
 export default async function NotificationsPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  let user
+  try {
+    user = await requireUser()
+  } catch {
+    redirect("/login")
+  }
 
   const notifications = await prisma.notification.findMany({
-    where: { userId },
+    where: { userId: user.id },
     orderBy: { createdAt: "desc" }
   })
 
@@ -49,7 +52,6 @@ export default async function NotificationsPage() {
           </div>
           {notifications.some(n => !n.isRead) && (
             <form action={markAllNotificationsRead}>
-              <input type="hidden" name="userId" value={userId} />
               <button type="submit" className="text-sm font-semibold text-primary hover:underline">
                 Mark all as read
               </button>
