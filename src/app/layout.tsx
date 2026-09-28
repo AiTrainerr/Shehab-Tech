@@ -1,14 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Tajawal } from "next/font/google";
 import { cookies } from "next/headers";
-
-export const viewport: Viewport = {
-  themeColor: "#4f46e5",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-};
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import NextTopLoader from "nextjs-toploader";
@@ -18,13 +10,22 @@ import { Footer } from "@/components/footer";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationManager } from "@/components/push-notification-manager";
 import { SplashScreen } from "@/components/splash-screen";
+import { LanguageProvider } from "@/lib/i18n/context";
+import { Locale } from "@/lib/i18n/types";
 import { createClientServer } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
 
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
+  width: "device-width",
+  initialScale: 1,
+};
+
 const tajawal = Tajawal({
   subsets: ["latin", "arabic"],
-  weight: ["300", "400", "500", "700", "800", "900"],
+  weight: ["400", "500", "700"],
   variable: "--font-tajawal",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -39,7 +40,7 @@ export const metadata: Metadata = {
   creator: "SHEHAB TECH",
   openGraph: {
     type: "website",
-    locale: "en_US",
+    locale: "ar_AR",
     url: "https://shehab-tech.com",
     title: "SHEHAB TECH | AI Data Collection & Freelance",
     description: "Earn money through AI training tasks. Join thousands of freelancers at SHEHAB TECH.",
@@ -58,10 +59,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   let currentUser: any = null;
+  let locale: Locale = "ar"; // Default Arabic as requested
   
   try {
-    // ⚡ API OPTIMIZATION: Check local cookie first to avoid hitting external Supabase API on every single page load
     const cookieStore = await cookies();
+    const rawLocale = cookieStore.get("app_locale")?.value;
+    if (rawLocale === "en") {
+      locale = "en";
+    }
+
     const cookieUserId = cookieStore.get("userId")?.value;
 
     if (cookieUserId) {
@@ -80,7 +86,6 @@ export default async function RootLayout({
       });
     }
 
-    // Only fallback to external Supabase network auth if cookie was missing or invalid
     if (!currentUser) {
       const supabase = await createClientServer();
       const { data: { user } } = await supabase.auth.getUser();
@@ -105,38 +110,42 @@ export default async function RootLayout({
     console.error("Layout auth error:", e);
   }
 
+  const dir = locale === "ar" ? "rtl" : "ltr";
+
   return (
-    <html lang="en" suppressHydrationWarning dir="ltr">
-      <body className={`${tajawal.variable} font-sans min-h-screen flex flex-col antialiased bg-background text-foreground transition-colors duration-300`}>
+    <html lang={locale} dir={dir} suppressHydrationWarning>
+      <body className={`${tajawal.variable} font-sans min-h-screen flex flex-col antialiased bg-background text-foreground transition-colors duration-200`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <Suspense fallback={null}>
-            <NextTopLoader
-              color="#4f46e5"
-              initialPosition={0.08}
-              crawlSpeed={200}
-              height={3}
-              crawl={true}
-              showSpinner={false}
-              easing="ease"
-              speed={200}
-              shadow="0 0 10px #4f46e5,0 0 5px #7c3aed"
-              zIndex={1600}
-              showAtBottom={false}
-            />
-          </Suspense>
-          <SplashScreen />
-          <Navbar user={currentUser} />
-          <main className="flex-grow pt-20">
-            {children}
-          </main>
-          <Footer />
-          <PWAInstallPrompt />
-          <PushNotificationManager />
+          <LanguageProvider initialLocale={locale}>
+            <Suspense fallback={null}>
+              <NextTopLoader
+                color="#4f46e5"
+                initialPosition={0.08}
+                crawlSpeed={200}
+                height={3}
+                crawl={true}
+                showSpinner={false}
+                easing="ease"
+                speed={200}
+                shadow="0 0 8px #4f46e5"
+                zIndex={1600}
+                showAtBottom={false}
+              />
+            </Suspense>
+            <SplashScreen />
+            <Navbar user={currentUser} />
+            <main className="flex-grow pt-20">
+              {children}
+            </main>
+            <Footer />
+            <PWAInstallPrompt />
+            <PushNotificationManager />
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>
