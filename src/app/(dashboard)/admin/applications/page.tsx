@@ -3,22 +3,18 @@ import { Prisma } from "@prisma/client"
 import { Users, Filter } from "lucide-react"
 import { AdminApplicationsClient } from "./AdminApplicationsClient"
 
-import { cookies } from "next/headers"
+import { getCurrentUser } from "@/lib/auth"
 import { redirect } from "next/navigation"
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminApplicationsPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, role: true, assignedProjects: { select: { id: true } }, canApproveApplications: true, moderatorType: true }
-  })
-
-  if (currentUser?.role === "MODERATOR" && !currentUser.canApproveApplications) {
+  const currentUser = await getCurrentUser()
+  if (!currentUser) redirect("/login")
+  if (!["ADMIN", "SUPER_ADMIN", "MODERATOR"].includes(currentUser.role)) {
+    redirect("/member")
+  }
+  if (currentUser.role === "MODERATOR" && !currentUser.canApproveApplications) {
     redirect("/admin")
   }
 
@@ -26,7 +22,11 @@ export default async function AdminApplicationsPage() {
     project: { status: { in: ["OPEN", "IN_PROGRESS", "COMPLETED"] } }
   }
   if (currentUser?.role === "MODERATOR") {
-    const assignedIds = currentUser.assignedProjects?.map(p => p.id) || []
+    const modData = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+      select: { assignedProjects: { select: { id: true } } }
+    })
+    const assignedIds = modData?.assignedProjects?.map((p: { id: string }) => p.id) || []
     whereClause.projectId = assignedIds.length > 0 ? { in: assignedIds } : "none"
     
     if (currentUser.moderatorType === "OUTSOURCED") {

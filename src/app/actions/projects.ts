@@ -1,3 +1,4 @@
+import { requireRole, requireUser } from "@/lib/auth"
 "use server"
 
 import { prisma } from "@/lib/prisma"
@@ -423,26 +424,60 @@ export async function promoteToQC(applicationId: string) {
 
 export async function approveApplication(applicationId: string) {
   try {
-    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: "Not logged in" }
+    const adminUser = await requireRole(["ADMIN", "SUPER_ADMIN", "MODERATOR"])
+    if (adminUser.role === "MODERATOR" && !adminUser.canApproveApplications) {
+      return { success: false, error: "Forbidden: Moderator lacks permission to approve applications" }
+    }
     
     const currentApp = await prisma.application.findUnique({
       where: { id: applicationId },
-      select: { status: true, projectId: true, speakerCode: true }
+      select: { 
+        status: true, 
+        projectId: true, 
+        speakerCode: true,
+        userId: true,
+        project: {
+          select: { isTranscriptionProject: true, title: true }
+        }
+      }
     })
 
     if (!currentApp) return { success: false, error: "Application not found" }
     
-    // Attempt to free any expired tasks before we assign one
-    // await releaseExpiredApplications(currentApp.projectId);
-
     let newStatus = "ACCEPTED";
     if (currentApp.status === "FINAL_REVIEW") {
       newStatus = "APPROVED";
     } else if (currentApp.status === "UNDER_REVIEW") {
       newStatus = "FINAL_REVIEW";
     }
+
+    // Security Check: Cannot transition to APPROVED if zero work was submitted/accepted
+    if (newStatus === "APPROVED") {
+      if (!currentApp.project.isTranscriptionProject) {
+        const acceptedRecordings = await prisma.voiceRecording.count({
+          where: {
+            userId: currentApp.userId,
+            sentence: { projectId: currentApp.projectId },
+            status: "ACCEPTED"
+          }
+        });
+        if (acceptedRecordings === 0) {
+          return { success: false, error: "Cannot approve: Freelancer has zero accepted recordings for this project." }
+        }
+      } else {
+        const acceptedTasks = await prisma.transcriptionTask.count({
+          where: {
+            assignedToId: currentApp.userId,
+            projectId: currentApp.projectId,
+            status: { in: ["APPROVED", "APPROVED_BY_QC"] }
+          }
+        });
+        if (acceptedTasks === 0) {
+          return { success: false, error: "Cannot approve: Freelancer has zero approved transcription tasks." }
+        }
+      }
+    }
+
     let speakerCode = currentApp.speakerCode;
 
     // We assign a speaker code as soon as they are ACCEPTED to start working
@@ -509,6 +544,12 @@ export async function approveApplication(applicationId: string) {
       data: { status: newStatus, speakerCode: speakerCode },
       include: { project: true }
     })
+
+    const { createAuditLog } = await import("@/app/actions/audit")
+    await createAuditLog(
+      "APPROVE_APPLICATION",
+      `${adminUser.firstName} ${adminUser.lastName} (${adminUser.role}) transitioned application ${applicationId} for "${application.project.title}" to status ${newStatus}`
+    )
     
     await createNotification(
       application.userId,
@@ -518,14 +559,17 @@ export async function approveApplication(applicationId: string) {
         : `تم قبول طلبك لـ "${application.project.title}". اضغط للبدء!`,
       `/member/projects/${application.projectId}`
     )
+
     const { revalidatePath } = await import("next/cache")
     revalidatePath("/admin/applications")
     revalidatePath(`/member/projects/${application.projectId}`)
-    
-    return { success: true }
+    revalidatePath("/admin")
+    revalidatePath("/member")
+
+    return { success: true, status: newStatus }
   } catch (error: any) {
     console.error("Approve application error:", error)
-    return { success: false, error: "Failed to approve application" }
+    return { success: false, error: error.message || "Failed to approve application" }
   }
 }
 
@@ -599,9 +643,10 @@ export async function bulkApproveApplications(applicationIds: string[]) {
 
 export async function rejectApplication(applicationId: string, reason?: string) {
   try {
-    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: "Not logged in" }
+    const adminUser = await requireRole(["ADMIN", "SUPER_ADMIN", "MODERATOR"])
+    if (adminUser.role === "MODERATOR" && !adminUser.canApproveApplications) {
+      return { success: false, error: "Forbidden: Moderator lacks permission to reject applications" }
+    }
     
     const application = await prisma.application.findUnique({
       where: { id: applicationId },
@@ -623,6 +668,7 @@ export async function rejectApplication(applicationId: string, reason?: string) 
       }
     })
 
+    const { deleteFromCloudinary } = await import("@/lib/cloudinary")
     for (const rec of recordingsToDelete) {
       await deleteFromCloudinary(rec.publicId, rec.fileUrl)
     }
@@ -633,7 +679,7 @@ export async function rejectApplication(applicationId: string, reason?: string) 
       }
     })
 
-    // ✅ Release the sentences assigned to this user so the file is available for someone else
+    // Release the sentences assigned to this user so the file is available for someone else
     await prisma.projectSentence.updateMany({
       where: {
         projectId: application.projectId,
@@ -646,25 +692,33 @@ export async function rejectApplication(applicationId: string, reason?: string) 
     await prisma.application.delete({
       where: { id: applicationId }
     })
-    
-    const content = reason 
-      ? `Your application for "${application.project.title}" was not selected. Reason: ${reason}`
-      : `Your application for "${application.project.title}" was not selected.`
 
-    await createNotification(
-      application.userId,
-      "Application Status Update",
-      content
+    const { createAuditLog } = await import("@/app/actions/audit")
+    await createAuditLog(
+      "REJECT_APPLICATION",
+      `${adminUser.firstName} ${adminUser.lastName} (${adminUser.role}) rejected and deleted application ${applicationId} for project "${application.project.title}". Reason: ${reason || 'N/A'}`
     )
     
+    const content = reason 
+      ? `Your application for "${application.project.title}" has been rejected. Reason: ${reason}`
+      : `Your application for "${application.project.title}" has been rejected.`
+      
+    await createNotification(
+      application.userId,
+      "Application Rejected",
+      content
+    )
+
     const { revalidatePath } = await import("next/cache")
     revalidatePath("/admin/applications")
     revalidatePath(`/member/projects/${application.projectId}`)
-    
+    revalidatePath("/admin")
+    revalidatePath("/member")
+
     return { success: true }
   } catch (error: any) {
     console.error("Reject application error:", error)
-    return { success: false, error: "Failed to reject application" }
+    return { success: false, error: error.message || "Failed to reject application" }
   }
 }
 
@@ -916,24 +970,35 @@ export async function updateProjectAction(projectId: string, formData: FormData)
 
 export async function markApplicationPaid(applicationId: string) {
   try {
-    const supabase = await import("@/lib/supabase").then(m => m.createClientServer())
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: "Not logged in" }
-    
-    // Fetch user details for role validation
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { role: true }
-    })
-    
-    if (dbUser?.role !== "ADMIN" && dbUser?.role !== "SUPER_ADMIN") {
-      return { success: false, error: "Unauthorized" }
-    }
+    const adminUser = await requireRole(["ADMIN", "SUPER_ADMIN"])
 
-    const application = await prisma.application.update({
-      where: { id: applicationId },
-      data: { status: "PAID" },
-      include: { project: true }
+    const application = await prisma.$transaction(async (tx) => {
+      const current = await tx.application.findUnique({
+        where: { id: applicationId },
+        include: { project: true, user: true }
+      })
+
+      if (!current) throw new Error("Application not found")
+      if (current.status !== "APPROVED") {
+        throw new Error(`Cannot mark payout: Application status is currently '${current.status}', but must be 'APPROVED'.`)
+      }
+
+      const updated = await tx.application.update({
+        where: { id: applicationId },
+        data: { status: "PAID" },
+        include: { project: true, user: true }
+      })
+
+      await tx.auditLog.create({
+        data: {
+          userId: adminUser.id,
+          username: `${adminUser.firstName} ${adminUser.lastName}`,
+          action: "MARK_APPLICATION_PAID",
+          details: `Admin ${adminUser.firstName} ${adminUser.lastName} released payout ($${updated.project.price || 0}) for user ${updated.user.email} on project "${updated.project.title}" (Application ID: ${applicationId})`
+        }
+      })
+
+      return updated
     })
 
     await createNotification(
@@ -951,7 +1016,7 @@ export async function markApplicationPaid(applicationId: string) {
     return { success: true }
   } catch (error: any) {
     console.error("Mark application paid error:", error)
-    return { success: false, error: "Failed to mark application as paid" }
+    return { success: false, error: error.message || "Failed to mark application as paid" }
   }
 }
 
@@ -1322,7 +1387,7 @@ export async function deleteApplication(applicationId: string) {
     const supabase = await import("@/lib/supabase").then(m => m.createClientServer()); const { data: { user } } = await supabase.auth.getUser()
     if (!user) return { success: false, error: "Unauthorized" }
     const admin = await prisma.user.findUnique({ where: { id: user.id }, select: { role: true } })
-    if (!admin || !["ADMIN", "SUPERADMIN"].includes(admin.role)) return { success: false, error: "Forbidden" }
+    if (!admin || !["ADMIN", "SUPER_ADMIN"].includes(admin.role)) return { success: false, error: "Forbidden" }
 
     const app = await prisma.application.findUnique({ where: { id: applicationId } })
     if (!app) return { success: false, error: "Application not found" }
@@ -1345,7 +1410,7 @@ export async function extendApplicationTime(applicationId: string) {
       where: { id: user.id },
       select: { role: true }
     })
-    if (!admin || !["ADMIN", "SUPERADMIN"].includes(admin.role)) return { success: false, error: "Forbidden" }
+    if (!admin || !["ADMIN", "SUPER_ADMIN"].includes(admin.role)) return { success: false, error: "Forbidden" }
 
     const app = await prisma.application.findUnique({
       where: { id: applicationId },

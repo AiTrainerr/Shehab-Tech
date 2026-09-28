@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { getCurrentUser } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { DollarSign } from "lucide-react"
 import { AdminPaymentsClient } from "./AdminPaymentsClient"
@@ -7,16 +7,9 @@ import { AdminPaymentsClient } from "./AdminPaymentsClient"
 export const dynamic = 'force-dynamic'
 
 export default async function PaymentsPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true }
-  })
-
-  if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN") {
+  const currentUser = await getCurrentUser()
+  if (!currentUser) redirect("/login")
+  if (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN") {
     redirect("/admin")
   }
 
