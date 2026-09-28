@@ -2,16 +2,12 @@
 
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
-import { cookies } from "next/headers"
+import { requireUser } from "@/lib/auth"
 
 export async function editTranscriptionTask(taskId: string, data: { audioFilePath?: string, speakerCount?: number, status?: string }) {
   try {
-    const cookieStore = await cookies()
-    const userId = cookieStore.get("userId")?.value
-    if (!userId) return { success: false, error: "Unauthorized" }
-
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, canReviewQC: true } })
-    if (user?.role !== "ADMIN" && user?.role !== "SUPER_ADMIN" && !user?.canReviewQC) {
+    const user = await requireUser()
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN" && !user.canReviewQC) {
       return { success: false, error: "Forbidden" }
     }
 
@@ -34,12 +30,8 @@ export async function editTranscriptionTask(taskId: string, data: { audioFilePat
 
 export async function addTranscriptionTask(projectId: string, audioFilePath: string, durationSeconds: number) {
   try {
-    const cookieStore = await cookies()
-    const userId = cookieStore.get("userId")?.value
-    if (!userId) return { success: false, error: "Unauthorized" }
-
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, canReviewQC: true } })
-    if (user?.role !== "ADMIN" && user?.role !== "SUPER_ADMIN" && !user?.canReviewQC) {
+    const user = await requireUser()
+    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN" && !user.canReviewQC) {
       return { success: false, error: "Forbidden" }
     }
 

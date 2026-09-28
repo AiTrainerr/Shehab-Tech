@@ -1,28 +1,21 @@
 "use server"
 
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { requireRole } from "@/lib/auth"
+import { createAuditLog } from "@/app/actions/audit"
 
 export async function assignQA(email: string, projectId: string) {
   try {
-    const cookieStore = await cookies()
-    const userId = cookieStore.get("userId")?.value
-
-    if (!userId) return { success: false, error: "Unauthorized" }
-
-    const currentUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, role: true, moderatorType: true, assignedProjects: { select: { id: true } } }
-    })
-
-    if (!currentUser || (currentUser.role !== "MODERATOR" && currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN")) {
-      return { success: false, error: "Unauthorized" }
-    }
+    const user = await requireRole(["ADMIN", "SUPER_ADMIN", "MODERATOR"])
 
     // Verify the moderator is assigned to this project
-    const hasProject = currentUser.assignedProjects.some(p => p.id === projectId)
-    if (!hasProject && currentUser.role === "MODERATOR") {
-      return { success: false, error: "You are not assigned to this project." }
+    if (user.role === "MODERATOR") {
+      const assigned = await prisma.user.findFirst({
+        where: { id: user.id, assignedProjects: { some: { id: projectId } } }
+      })
+      if (!assigned) {
+        return { success: false, error: "You are not assigned to this project." }
+      }
     }
 
     const targetUser = await prisma.user.findUnique({
@@ -37,20 +30,18 @@ export async function assignQA(email: string, projectId: string) {
     // Determine the correct teamLeaderId for the QA
     // If the caller is an OUTSOURCED Team Leader, the QA must belong to their team
     let expectedTeamLeaderId: string | null = null
-    if (currentUser.role === "MODERATOR") {
-      if (currentUser.moderatorType === "OUTSOURCED") {
-        expectedTeamLeaderId = currentUser.id
+    if (user.role === "MODERATOR") {
+      if (user.moderatorType === "OUTSOURCED") {
+        expectedTeamLeaderId = user.id
       }
     }
 
     // If QA already has a teamLeader, it must match
     if (targetUser.teamLeaderId !== expectedTeamLeaderId) {
-       // Update their teamLeaderId to match the assigning moderator
-       // Or we can just enforce it
-       await prisma.user.update({
-         where: { id: targetUser.id },
-         data: { teamLeaderId: expectedTeamLeaderId }
-       })
+      await prisma.user.update({
+        where: { id: targetUser.id },
+        data: { teamLeaderId: expectedTeamLeaderId }
+      })
     }
 
     // Grant QA permissions
@@ -66,6 +57,11 @@ export async function assignQA(email: string, projectId: string) {
       }
     })
 
+    await createAuditLog(
+      "ASSIGN_QA",
+      `QA role on project ${projectId} granted to user ${targetUser.id} by ${user.role} (${user.id})`
+    )
+
     return { success: true }
   } catch (error: any) {
     console.error("Assign QA Error:", error)
@@ -75,18 +71,16 @@ export async function assignQA(email: string, projectId: string) {
 
 export async function revokeQA(qaId: string, projectId: string) {
   try {
-    const cookieStore = await cookies()
-    const userId = cookieStore.get("userId")?.value
+    const user = await requireRole(["ADMIN", "SUPER_ADMIN", "MODERATOR"])
 
-    if (!userId) return { success: false, error: "Unauthorized" }
-
-    const currentUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true, assignedProjects: { select: { id: true } } }
-    })
-
-    if (!currentUser || (currentUser.role !== "MODERATOR" && currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN")) {
-      return { success: false, error: "Unauthorized" }
+    // Verify the moderator is assigned to this project
+    if (user.role === "MODERATOR") {
+      const assigned = await prisma.user.findFirst({
+        where: { id: user.id, assignedProjects: { some: { id: projectId } } }
+      })
+      if (!assigned) {
+        return { success: false, error: "You are not assigned to this project." }
+      }
     }
 
     const targetQA = await prisma.user.findUnique({
@@ -117,6 +111,11 @@ export async function revokeQA(qaId: string, projectId: string) {
         }
       })
     }
+
+    await createAuditLog(
+      "REVOKE_QA",
+      `QA role on project ${projectId} revoked for user ${qaId} by ${user.role} (${user.id})`
+    )
 
     return { success: true }
   } catch (error: any) {

@@ -6,8 +6,10 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   
-  // if "next" is in param, use it as the redirect URL
-  const next = searchParams.get('next') ?? '/update-password'
+  // if "next" is in param, validate that it is a safe relative URL to prevent Open Redirects
+  const rawNext = searchParams.get('next') ?? '/update-password'
+  const isSafePath = rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.startsWith('/\\')
+  const next = isSafePath ? rawNext : '/update-password'
 
   if (code) {
     const cookieStore = await cookies()

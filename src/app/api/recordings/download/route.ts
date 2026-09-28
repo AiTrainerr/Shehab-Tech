@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { requireApiAuth } from "@/lib/auth"
 import JSZip from "jszip"
 
 function getTransformedCloudinaryUrl(url: string, format: string, sampleRate?: number) {
@@ -36,30 +36,19 @@ export async function GET(request: NextRequest) {
   const projectId = request.nextUrl.searchParams.get("projectId")
   if (!projectId) return NextResponse.json({ error: "Missing projectId" }, { status: 400 })
 
-  const cookieStore = await cookies()
-  const userIdFromCookie = cookieStore.get("userId")?.value
-  if (!userIdFromCookie) return NextResponse.json({ error: "Not logged in" }, { status: 401 })
+  const auth = await requireApiAuth(['ADMIN', 'SUPER_ADMIN', 'QC_REVIEWER', 'MODERATOR'])
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+  const loggedInUser = auth.user
+
+  if (loggedInUser.role === "MODERATOR" && !loggedInUser.canReviewQC) {
+    return NextResponse.json({ error: "Access denied. Only QC-authorized moderators can download recordings." }, { status: 403 })
+  }
+
+  const targetUserId = request.nextUrl.searchParams.get("userId") || loggedInUser.id
 
   try {
-    // Fetch logged in user to check role
-    const loggedInUser = await prisma.user.findUnique({
-      where: { id: userIdFromCookie },
-      select: { role: true, canReviewQC: true }
-    })
-    if (!loggedInUser) return NextResponse.json({ error: "User not found" }, { status: 404 })
-
-    // Only admins and moderators can download - freelancers (MEMBER) cannot
-    const isAllowed = 
-      loggedInUser.role === "ADMIN" || 
-      loggedInUser.role === "SUPER_ADMIN" || 
-      loggedInUser.role === "QC_REVIEWER" || 
-      (loggedInUser.role === "MODERATOR" && loggedInUser.canReviewQC);
-
-    if (!isAllowed) {
-      return NextResponse.json({ error: "Access denied. Only admins can download recordings." }, { status: 403 })
-    }
-
-    const targetUserId = request.nextUrl.searchParams.get("userId") || userIdFromCookie
 
 
     // Get candidate details

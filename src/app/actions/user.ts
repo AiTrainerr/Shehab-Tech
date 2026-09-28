@@ -4,17 +4,13 @@ import { prisma } from "@/lib/prisma"
 import { createClientServer } from "@/lib/supabase"
 import { uploadToSupabase } from "@/lib/storage"
 import { revalidatePath } from "next/cache"
+import { requireUser, requireRole } from "@/lib/auth"
+import { createAuditLog } from "@/app/actions/audit"
 
 export async function updateProfile(formData: FormData) {
   try {
-    const supabase = await createClientServer()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    const cookieStore = await (await import("next/headers")).cookies()
-    const fallbackUserId = cookieStore.get("userId")?.value
-    
-    const currentUserId = user?.id || fallbackUserId
-    if (!currentUserId) return { success: false, error: "Not authenticated" }
+    const currentUser = await requireUser()
+    const currentUserId = currentUser.id
 
     const firstName = formData.get("firstName") as string
     const middleName = formData.get("middleName") as string | null
@@ -104,14 +100,8 @@ export async function updateProfile(formData: FormData) {
 
 export async function updateAvatar(formData: FormData) {
   try {
-    const supabase = await createClientServer()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    const cookieStore = await (await import("next/headers")).cookies()
-    const fallbackUserId = cookieStore.get("userId")?.value
-    
-    const currentUserId = user?.id || fallbackUserId
-    if (!currentUserId) return { success: false, error: "Not authenticated" }
+    const currentUser = await requireUser()
+    const currentUserId = currentUser.id
 
     const imageFile = formData.get("avatar") as File
     const fullImageFile = formData.get("fullAvatar") as File | null
@@ -235,20 +225,8 @@ export async function removeUserLanguage(id: string) {
 
 export async function deleteUserAdmin(targetUserId: string) {
   try {
+    const adminUser = await requireRole(["ADMIN", "SUPER_ADMIN"])
     const supabase = await createClientServer()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { success: false, error: "Not authenticated" }
-    
-    const cookieStore = await (await import("next/headers")).cookies()
-    const currentUserId = user?.id || cookieStore.get("userId")?.value
-
-    const adminCheck = await prisma.user.findUnique({
-      where: { id: currentUserId },
-      select: { role: true }
-    })
-    if (adminCheck?.role !== "ADMIN" && adminCheck?.role !== "SUPER_ADMIN") {
-      return { success: false, error: "Unauthorized" }
-    }
 
     // Since many relations are not onDelete: Cascade in prisma schema, we should delete them first manually,
     // or rely on Prisma cascade if configured. 
@@ -272,6 +250,11 @@ export async function deleteUserAdmin(targetUserId: string) {
     
     // Finally delete the user
     await prisma.user.delete({ where: { id: targetUserId } })
+
+    await createAuditLog(
+      "DELETE_USER",
+      `User ${targetUserId} deleted by ${adminUser.role} (${adminUser.id})`
+    )
 
     revalidatePath("/admin/users")
     return { success: true }

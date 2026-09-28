@@ -1,25 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { uploadToSupabase } from "@/lib/storage"
-import { cookies } from "next/headers"
-import { prisma } from "@/lib/prisma"
+import { requireApiAuth } from "@/lib/auth"
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const userId = cookieStore.get("userId")?.value
-    
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    // Verify user is ADMIN
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true }
-    })
-
-    if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    const auth = await requireApiAuth(["ADMIN", "SUPER_ADMIN"])
+    if ("errorResponse" in auth) {
+      return auth.errorResponse
     }
 
     const formData = await req.formData()

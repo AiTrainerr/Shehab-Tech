@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { requireApiAuth } from "@/lib/auth"
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
     const { taskId } = await params;
-    const cookieStore = await cookies()
-    const userId = cookieStore.get("userId")?.value
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const auth = await requireApiAuth()
+    if ("errorResponse" in auth) {
+      return auth.errorResponse
+    }
+    const userId = auth.user.id
 
     const task = await prisma.transcriptionTask.findUnique({
       where: { id: taskId },

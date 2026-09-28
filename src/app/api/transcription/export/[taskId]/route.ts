@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { requireApiAuth } from "@/lib/auth"
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, BorderStyle, WidthType } from "docx"
 import ExcelJS from "exceljs"
 
@@ -16,16 +16,13 @@ function formatTime(seconds: number) {
 export async function GET(req: NextRequest, { params }: { params: Promise<{ taskId: string }> }) {
   try {
     const { taskId } = await params;
-    const cookieStore = await cookies()
-    const userId = cookieStore.get("userId")?.value
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const auth = await requireApiAuth()
+    if ("errorResponse" in auth) {
+      return auth.errorResponse
+    }
+    const currentUser = auth.user
 
-    const currentUser = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true, canReviewQC: true }
-    })
-
-    if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN" && !currentUser?.canReviewQC) {
+    if (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN" && !currentUser.canReviewQC) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
