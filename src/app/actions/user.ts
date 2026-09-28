@@ -6,6 +6,7 @@ import { uploadToSupabase } from "@/lib/storage"
 import { revalidatePath } from "next/cache"
 import { requireUser, requireRole } from "@/lib/auth"
 import { createAuditLog } from "@/app/actions/audit"
+import { getAdminClient } from "@/lib/supabase-admin"
 
 export async function updateProfile(formData: FormData) {
   try {
@@ -226,15 +227,16 @@ export async function removeUserLanguage(id: string) {
 export async function deleteUserAdmin(targetUserId: string) {
   try {
     const adminUser = await requireRole(["ADMIN", "SUPER_ADMIN"])
-    const supabase = await createClientServer()
+    const adminClient = getAdminClient()
 
-    // Since many relations are not onDelete: Cascade in prisma schema, we should delete them first manually,
-    // or rely on Prisma cascade if configured. 
-    // Usually auth admin API is needed to delete from Supabase Auth as well.
-    const { error: authError } = await supabase.auth.admin.deleteUser(targetUserId)
-    if (authError && !authError.message.includes("User not found")) {
-       console.error("Supabase Auth Delete Error:", authError)
-       // We'll continue to delete from DB even if auth fails, to ensure DB is clean.
+    // Delete user from Supabase Auth using the service_role key
+    if (adminClient) {
+      const { error: authError } = await adminClient.auth.admin.deleteUser(targetUserId)
+      if (authError && !authError.message.includes("User not found")) {
+        console.error("Supabase Auth Delete Error:", authError)
+      }
+    } else {
+      console.warn("SUPABASE_SERVICE_ROLE_KEY not configured: Skipping Supabase Auth user deletion.")
     }
 
     // Delete VoiceRecordings first
