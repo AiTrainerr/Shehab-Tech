@@ -1,23 +1,16 @@
 import * as React from "react"
 import { prisma } from "@/lib/prisma"
 import { AdminSidebar } from "@/components/admin-sidebar"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true, isApproved: true, canReviewQC: true, canApproveApplications: true, moderatorType: true }
-  })
+  const currentUser = await getCurrentUser()
 
   if (!currentUser) {
-    redirect("/api/auth/logout?reason=deleted")
+    redirect("/login")
   }
 
   if (!["ADMIN", "SUPER_ADMIN", "MODERATOR"].includes(currentUser.role)) {
@@ -25,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   if (currentUser.role === "MODERATOR" && !currentUser.isApproved) {
-    redirect("/api/auth/logout?reason=deleted")
+    redirect("/api/auth/logout?reason=pending_approval")
   }
 
   const pendingVerifications = await prisma.user.count({ where: { verificationStatus: "PENDING" } })

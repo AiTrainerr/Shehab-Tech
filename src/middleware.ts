@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
   // ────────────────────────────────────────────────────────────────────────
 
   // Protect dashboard routes — no Supabase session at all
-  if (pathname.startsWith('/member') && !user) {
+  if ((pathname.startsWith('/member') || pathname.startsWith('/admin')) && !user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
