@@ -4,23 +4,28 @@ import { prisma } from "@/lib/prisma"
 import { Users, FileText, Activity, AlertCircle, Plus, BookOpen, Briefcase, DollarSign, MessageSquare, Shield } from "lucide-react"
 import { CopyReferralLink } from "@/components/copy-referral-link"
 
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminDashboard() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const currentUser = await getCurrentUser()
+  if (!currentUser) {
+    redirect("/login")
+    return null
+  }
+  const userId = currentUser.id
 
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true, assignedProjects: { select: { id: true } } }
-  })
-
-  const isModerator = currentUser?.role === "MODERATOR"
-  const assignedProjectIds = currentUser?.assignedProjects?.map(p => p.id) || []
+  const isModerator = currentUser.role === "MODERATOR"
+  let assignedProjectIds: string[] = []
+  if (isModerator) {
+    const userWithProjects = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+      select: { assignedProjects: { select: { id: true } } }
+    })
+    assignedProjectIds = userWithProjects?.assignedProjects?.map(p => p.id) || []
+  }
 
   let totalUsers = 0
   let totalProjects = 0

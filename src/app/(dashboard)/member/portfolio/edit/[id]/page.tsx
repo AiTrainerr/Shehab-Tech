@@ -1,19 +1,18 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Image as ImageIcon } from "lucide-react"
 import EditPortfolioForm from "./EditPortfolioForm"
+import { getCurrentUser } from "@/lib/auth"
 
 export default async function EditPortfolioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-
-  if (!userId) {
+  const user = await getCurrentUser()
+  if (!user) {
     redirect("/login")
   }
+  const userId = user.id
 
   const portfolio = await prisma.portfolio.findUnique({
     where: { id }

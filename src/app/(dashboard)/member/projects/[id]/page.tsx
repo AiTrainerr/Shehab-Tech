@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { getCurrentUser } from "@/lib/auth"
 import Link from "next/link"
 import { redirect, notFound } from "next/navigation"
 import { ArrowLeft, MapPin, Users, Clock, AlertCircle, DollarSign, Globe, ArrowRight, Mic, Lock, CheckCircle } from "lucide-react"
@@ -13,9 +13,9 @@ import { ApplicationStepper } from "@/components/application-stepper"
 export const dynamic = 'force-dynamic';
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const authUser = await getCurrentUser()
+  if (!authUser) redirect("/login")
+  const userId = authUser.id
 
   // Get current user role
   const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, teamRole: true, teamLeaderId: true } })

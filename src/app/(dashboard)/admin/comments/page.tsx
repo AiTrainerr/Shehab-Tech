@@ -3,23 +3,27 @@ import { prisma } from "@/lib/prisma"
 import { CommentsAdminClient } from "./CommentsAdminClient"
 import { MessageSquare } from "lucide-react"
 
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
 export default async function AdminCommentsPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const currentUser = await getCurrentUser()
+  if (!currentUser) {
+    redirect("/login")
+    return null
+  }
 
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true, assignedProjects: { select: { id: true } } }
-  })
-
-  const isModerator = currentUser?.role === "MODERATOR"
-  const assignedProjectIds = currentUser?.assignedProjects.map(p => p.id) || []
+  const isModerator = currentUser.role === "MODERATOR"
+  let assignedProjectIds: string[] = []
+  if (isModerator) {
+    const userWithProjects = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+      select: { assignedProjects: { select: { id: true } } }
+    })
+    assignedProjectIds = userWithProjects?.assignedProjects.map(p => p.id) || []
+  }
 
   const whereClause: any = { parentId: null }
   if (isModerator) {

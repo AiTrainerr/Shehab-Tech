@@ -1,19 +1,18 @@
 import * as React from "react"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { getUserLevel, getUserBadges, getLevelProgress, getNextLevel, LEVELS } from "@/lib/gamification"
 import { LevelCard, BadgesGrid } from "@/components/achievement-badge"
 import { ProgressBar } from "@/components/progress-bar"
 import { Trophy, Star, CheckCircle, Target } from "lucide-react"
+import { getCurrentUser } from "@/lib/auth"
 
 export default async function AchievementsPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const authUser = await getCurrentUser()
+  if (!authUser) redirect("/login")
 
   const user = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: authUser.id },
     select: { firstName: true, completedCount: true, rating: true, verificationStatus: true }
   })
   if (!user) redirect("/api/auth/logout?reason=deleted")

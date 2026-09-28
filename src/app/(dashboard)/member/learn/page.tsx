@@ -1,13 +1,12 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { ArrowLeft, BookOpen, ExternalLink, Search } from "lucide-react"
+import { getCurrentUser } from "@/lib/auth"
 
 export default async function MemberLearnPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const user = await getCurrentUser()
+  if (!user) redirect("/login")
 
   const resources = await prisma.learningResource.findMany({
     orderBy: { createdAt: "desc" }

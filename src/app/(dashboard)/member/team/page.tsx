@@ -1,13 +1,13 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { getCurrentUser } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { Users, Link as LinkIcon, Download, ClipboardList, Clock, RefreshCw } from "lucide-react"
 import { TeamActions } from "./TeamActions"
 
 export default async function TeamDashboardPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const authUser = await getCurrentUser()
+  if (!authUser) redirect("/login")
+  const userId = authUser.id
 
   const currentUser = await prisma.user.findUnique({
     where: { id: userId },

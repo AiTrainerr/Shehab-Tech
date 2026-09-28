@@ -1,8 +1,8 @@
 import * as React from "react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUser } from "@/lib/auth"
 import { Briefcase, CheckCircle, DollarSign, Star, Bell, ArrowRight, BookOpen, Shield, BadgeCheck, Trophy, Mic, Lock, FileCheck, X, XCircle, AlertCircle } from "lucide-react"
 import { MemberDashboardClient } from "@/components/member-dashboard-client"
 import { getUserLevel, getUserBadges, getLevelProgress, getNextLevel } from "@/lib/gamification"
@@ -28,10 +28,9 @@ function getSentencesTarget(project: any): number | null {
 }
 
 export default async function MemberDashboard() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-
-  if (!userId) redirect("/login")
+  const authUser = await getCurrentUser()
+  if (!authUser) redirect("/login")
+  const userId = authUser.id
 
   const [user, paidApps, virtualProjects] = await Promise.all([
     prisma.user.findUnique({

@@ -1,18 +1,18 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
 import Link from "next/link"
 import { redirect, notFound } from "next/navigation"
 import { ArrowLeft, Mic } from "lucide-react"
 import { VoiceRecorder } from "@/components/voice-recorder"
+import { getCurrentUser } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function ProjectRecordPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const authUser = await getCurrentUser()
+  if (!authUser) redirect("/login")
+  const userId = authUser.id
 
   // Fetch project details
   const project = await prisma.project.findUnique({

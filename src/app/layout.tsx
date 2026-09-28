@@ -12,8 +12,7 @@ import { PushNotificationManager } from "@/components/push-notification-manager"
 import { SplashScreen } from "@/components/splash-screen";
 import { LanguageProvider } from "@/lib/i18n/context";
 import { Locale } from "@/lib/i18n/types";
-import { createClientServer } from "@/lib/supabase";
-import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 
 export const viewport: Viewport = {
   themeColor: "#4f46e5",
@@ -68,44 +67,7 @@ export default async function RootLayout({
       locale = "en";
     }
 
-    const cookieUserId = cookieStore.get("userId")?.value;
-
-    if (cookieUserId) {
-      currentUser = await prisma.user.findUnique({
-        where: { id: cookieUserId },
-        select: { 
-          id: true, 
-          role: true, 
-          avatarUrl: true, 
-          verificationStatus: true, 
-          firstName: true, 
-          lastName: true,
-          canReviewQC: true,
-          canApproveApplications: true
-        }
-      });
-    }
-
-    if (!currentUser) {
-      const supabase = await createClientServer();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        currentUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { 
-            id: true, 
-            role: true, 
-            avatarUrl: true, 
-            verificationStatus: true, 
-            firstName: true, 
-            lastName: true,
-            canReviewQC: true,
-            canApproveApplications: true
-          }
-        });
-      }
-    }
+    currentUser = await getCurrentUser();
   } catch (e) {
     console.error("Layout auth error:", e);
   }

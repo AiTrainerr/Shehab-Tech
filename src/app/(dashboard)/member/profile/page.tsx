@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { getCurrentUser } from "@/lib/auth"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { 
@@ -21,10 +21,9 @@ const countryDialCodes: Record<string, string> = {
 }
 
 export default async function ProfilePage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-
-  if (!userId) redirect("/login")
+  const authUser = await getCurrentUser()
+  if (!authUser) redirect("/login")
+  const userId = authUser.id
 
   const user = await prisma.user.findUnique({
     where: { id: userId },

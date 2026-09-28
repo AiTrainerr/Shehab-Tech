@@ -1,6 +1,6 @@
 import * as React from "react"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
+import { getCurrentUser } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { TranscriptionEditor, Segment } from "@/components/transcription-editor"
 import { ArrowLeft, Clock, FileAudio, LayoutList, CheckCircle2, AlertCircle, Headphones, ArrowRight } from "lucide-react"
@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic"
 
 export default async function FreelancerTranscriptionPage({ params }: { params: Promise<{ taskId: string }> }) {
   const { taskId } = await params;
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const authUser = await getCurrentUser()
+  if (!authUser) redirect("/login")
+  const userId = authUser.id
 
   // Fetch task and verify ownership
   const task = await prisma.transcriptionTask.findUnique({

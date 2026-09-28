@@ -1,20 +1,19 @@
 import * as React from "react"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import Link from "next/link"
 import { Headphones } from "lucide-react"
 import { AdminTranscriptionClient } from "./AdminTranscriptionClient"
+import { getCurrentUser } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
 export default async function AdminTranscriptionQueuePage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const user = await getCurrentUser()
+  if (!user) redirect("/login")
 
   const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: user.id },
     select: { id: true, role: true, assignedProjects: { select: { id: true } }, canReviewQC: true, moderatorType: true, teamLeaderId: true }
   })
 

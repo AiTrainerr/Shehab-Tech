@@ -3,23 +3,21 @@ import { prisma } from "@/lib/prisma"
 import { GrantPermissionsForm } from "@/components/grant-permissions-form"
 import { AdminSupervisorsClient } from "@/components/admin-supervisors-client"
 import { Shield } from "lucide-react"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic'
 
 export default async function SupervisorsPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const currentUser = await getCurrentUser()
+  if (!currentUser) {
+    redirect("/login")
+    return null
+  }
 
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true }
-  })
-
-  if (currentUser?.role === "MODERATOR") {
+  if (currentUser.role === "MODERATOR") {
     redirect("/admin")
+    return null
   }
 
   const [allActiveProjects, modsList, reviewedCounts] = await Promise.all([

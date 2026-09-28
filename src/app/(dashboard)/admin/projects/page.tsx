@@ -4,23 +4,29 @@ import { FileText, Plus, Users, Clock, Edit2 } from "lucide-react"
 import { prisma } from "@/lib/prisma"
 import { AdminProjectsClient } from "./AdminProjectsClient"
 
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminProjectsPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const currentUser = await getCurrentUser()
+  if (!currentUser) {
+    redirect("/login")
+    return null
+  }
 
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true, assignedProjects: { select: { id: true } } }
-  })
+  let assignedProjectIds: string[] = []
+  if (currentUser.role === "MODERATOR") {
+    const userWithProjects = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+      select: { assignedProjects: { select: { id: true } } }
+    })
+    assignedProjectIds = userWithProjects?.assignedProjects.map(p => p.id) || []
+  }
 
-  const whereClause = currentUser?.role === "MODERATOR"
-    ? { id: { in: currentUser.assignedProjects.length > 0 ? currentUser.assignedProjects.map(p => p.id) : ["none"] } }
+  const whereClause = currentUser.role === "MODERATOR"
+    ? { id: { in: assignedProjectIds.length > 0 ? assignedProjectIds : ["none"] } }
     : {}
 
   const projects = await prisma.project.findMany({

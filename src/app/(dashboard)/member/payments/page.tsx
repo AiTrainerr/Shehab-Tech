@@ -1,15 +1,15 @@
 import * as React from "react"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { DollarSign, CheckCircle, Clock, TrendingUp, Wallet } from "lucide-react"
+import { getCurrentUser } from "@/lib/auth"
 
 export const dynamic = "force-dynamic"
 
 export default async function MemberPaymentsPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const user = await getCurrentUser()
+  if (!user) redirect("/login")
+  const userId = user.id
 
   const applications = await prisma.application.findMany({
     where: {

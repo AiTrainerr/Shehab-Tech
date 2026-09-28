@@ -1,7 +1,7 @@
 import * as React from "react"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
+import { getCurrentUser } from "@/lib/auth"
 import { UsersGrowthChart, ProjectStatusPieChart, EarningsBarChart, RecordingQCChart } from "@/components/admin-analytics-chart"
 import { Users, TrendingUp, DollarSign, Briefcase, BarChart3, Target, Award, List } from "lucide-react"
 import Link from "next/link"
@@ -25,15 +25,9 @@ function getLastNMonths(n: number) {
 }
 
 export default async function AdminAnalyticsPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true }
-  })
-  if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN") {
+  const currentUser = await getCurrentUser()
+  if (!currentUser) redirect("/login")
+  if (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN") {
     redirect("/admin")
   }
 

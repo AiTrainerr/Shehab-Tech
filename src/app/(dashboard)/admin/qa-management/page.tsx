@@ -2,23 +2,30 @@ import * as React from "react"
 import { prisma } from "@/lib/prisma"
 import { ShieldCheck } from "lucide-react"
 import { AdminQAClient } from "./AdminQAClient"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/auth"
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminQAManagementPage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const user = await getCurrentUser()
+  if (!user) {
+    redirect("/login")
+    return null
+  }
+
+  if (user.role !== "MODERATOR" && user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
+    redirect("/admin")
+    return null
+  }
 
   const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
+    where: { id: user.id },
     select: { id: true, role: true, moderatorType: true, assignedProjects: { select: { id: true, title: true } } }
   })
-
-  if (!currentUser || (currentUser.role !== "MODERATOR" && currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN")) {
+  if (!currentUser) {
     redirect("/admin")
+    return null
   }
 
   let qaWhereClause: any = { role: "MODERATOR", moderatorType: "QA" }

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
+import { getCurrentUser } from "@/lib/auth"
 import Link from "next/link"
 import { ArrowLeft, Briefcase } from "lucide-react"
 import { MemberProjectsClient } from "./MemberProjectsClient"
@@ -14,9 +14,9 @@ export default async function MemberProjectsPage({
   const { filter } = await searchParams
   const isPast = filter === "past"
 
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const authUser = await getCurrentUser()
+  if (!authUser) redirect("/login")
+  const userId = authUser.id
 
   let projects: any[] = []
   try {

@@ -1,17 +1,16 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, User } from "lucide-react"
 import EditProfileForm from "./EditProfileForm"
+import { getCurrentUser } from "@/lib/auth"
 
 export default async function EditProfilePage() {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-
-  if (!userId) {
+  const authUser = await getCurrentUser()
+  if (!authUser) {
     redirect("/login")
   }
+  const userId = authUser.id
 
   const user = await prisma.user.findUnique({
     where: { id: userId },

@@ -1,6 +1,5 @@
 import * as React from "react"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
 import { prisma } from "@/lib/prisma"
 import { TranscriptionEditor, Segment } from "@/components/transcription-editor"
 import { ArrowLeft, Headphones, CheckCircle2, AlertCircle, ArrowRight, ShieldCheck } from "lucide-react"
@@ -8,20 +7,15 @@ import { TranscriptionQAClientWrapper } from "./TranscriptionQAClientWrapper"
 import { AdminTranscriptionActions } from "./AdminTranscriptionActions"
 import Link from "next/link"
 
+import { getCurrentUser } from "@/lib/auth"
+
 export const dynamic = "force-dynamic"
 
 export default async function AdminQATranscriptionPage({ params }: { params: Promise<{ taskId: string }> }) {
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
+  const currentUser = await getCurrentUser()
+  if (!currentUser) redirect("/login")
 
-  // Check admin/moderator
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true, canReviewQC: true }
-  })
-
-  if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN" && !currentUser?.canReviewQC) {
+  if (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN" && !currentUser.canReviewQC) {
     redirect("/admin")
   }
 

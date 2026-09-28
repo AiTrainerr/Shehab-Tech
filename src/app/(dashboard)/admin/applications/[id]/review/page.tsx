@@ -1,26 +1,20 @@
 import { prisma } from "@/lib/prisma"
-import { cookies } from "next/headers"
 import { redirect, notFound } from "next/navigation"
 import { ArrowLeft, Mic, User, FileText } from "lucide-react"
 import Link from "next/link"
 import { ReviewClient } from "./ReviewClient"
+import { getCurrentUser } from "@/lib/auth"
 
 export default async function AdminReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const cookieStore = await cookies()
-  const userId = cookieStore.get("userId")?.value
-  if (!userId) redirect("/login")
-
-  const currentUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { role: true, canReviewQC: true }
-  })
+  const currentUser = await getCurrentUser()
+  if (!currentUser) redirect("/login")
   
-  if (currentUser?.role === "MODERATOR" && !currentUser.canReviewQC) {
+  if (currentUser.role === "MODERATOR" && !currentUser.canReviewQC) {
     redirect("/admin")
   }
   
-  if (currentUser?.role !== "ADMIN" && currentUser?.role !== "SUPER_ADMIN" && currentUser?.role !== "MODERATOR") {
+  if (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN" && currentUser.role !== "MODERATOR") {
     redirect("/member")
   }
 
